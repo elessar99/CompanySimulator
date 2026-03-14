@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ff3d5cac42454b4096f1cb49716ba26, type: 3}
   m_Name: SectorDefinition
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Sectors.Runtime.Definitions.SectorDefinition
-  id: 
-  displayName: 
+  id: game_dev
+  displayName: Game Devoloper
   revenueMultiplier: 1
   durationMultiplier: 1
   competitionSensitivity: 1
