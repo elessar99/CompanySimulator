@@ -170,14 +170,15 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
 
         private void HandleProjectExecuted(ProjectExecutionDefinition executionDefinition, ProjectEconomyResult result)
         {
-            RegisterCompletedProject(new ProjectExecutionHistoryEntry(executionDefinition, result));
+            RegisterCompletedProject(new ProjectExecutionHistoryEntry(executionDefinition, executionDefinition.DisplayName, executionDefinition.ProjectType, result));
             DataChanged?.Invoke();
         }
 
         private void RegisterCompletedProject(ProjectExecutionHistoryEntry historyEntry)
         {
-            var executionDefinition = historyEntry.ExecutionDefinition;
-            var sector = executionDefinition != null && executionDefinition.ProjectType != null ? executionDefinition.ProjectType.Sector : null;
+            var executionDefinition = historyEntry.SourceDefinition;
+            var projectType = historyEntry.ProjectType;
+            var sector = projectType != null ? projectType.Sector : null;
             if (sector == null)
             {
                 return;

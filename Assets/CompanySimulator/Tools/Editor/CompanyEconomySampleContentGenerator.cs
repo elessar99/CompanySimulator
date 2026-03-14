@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
@@ -12,25 +13,61 @@ namespace CompanySimulator.Tools.Editor
     public static class CompanyEconomySampleContentGenerator
     {
         private const string RootFolder = "Assets/CompanySimulator/Content/Definitions/Generated/Economy";
+        private const string RolesFolder = RootFolder + "/Roles";
+        private const string InvestmentsFolder = RootFolder + "/Investments";
+        private const string SectorsFolder = RootFolder + "/Sectors";
+        private const string ProjectsFolder = RootFolder + "/Projects";
+        private const string ExecutionsFolder = RootFolder + "/Executions";
 
         [MenuItem("Company Simulator/Generate/Sample Economy Content")]
         public static void Generate()
         {
             EnsureFolder(RootFolder);
+            EnsureFolder(RolesFolder);
+            EnsureFolder(InvestmentsFolder);
+            EnsureFolder(SectorsFolder);
+            EnsureFolder(ProjectsFolder);
+            EnsureFolder(ExecutionsFolder);
 
+            var budgetCurve = CreateBudgetCurve();
+            var balance = CreateBalanceDefinition();
+            var roleAssets = CreateRoles();
+            var investmentAssets = CreateInvestments(budgetCurve);
+            var sectorAssets = CreateSectors(roleAssets, investmentAssets);
+            UpdateRoleAllowedSectors(roleAssets, sectorAssets);
+            var executionAssets = CreateProjectsAndExecutions(roleAssets, investmentAssets, sectorAssets);
+            CreateSectorCatalog(sectorAssets, executionAssets);
+            CreateEconomySetup(balance);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            EditorUtility.DisplayDialog(
+                "Company Simulator",
+                $"Tüm temel sektör, rol ve yatırım içerikleri şu klasöre oluşturuldu:\n{RootFolder}\n\nBoş bir objeye EconomyManager, SectorManager ve SectorPanelUI ekleyip assetleri bağlayabilirsin.",
+                "Tamam");
+        }
+
+        private static BudgetResponseCurveDefinition CreateBudgetCurve()
+        {
             var budgetCurve = CreateOrLoadAsset<BudgetResponseCurveDefinition>($"{RootFolder}/BudgetCurve_Default.asset");
-            SetIdentity(budgetCurve, "budget_curve_default", "Default Budget Curve");
+            SetIdentity(budgetCurve, "budget_curve_default", "Varsayılan Bütçe Eğrisi");
             SetInt(budgetCurve, "referenceBudget", 100000);
             SetCurve(
                 budgetCurve,
                 "multiplierCurve",
                 new AnimationCurve(
                     new Keyframe(0f, 0.1f),
+                    new Keyframe(0.5f, 0.55f),
                     new Keyframe(1f, 1f),
-                    new Keyframe(2f, 2f)));
+                    new Keyframe(2f, 1.9f)));
+            return budgetCurve;
+        }
 
+        private static EconomyBalanceDefinition CreateBalanceDefinition()
+        {
             var balance = CreateOrLoadAsset<EconomyBalanceDefinition>($"{RootFolder}/EconomyBalance_Default.asset");
-            SetIdentity(balance, "economy_balance_default", "Default Economy Balance");
+            SetIdentity(balance, "economy_balance_default", "Varsayılan Ekonomi Dengesi");
             SetFloat(balance, "qualityNormalizationPoint", 100f);
             SetFloat(balance, "employeeProfitImpact", 0.35f);
             SetFloat(balance, "employeeSuccessImpact", 0.5f);
@@ -39,118 +76,322 @@ namespace CompanySimulator.Tools.Editor
             SetFloat(balance, "competitionImpact", 1f);
             SetFloat(balance, "minimumCompetitionMultiplier", 0.25f);
             SetFloat(balance, "minimumSuccessScore", 0.1f);
-
-            var programmer = CreateOrLoadAsset<EmployeeRoleDefinition>($"{RootFolder}/Role_Programmer.asset");
-            SetIdentity(programmer, "role_programmer", "Programmer");
-            SetInt(programmer, "baseDailySalary", 180);
-            SetFloat(programmer, "qualityWeight", 1.15f);
-            SetFloat(programmer, "profitWeight", 1.1f);
-            SetBool(programmer, "requiresOffice", true);
-
-            var designer = CreateOrLoadAsset<EmployeeRoleDefinition>($"{RootFolder}/Role_GraphicDesigner.asset");
-            SetIdentity(designer, "role_graphic_designer", "Graphic Designer");
-            SetInt(designer, "baseDailySalary", 160);
-            SetFloat(designer, "qualityWeight", 1.2f);
-            SetFloat(designer, "profitWeight", 0.95f);
-            SetBool(designer, "requiresOffice", true);
-
-            var sector = CreateOrLoadAsset<SectorDefinition>($"{RootFolder}/Sector_GameDevelopment.asset");
-            SetIdentity(sector, "sector_game_development", "Game Development");
-            SetFloat(sector, "revenueMultiplier", 1.25f);
-            SetFloat(sector, "durationMultiplier", 1f);
-            SetFloat(sector, "competitionSensitivity", 1f);
-            SetFloat(sector, "successToRevenueWeight", 0.65f);
-
-            var marketing = CreateOrLoadAsset<InvestmentTypeDefinition>($"{RootFolder}/Investment_Marketing.asset");
-            SetIdentity(marketing, "investment_marketing", "Marketing");
-            SetObjectReference(marketing, "budgetResponseCurve", budgetCurve);
-            SetFloat(marketing, "profitWeight", 1.2f);
-            SetFloat(marketing, "successWeight", 0.85f);
-            SetInt(marketing, "recommendedBudget", 100000);
-
-            var production = CreateOrLoadAsset<InvestmentTypeDefinition>($"{RootFolder}/Investment_ProductionQuality.asset");
-            SetIdentity(production, "investment_production_quality", "Production Quality");
-            SetObjectReference(production, "budgetResponseCurve", budgetCurve);
-            SetFloat(production, "profitWeight", 0.9f);
-            SetFloat(production, "successWeight", 1.3f);
-            SetInt(production, "recommendedBudget", 120000);
-
-            var project = CreateOrLoadAsset<ProjectTypeDefinition>($"{RootFolder}/Project_IndieGame.asset");
-            SetIdentity(project, "project_indie_game", "Indie Game Project");
-            SetObjectReference(project, "sector", sector);
-            SetInt(project, "baseRevenue", 300000);
-            SetInt(project, "fixedCost", 25000);
-            SetInt(project, "baseDurationDays", 30);
-            SetFloat(project, "baseSuccessScore", 1f);
-            SetFloat(project, "demandMultiplier", 1f);
-            SetObjectReferenceArray(project, "preferredRoles", programmer, designer);
-            SetObjectReferenceArray(project, "recommendedInvestments", marketing, production);
-
-            var execution = CreateOrLoadAsset<ProjectExecutionDefinition>($"{RootFolder}/Execution_FirstGame.asset");
-            SetIdentity(execution, "execution_first_game", "First Game Execution");
-            SetObjectReference(execution, "projectType", project);
-            SetFloat(execution, "marketDemandMultiplier", 1f);
-            SetFloat(execution, "competitorPressure", 0.15f);
-            SetEmployeeAssignments(execution);
-            SetInvestmentAllocations(execution, marketing, production);
-
-            // Sektör ekranı için kullanılacak temel katalog burada oluşturulur.
-            var sectorCatalog = CreateOrLoadAsset<SectorCatalogDefinition>($"{RootFolder}/SectorCatalog_Default.asset");
-            SetIdentity(sectorCatalog, "sector_catalog_default", "Default Sector Catalog");
-            SetObjectReferenceArray(sectorCatalog, "sectors", sector);
-            SetObjectReferenceArray(sectorCatalog, "projects", execution);
-
-            var setup = CreateOrLoadAsset<EconomySetupDefinition>($"{RootFolder}/EconomySetup_Default.asset");
-            SetIdentity(setup, "economy_setup_default", "Default Economy Setup");
-            SetObjectReference(setup, "balanceDefinition", balance);
-            SetInt(setup, "startingCapital", 500000);
-            SetObjectReferenceArray(setup, "startupProjects", execution);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            EditorUtility.DisplayDialog(
-                "Company Simulator",
-                $"Örnek ekonomi ve sektör içerikleri şu klasöre oluşturuldu:\n{RootFolder}\n\nBoş bir objeye EconomyManager, SectorManager ve SectorPanelUI ekleyip ilgili assetleri bağlayabilirsin.",
-                "Tamam");
+            return balance;
         }
 
-        private static void SetEmployeeAssignments(ProjectExecutionDefinition execution)
+        private static Dictionary<string, EmployeeRoleDefinition> CreateRoles()
+        {
+            var roles = new[]
+            {
+                new RoleSeed("yazilimci", "Yazılımcı", 220, 1.15f, 1.1f, true, 3),
+                new RoleSeed("grafiker", "Grafiker", 180, 1.1f, 0.95f, true, 3),
+                new RoleSeed("ses_sanatcisi", "Ses Sanatçısı", 190, 1.2f, 1f, false, 2),
+                new RoleSeed("yonetmen", "Yönetmen", 260, 1.3f, 1.1f, false, 2),
+                new RoleSeed("yazar", "Yazar", 170, 1.1f, 1.05f, true, 3),
+                new RoleSeed("oyuncu", "Oyuncu", 210, 1.15f, 1f, false, 2),
+                new RoleSeed("asci", "Aşçı", 160, 1.05f, 1.1f, false, 2),
+                new RoleSeed("personel", "Personel", 110, 0.9f, 0.9f, false, 4),
+                new RoleSeed("editor", "Editör", 175, 1.1f, 1f, true, 3),
+                new RoleSeed("sunucu", "Sunucu", 190, 1.05f, 1f, false, 2),
+                new RoleSeed("ziraat_muhendisi", "Ziraat Mühendisi", 200, 1.15f, 1.05f, false, 2),
+                new RoleSeed("veteriner", "Veteriner", 220, 1.2f, 1.05f, false, 2),
+                new RoleSeed("analist", "Analist", 230, 1.15f, 1.15f, true, 3)
+            };
+
+            var assets = new Dictionary<string, EmployeeRoleDefinition>(roles.Length);
+            for (var i = 0; i < roles.Length; i++)
+            {
+                var role = roles[i];
+                var asset = CreateOrLoadAsset<EmployeeRoleDefinition>($"{RolesFolder}/Role_{role.Id}.asset");
+                SetIdentity(asset, role.Id, role.DisplayName);
+                SetInt(asset, "baseDailySalary", role.BaseDailySalary);
+                SetFloat(asset, "qualityWeight", role.QualityWeight);
+                SetFloat(asset, "profitWeight", role.ProfitWeight);
+                SetBool(asset, "requiresOffice", role.RequiresOffice);
+                SetInt(asset, "maxConcurrentAssignmentsPerEmployee", role.MaxConcurrentAssignmentsPerEmployee);
+                assets.Add(role.Id, asset);
+            }
+
+            return assets;
+        }
+
+        private static Dictionary<string, InvestmentTypeDefinition> CreateInvestments(BudgetResponseCurveDefinition budgetCurve)
+        {
+            var investments = new[]
+            {
+                new InvestmentSeed("animasyon", "Animasyon", InvestmentExpenseMode.Pesin, 50000, 90000, 1.05f, 1.2f),
+                new InvestmentSeed("pazarlama", "Pazarlama", InvestmentExpenseMode.Pesin, 40000, 100000, 1.2f, 0.9f),
+                new InvestmentSeed("kast_ajansi", "Kast Ajansı", InvestmentExpenseMode.Pesin, 35000, 80000, 1f, 1.05f),
+                new InvestmentSeed("ekipman", "Ekipman", InvestmentExpenseMode.Pesin, 50000, 120000, 0.95f, 1.2f),
+                new InvestmentSeed("kira", "Kira", InvestmentExpenseMode.GelirdenDus, 30000, 70000, 0.9f, 0.95f),
+                new InvestmentSeed("satinalma", "Satın Alma", InvestmentExpenseMode.Pesin, 150000, 350000, 1f, 1.05f),
+                new InvestmentSeed("mutfak", "Mutfak", InvestmentExpenseMode.Pesin, 60000, 120000, 1f, 1.1f),
+                new InvestmentSeed("studyo", "Stüdyo", InvestmentExpenseMode.Pesin, 70000, 150000, 1.05f, 1.2f),
+                new InvestmentSeed("matbaa", "Matbaa", InvestmentExpenseMode.Pesin, 70000, 140000, 1f, 1.1f),
+                new InvestmentSeed("techizat", "Teçhizat", InvestmentExpenseMode.Pesin, 60000, 130000, 1f, 1.1f),
+                new InvestmentSeed("arazi", "Arazi", InvestmentExpenseMode.Pesin, 100000, 220000, 1f, 1.15f),
+                new InvestmentSeed("yem", "Yem", InvestmentExpenseMode.GelirdenDus, 25000, 60000, 0.95f, 1.05f),
+                new InvestmentSeed("arac_filosu", "Araç Filosu", InvestmentExpenseMode.Pesin, 120000, 250000, 1.1f, 1.05f),
+                new InvestmentSeed("sermaye", "Sermaye", InvestmentExpenseMode.Pesin, 200000, 400000, 1.2f, 1f)
+            };
+
+            var assets = new Dictionary<string, InvestmentTypeDefinition>(investments.Length);
+            for (var i = 0; i < investments.Length; i++)
+            {
+                var investment = investments[i];
+                var asset = CreateOrLoadAsset<InvestmentTypeDefinition>($"{InvestmentsFolder}/Investment_{investment.Id}.asset");
+                SetIdentity(asset, investment.Id, investment.DisplayName);
+                SetObjectReference(asset, "budgetResponseCurve", budgetCurve);
+                SetFloat(asset, "profitWeight", investment.ProfitWeight);
+                SetFloat(asset, "successWeight", investment.SuccessWeight);
+                SetEnum(asset, "expenseMode", (int)investment.ExpenseMode);
+                SetInt(asset, "minimumBudget", investment.MinimumBudget);
+                SetInt(asset, "recommendedBudget", investment.RecommendedBudget);
+                assets.Add(investment.Id, asset);
+            }
+
+            return assets;
+        }
+
+        private static Dictionary<string, SectorDefinition> CreateSectors(
+            Dictionary<string, EmployeeRoleDefinition> roleAssets,
+            Dictionary<string, InvestmentTypeDefinition> investmentAssets)
+        {
+            var sectors = GetSectorSeeds();
+            var assets = new Dictionary<string, SectorDefinition>(sectors.Length);
+
+            for (var i = 0; i < sectors.Length; i++)
+            {
+                var sector = sectors[i];
+                var asset = CreateOrLoadAsset<SectorDefinition>($"{SectorsFolder}/Sector_{sector.Id}.asset");
+                SetIdentity(asset, sector.Id, sector.DisplayName);
+                SetString(asset, "description", sector.Description);
+                SetFloat(asset, "revenueMultiplier", sector.RevenueMultiplier);
+                SetFloat(asset, "durationMultiplier", sector.DurationMultiplier);
+                SetFloat(asset, "competitionSensitivity", sector.CompetitionSensitivity);
+                SetFloat(asset, "successToRevenueWeight", sector.SuccessToRevenueWeight);
+                SetObjectReferenceArray(asset, "supportedRoles", ResolveRoles(roleAssets, sector.RoleIds));
+                SetObjectReferenceArray(asset, "availableInvestments", ResolveInvestments(investmentAssets, sector.InvestmentIds));
+                assets.Add(sector.Id, asset);
+            }
+
+            return assets;
+        }
+
+        private static void UpdateRoleAllowedSectors(
+            Dictionary<string, EmployeeRoleDefinition> roleAssets,
+            Dictionary<string, SectorDefinition> sectorAssets)
+        {
+            var sectors = GetSectorSeeds();
+            var roleSectorMap = new Dictionary<string, List<Object>>(roleAssets.Count);
+
+            foreach (var roleId in roleAssets.Keys)
+            {
+                roleSectorMap.Add(roleId, new List<Object>(8));
+            }
+
+            for (var i = 0; i < sectors.Length; i++)
+            {
+                var sector = sectors[i];
+                var sectorAsset = sectorAssets[sector.Id];
+                for (var j = 0; j < sector.RoleIds.Length; j++)
+                {
+                    roleSectorMap[sector.RoleIds[j]].Add(sectorAsset);
+                }
+            }
+
+            foreach (var pair in roleAssets)
+            {
+                SetObjectReferenceArray(pair.Value, "allowedSectors", roleSectorMap[pair.Key].ToArray());
+            }
+        }
+
+        private static Dictionary<string, ProjectExecutionDefinition> CreateProjectsAndExecutions(
+            Dictionary<string, EmployeeRoleDefinition> roleAssets,
+            Dictionary<string, InvestmentTypeDefinition> investmentAssets,
+            Dictionary<string, SectorDefinition> sectorAssets)
+        {
+            var sectors = GetSectorSeeds();
+            var executions = new Dictionary<string, ProjectExecutionDefinition>(sectors.Length);
+
+            for (var i = 0; i < sectors.Length; i++)
+            {
+                var sector = sectors[i];
+                var project = CreateOrLoadAsset<ProjectTypeDefinition>($"{ProjectsFolder}/Project_{sector.Id}.asset");
+                SetIdentity(project, $"project_{sector.Id}", sector.ProjectDisplayName);
+                SetObjectReference(project, "sector", sectorAssets[sector.Id]);
+                SetInt(project, "baseRevenue", sector.BaseRevenue);
+                SetInt(project, "fixedCost", sector.FixedCost);
+                SetInt(project, "baseDurationDays", sector.BaseDurationDays);
+                SetFloat(project, "baseSuccessScore", 1f);
+                SetFloat(project, "demandMultiplier", 1f);
+                SetObjectReferenceArray(project, "preferredRoles", ResolveRoles(roleAssets, sector.RoleIds));
+                SetObjectReferenceArray(project, "recommendedInvestments", ResolveInvestments(investmentAssets, sector.InvestmentIds));
+
+                var execution = CreateOrLoadAsset<ProjectExecutionDefinition>($"{ExecutionsFolder}/Execution_{sector.Id}.asset");
+                SetIdentity(execution, $"execution_{sector.Id}", sector.ProjectDisplayName);
+                SetObjectReference(execution, "projectType", project);
+                SetFloat(execution, "marketDemandMultiplier", 1f);
+                SetFloat(execution, "competitorPressure", sector.DefaultCompetitorPressure);
+                SetEmployeeAssignments(execution, sector, roleAssets);
+                SetInvestmentAllocations(execution, sector, investmentAssets);
+                executions.Add(sector.Id, execution);
+            }
+
+            return executions;
+        }
+
+        private static void CreateSectorCatalog(
+            Dictionary<string, SectorDefinition> sectorAssets,
+            Dictionary<string, ProjectExecutionDefinition> executionAssets)
+        {
+            var sectors = GetSectorSeeds();
+            var sectorArray = new Object[sectors.Length];
+            var executionArray = new Object[sectors.Length];
+
+            for (var i = 0; i < sectors.Length; i++)
+            {
+                sectorArray[i] = sectorAssets[sectors[i].Id];
+                executionArray[i] = executionAssets[sectors[i].Id];
+            }
+
+            var sectorCatalog = CreateOrLoadAsset<SectorCatalogDefinition>($"{RootFolder}/SectorCatalog_Default.asset");
+            SetIdentity(sectorCatalog, "sector_catalog_default", "Varsayılan Sektör Kataloğu");
+            SetObjectReferenceArray(sectorCatalog, "sectors", sectorArray);
+            SetObjectReferenceArray(sectorCatalog, "projects", executionArray);
+        }
+
+        private static void CreateEconomySetup(EconomyBalanceDefinition balance)
+        {
+            var setup = CreateOrLoadAsset<EconomySetupDefinition>($"{RootFolder}/EconomySetup_Default.asset");
+            SetIdentity(setup, "economy_setup_default", "Varsayılan Ekonomi Kurulumu");
+            SetObjectReference(setup, "balanceDefinition", balance);
+            SetInt(setup, "startingCapital", 3000000);
+            SetObjectReferenceArray(setup, "startupProjects");
+        }
+
+        private static void SetEmployeeAssignments(
+            ProjectExecutionDefinition execution,
+            SectorSeed sector,
+            Dictionary<string, EmployeeRoleDefinition> roleAssets)
         {
             var serializedObject = new SerializedObject(execution);
             var assignments = serializedObject.FindProperty("employeeAssignments");
-            assignments.arraySize = 2;
+            assignments.arraySize = sector.RoleIds.Length;
 
-            var programmerAssignment = assignments.GetArrayElementAtIndex(0);
-            programmerAssignment.FindPropertyRelative("role").objectReferenceValue = AssetDatabase.LoadAssetAtPath<EmployeeRoleDefinition>($"{RootFolder}/Role_Programmer.asset");
-            programmerAssignment.FindPropertyRelative("count").intValue = 2;
-            programmerAssignment.FindPropertyRelative("averageQuality").floatValue = 60f;
-
-            var designerAssignment = assignments.GetArrayElementAtIndex(1);
-            designerAssignment.FindPropertyRelative("role").objectReferenceValue = AssetDatabase.LoadAssetAtPath<EmployeeRoleDefinition>($"{RootFolder}/Role_GraphicDesigner.asset");
-            designerAssignment.FindPropertyRelative("count").intValue = 1;
-            designerAssignment.FindPropertyRelative("averageQuality").floatValue = 55f;
+            for (var i = 0; i < sector.RoleIds.Length; i++)
+            {
+                var assignment = assignments.GetArrayElementAtIndex(i);
+                var roleId = sector.RoleIds[i];
+                assignment.FindPropertyRelative("role").objectReferenceValue = roleAssets[roleId];
+                assignment.FindPropertyRelative("count").intValue = GetDefaultEmployeeCount(roleId);
+                assignment.FindPropertyRelative("averageQuality").floatValue = GetDefaultEmployeeQuality(roleId);
+            }
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(execution);
         }
 
-        private static void SetInvestmentAllocations(ProjectExecutionDefinition execution, InvestmentTypeDefinition marketing, InvestmentTypeDefinition production)
+        private static void SetInvestmentAllocations(
+            ProjectExecutionDefinition execution,
+            SectorSeed sector,
+            Dictionary<string, InvestmentTypeDefinition> investmentAssets)
         {
             var serializedObject = new SerializedObject(execution);
             var allocations = serializedObject.FindProperty("investmentAllocations");
-            allocations.arraySize = 2;
+            allocations.arraySize = sector.InvestmentIds.Length;
 
-            var marketingAllocation = allocations.GetArrayElementAtIndex(0);
-            marketingAllocation.FindPropertyRelative("investmentType").objectReferenceValue = marketing;
-            marketingAllocation.FindPropertyRelative("allocatedBudget").intValue = 75000;
-
-            var productionAllocation = allocations.GetArrayElementAtIndex(1);
-            productionAllocation.FindPropertyRelative("investmentType").objectReferenceValue = production;
-            productionAllocation.FindPropertyRelative("allocatedBudget").intValue = 100000;
+            for (var i = 0; i < sector.InvestmentIds.Length; i++)
+            {
+                var allocation = allocations.GetArrayElementAtIndex(i);
+                var investment = investmentAssets[sector.InvestmentIds[i]];
+                allocation.FindPropertyRelative("investmentType").objectReferenceValue = investment;
+                allocation.FindPropertyRelative("allocatedBudget").intValue = investment.RecommendedBudget;
+            }
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(execution);
+        }
+
+        private static Object[] ResolveRoles(Dictionary<string, EmployeeRoleDefinition> roleAssets, string[] roleIds)
+        {
+            var result = new Object[roleIds.Length];
+            for (var i = 0; i < roleIds.Length; i++)
+            {
+                result[i] = roleAssets[roleIds[i]];
+            }
+
+            return result;
+        }
+
+        private static Object[] ResolveInvestments(Dictionary<string, InvestmentTypeDefinition> investmentAssets, string[] investmentIds)
+        {
+            var result = new Object[investmentIds.Length];
+            for (var i = 0; i < investmentIds.Length; i++)
+            {
+                result[i] = investmentAssets[investmentIds[i]];
+            }
+
+            return result;
+        }
+
+        private static int GetDefaultEmployeeCount(string roleId)
+        {
+            switch (roleId)
+            {
+                case "personel":
+                    return 4;
+                case "yazilimci":
+                    return 2;
+                case "grafiker":
+                    return 2;
+                case "yazar":
+                    return 2;
+                default:
+                    return 1;
+            }
+        }
+
+        private static float GetDefaultEmployeeQuality(string roleId)
+        {
+            switch (roleId)
+            {
+                case "yonetmen":
+                case "analist":
+                case "veteriner":
+                    return 65f;
+                case "personel":
+                    return 50f;
+                default:
+                    return 55f;
+            }
+        }
+
+        private static SectorSeed[] GetSectorSeeds()
+        {
+            return new[]
+            {
+                new SectorSeed("oyun_gelistirme", "Oyun Geliştirme", "Oyun projeleri üretir.", new[] { "yazilimci", "grafiker", "ses_sanatcisi" }, new[] { "animasyon", "pazarlama" }, 1.3f, 1f, 1f, 0.7f, 420000, 30000, 35, 0.15f),
+                new SectorSeed("uygulama_gelistirme", "Uygulama Geliştirme", "Uygulama ve yazılım işleri üretir.", new[] { "yazilimci", "grafiker" }, new[] { "pazarlama" }, 1.15f, 0.9f, 0.9f, 0.55f, 280000, 20000, 24, 0.1f),
+                new SectorSeed("film_dizi", "Film / Dizi Yapımı", "Film ve dizi prodüksiyonları üretir.", new[] { "yonetmen", "yazar", "oyuncu", "grafiker" }, new[] { "kast_ajansi", "pazarlama", "animasyon" }, 1.45f, 1.2f, 1.1f, 0.8f, 520000, 50000, 40, 0.18f),
+                new SectorSeed("motion_capture", "Motion Capture", "Hareket yakalama üretimleri yapar.", new[] { "oyuncu", "grafiker" }, new[] { "ekipman" }, 1.1f, 0.95f, 0.8f, 0.55f, 240000, 18000, 18, 0.08f),
+                new SectorSeed("reklam", "Reklam", "Reklam filmi ve kampanya üretir.", new[] { "yonetmen", "oyuncu" }, new[] { "kast_ajansi" }, 1.2f, 0.8f, 1f, 0.65f, 260000, 20000, 14, 0.12f),
+                new SectorSeed("restoran", "Restoran", "Yemek servisi ve restoran işletir.", new[] { "asci", "personel" }, new[] { "kira", "satinalma" }, 1.1f, 1f, 0.9f, 0.5f, 230000, 16000, 20, 0.1f),
+                new SectorSeed("catering", "Catering", "Toplu yemek hizmeti verir.", new[] { "asci", "personel" }, new[] { "mutfak" }, 1.05f, 0.9f, 0.85f, 0.45f, 210000, 15000, 16, 0.08f),
+                new SectorSeed("muzik", "Müzik", "Müzik üretimi ve yayın işleri yapar.", new[] { "ses_sanatcisi" }, new[] { "studyo", "pazarlama" }, 1.15f, 0.85f, 0.95f, 0.6f, 250000, 17000, 18, 0.12f),
+                new SectorSeed("yayincilik", "Yayıncılık", "Dergi, kitap ve manga yayınlar.", new[] { "yazar", "grafiker", "editor" }, new[] { "pazarlama", "matbaa" }, 1.1f, 1f, 0.9f, 0.55f, 260000, 19000, 22, 0.1f),
+                new SectorSeed("gazete", "Gazete", "Günlük veya periyodik gazete basar.", new[] { "yazar", "editor" }, new[] { "matbaa" }, 1.05f, 0.85f, 1f, 0.45f, 220000, 18000, 15, 0.14f),
+                new SectorSeed("matbaa_sektoru", "Matbaa", "Baskı ve üretim işleri yapar.", new[] { "personel" }, new[] { "techizat" }, 1f, 0.95f, 0.7f, 0.4f, 200000, 16000, 18, 0.06f),
+                new SectorSeed("televizyon", "Televizyon", "Yayın ve program işleri yapar.", new[] { "sunucu", "yonetmen", "editor" }, new[] { "ekipman" }, 1.2f, 0.9f, 1.05f, 0.6f, 300000, 24000, 20, 0.14f),
+                new SectorSeed("tarim", "Tarım", "Tarım üretimi ve arazi yönetimi yapar.", new[] { "ziraat_muhendisi", "personel" }, new[] { "arazi" }, 1.1f, 1.1f, 0.8f, 0.55f, 250000, 20000, 28, 0.07f),
+                new SectorSeed("hayvancilik", "Hayvancılık", "Hayvan yetiştiriciliği ve bakım işleri yapar.", new[] { "veteriner", "personel", "ziraat_muhendisi" }, new[] { "yem", "arazi" }, 1.15f, 1.15f, 0.8f, 0.6f, 280000, 24000, 30, 0.08f),
+                new SectorSeed("veteriner_klinigi", "Veteriner Kliniği", "Hayvan sağlık hizmeti verir.", new[] { "veteriner" }, new[] { "kira", "satinalma" }, 1.08f, 0.95f, 0.75f, 0.5f, 230000, 17000, 18, 0.08f),
+                new SectorSeed("market", "Market", "Perakende market işletir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.02f, 0.9f, 0.95f, 0.4f, 210000, 15000, 15, 0.11f),
+                new SectorSeed("kargo_lojistik", "Kargo Lojistik", "Dağıtım ve lojistik işi yapar.", new[] { "personel" }, new[] { "arac_filosu", "kira", "satinalma" }, 1.18f, 1f, 0.95f, 0.5f, 300000, 22000, 22, 0.12f),
+                new SectorSeed("banka", "Banka", "Finansal hizmet ve bankacılık yapar.", new[] { "analist", "personel", "yazilimci" }, new[] { "kira", "satinalma", "sermaye" }, 1.3f, 1f, 1.2f, 0.65f, 420000, 40000, 24, 0.16f),
+                new SectorSeed("sigorta", "Sigorta Şirketi", "Sigorta ürünleri ve risk yönetimi yapar.", new[] { "personel", "analist" }, new[] { "kira", "satinalma" }, 1.18f, 0.95f, 1f, 0.55f, 310000, 26000, 20, 0.13f),
+                new SectorSeed("otel", "Otel", "Konaklama hizmeti verir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.12f, 1.05f, 0.9f, 0.5f, 320000, 28000, 24, 0.12f)
+            };
         }
 
         private static T CreateOrLoadAsset<T>(string assetPath) where T : ScriptableObject
@@ -199,10 +440,26 @@ namespace CompanySimulator.Tools.Editor
             EditorUtility.SetDirty(asset);
         }
 
+        private static void SetString(Object asset, string propertyName, string value)
+        {
+            var serializedObject = new SerializedObject(asset);
+            serializedObject.FindProperty(propertyName).stringValue = value;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(asset);
+        }
+
         private static void SetCurve(Object asset, string propertyName, AnimationCurve value)
         {
             var serializedObject = new SerializedObject(asset);
             serializedObject.FindProperty(propertyName).animationCurveValue = value;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(asset);
+        }
+
+        private static void SetEnum(Object asset, string propertyName, int enumValue)
+        {
+            var serializedObject = new SerializedObject(asset);
+            serializedObject.FindProperty(propertyName).enumValueIndex = enumValue;
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
         }
@@ -244,6 +501,98 @@ namespace CompanySimulator.Tools.Editor
 
                 current = next;
             }
+        }
+
+        private readonly struct RoleSeed
+        {
+            public RoleSeed(string id, string displayName, int baseDailySalary, float qualityWeight, float profitWeight, bool requiresOffice, int maxConcurrentAssignmentsPerEmployee)
+            {
+                Id = id;
+                DisplayName = displayName;
+                BaseDailySalary = baseDailySalary;
+                QualityWeight = qualityWeight;
+                ProfitWeight = profitWeight;
+                RequiresOffice = requiresOffice;
+                MaxConcurrentAssignmentsPerEmployee = maxConcurrentAssignmentsPerEmployee;
+            }
+
+            public string Id { get; }
+            public string DisplayName { get; }
+            public int BaseDailySalary { get; }
+            public float QualityWeight { get; }
+            public float ProfitWeight { get; }
+            public bool RequiresOffice { get; }
+            public int MaxConcurrentAssignmentsPerEmployee { get; }
+        }
+
+        private readonly struct InvestmentSeed
+        {
+            public InvestmentSeed(string id, string displayName, InvestmentExpenseMode expenseMode, int minimumBudget, int recommendedBudget, float profitWeight, float successWeight)
+            {
+                Id = id;
+                DisplayName = displayName;
+                ExpenseMode = expenseMode;
+                MinimumBudget = minimumBudget;
+                RecommendedBudget = recommendedBudget;
+                ProfitWeight = profitWeight;
+                SuccessWeight = successWeight;
+            }
+
+            public string Id { get; }
+            public string DisplayName { get; }
+            public InvestmentExpenseMode ExpenseMode { get; }
+            public int MinimumBudget { get; }
+            public int RecommendedBudget { get; }
+            public float ProfitWeight { get; }
+            public float SuccessWeight { get; }
+        }
+
+        private readonly struct SectorSeed
+        {
+            public SectorSeed(
+                string id,
+                string displayName,
+                string description,
+                string[] roleIds,
+                string[] investmentIds,
+                float revenueMultiplier,
+                float durationMultiplier,
+                float competitionSensitivity,
+                float successToRevenueWeight,
+                int baseRevenue,
+                int fixedCost,
+                int baseDurationDays,
+                float defaultCompetitorPressure)
+            {
+                Id = id;
+                DisplayName = displayName;
+                Description = description;
+                RoleIds = roleIds;
+                InvestmentIds = investmentIds;
+                RevenueMultiplier = revenueMultiplier;
+                DurationMultiplier = durationMultiplier;
+                CompetitionSensitivity = competitionSensitivity;
+                SuccessToRevenueWeight = successToRevenueWeight;
+                BaseRevenue = baseRevenue;
+                FixedCost = fixedCost;
+                BaseDurationDays = baseDurationDays;
+                DefaultCompetitorPressure = defaultCompetitorPressure;
+            }
+
+            public string Id { get; }
+            public string DisplayName { get; }
+            public string Description { get; }
+            public string[] RoleIds { get; }
+            public string[] InvestmentIds { get; }
+            public float RevenueMultiplier { get; }
+            public float DurationMultiplier { get; }
+            public float CompetitionSensitivity { get; }
+            public float SuccessToRevenueWeight { get; }
+            public int BaseRevenue { get; }
+            public int FixedCost { get; }
+            public int BaseDurationDays { get; }
+            public float DefaultCompetitorPressure { get; }
+            public string ProjectDisplayName => DisplayName + " İşi";
         }
     }
 }

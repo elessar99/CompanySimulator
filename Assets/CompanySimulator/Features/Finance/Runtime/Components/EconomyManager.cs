@@ -118,12 +118,33 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 throw new ArgumentNullException(nameof(executionDefinition));
             }
 
-            return calculator.Calculate(executionDefinition.CreateRequest());
+            return PreviewProject(executionDefinition.CreateRequest());
+        }
+
+        public ProjectEconomyResult PreviewProject(ProjectEconomyRequest request)
+        {
+            if (!EnsureInitialized())
+            {
+                throw new InvalidOperationException("EconomyManager henüz başlatılmadı.");
+            }
+
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            return calculator.Calculate(request);
         }
 
         public bool CanExecuteProject(ProjectExecutionDefinition executionDefinition, out ProjectEconomyResult result)
         {
             result = PreviewProject(executionDefinition);
+            return Balance >= result.TotalCosts;
+        }
+
+        public bool CanExecuteProject(ProjectEconomyRequest request, out ProjectEconomyResult result)
+        {
+            result = PreviewProject(request);
             return Balance >= result.TotalCosts;
         }
 
@@ -142,31 +163,62 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 return false;
             }
 
-            result = calculator.Calculate(executionDefinition.CreateRequest());
-            if (Balance < result.TotalCosts)
+            return TryExecuteProject(executionDefinition, executionDefinition.CreateRequest(), executionDefinition.DisplayName, out result);
+        }
+
+        public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, out ProjectEconomyResult result)
+        {
+            result = default;
+
+            if (!EnsureInitialized())
             {
-                lastExecutionSummary = $"{executionDefinition.DisplayName}: yetersiz bakiye.";
-                UpdateSnapshot();
-                ProjectExecutionRejected?.Invoke(executionDefinition, result);
                 return false;
             }
 
-            ApplyExpense(result.FixedCost, LedgerEntryType.MiscExpense, $"{executionDefinition.DisplayName} sabit gider");
-            ApplyExpense(result.PayrollCost, LedgerEntryType.PayrollExpense, $"{executionDefinition.DisplayName} personel gideri");
-            ApplyExpense(result.InvestmentCost, LedgerEntryType.InvestmentExpense, $"{executionDefinition.DisplayName} yatırım gideri");
+            if (request == null)
+            {
+                Debug.LogWarning("Çalıştırılacak iş isteği bulunamadı.", this);
+                return false;
+            }
+
+            var safeDisplayName = string.IsNullOrWhiteSpace(displayName)
+                ? request.ProjectType != null ? request.ProjectType.DisplayName : "İsimsiz İş"
+                : displayName;
+
+            result = calculator.Calculate(request);
+            if (Balance < result.TotalCosts)
+            {
+                lastExecutionSummary = $"{safeDisplayName}: yetersiz bakiye.";
+                UpdateSnapshot();
+                if (sourceDefinition != null)
+                {
+                    ProjectExecutionRejected?.Invoke(sourceDefinition, result);
+                }
+
+                return false;
+            }
+
+            ApplyExpense(result.FixedCost, LedgerEntryType.MiscExpense, $"{safeDisplayName} sabit gider");
+            ApplyExpense(result.PayrollCost, LedgerEntryType.PayrollExpense, $"{safeDisplayName} personel gideri");
+            ApplyExpense(result.UpfrontInvestmentCost, LedgerEntryType.InvestmentExpense, $"{safeDisplayName} peşin yatırım gideri");
+            ApplyExpense(result.RecurringInvestmentCost, LedgerEntryType.InvestmentExpense, $"{safeDisplayName} gelirden düşen yatırım gideri");
 
             if (result.Revenue > Money.Zero)
             {
-                ledger.RecordIncome(result.Revenue, LedgerEntryType.ProjectRevenue, executionDefinition.DisplayName);
+                ledger.RecordIncome(result.Revenue, LedgerEntryType.ProjectRevenue, safeDisplayName);
             }
 
             // Geçmiş kayıtları sektör paneli gibi ekranların tamamlanan işleri sayabilmesi için tutulur.
-            executionHistory.Add(new ProjectExecutionHistoryEntry(executionDefinition, result));
+            executionHistory.Add(new ProjectExecutionHistoryEntry(sourceDefinition, safeDisplayName, request.ProjectType, result));
             executedProjectCount++;
-            lastExecutionSummary = $"{executionDefinition.DisplayName}: kâr {result.Profit.Amount}, başarı {result.SuccessScore:0.00}.";
+            lastExecutionSummary = $"{safeDisplayName}: kâr {result.Profit.Amount}, başarı {result.SuccessScore:0.00}.";
             UpdateSnapshot();
             BalanceChanged?.Invoke(Balance);
-            ProjectExecuted?.Invoke(executionDefinition, result);
+            if (sourceDefinition != null)
+            {
+                ProjectExecuted?.Invoke(sourceDefinition, result);
+            }
+
             return true;
         }
 

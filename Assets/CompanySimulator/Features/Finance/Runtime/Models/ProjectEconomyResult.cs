@@ -8,7 +8,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             int durationDays,
             Money revenue,
             Money payrollCost,
-            Money investmentCost,
+            Money upfrontInvestmentCost,
+            Money recurringInvestmentCost,
             Money fixedCost,
             float successScore,
             float employeeContribution,
@@ -18,7 +19,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             DurationDays = durationDays;
             Revenue = revenue;
             PayrollCost = payrollCost;
-            InvestmentCost = investmentCost;
+            UpfrontInvestmentCost = upfrontInvestmentCost;
+            RecurringInvestmentCost = recurringInvestmentCost;
             FixedCost = fixedCost;
             SuccessScore = successScore;
             EmployeeContribution = employeeContribution;
@@ -29,7 +31,9 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         public int DurationDays { get; }
         public Money Revenue { get; }
         public Money PayrollCost { get; }
-        public Money InvestmentCost { get; }
+        public Money UpfrontInvestmentCost { get; }
+        public Money RecurringInvestmentCost { get; }
+        public Money InvestmentCost => UpfrontInvestmentCost + RecurringInvestmentCost;
         public Money FixedCost { get; }
         public Money TotalCosts => PayrollCost + InvestmentCost + FixedCost;
         public Money Profit => Revenue - TotalCosts;

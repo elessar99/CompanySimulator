@@ -11,6 +11,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         [SerializeField] private InvestmentTypeDefinition investmentType;
         [SerializeField, Min(0)] private int allocatedBudget;
 
+        public InvestmentAllocationInput(InvestmentTypeDefinition investmentType, int allocatedBudget)
+        {
+            this.investmentType = investmentType;
+            this.allocatedBudget = allocatedBudget;
+        }
+
         public InvestmentTypeDefinition InvestmentType => investmentType;
         public Money AllocatedBudget => Money.From(allocatedBudget);
         public int AllocatedBudgetAmount => Mathf.Max(0, allocatedBudget);

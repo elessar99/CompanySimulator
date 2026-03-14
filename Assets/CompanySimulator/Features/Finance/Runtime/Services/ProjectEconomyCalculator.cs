@@ -41,7 +41,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             var durationDays = Mathf.Max(1, Mathf.CeilToInt(projectType.BaseDurationDays * sector.DurationMultiplier));
 
             var payrollCost = CalculatePayrollCost(request, durationDays, out var employeeProfitContribution, out var employeeSuccessContribution);
-            var investmentCost = CalculateInvestmentCost(request, out var investmentProfitContribution, out var investmentSuccessContribution);
+            CalculateInvestmentCosts(
+                request,
+                out var upfrontInvestmentCost,
+                out var recurringInvestmentCost,
+                out var investmentProfitContribution,
+                out var investmentSuccessContribution);
             var fixedCost = projectType.FixedCost;
             var competitionMultiplier = CalculateCompetitionMultiplier(request.CompetitorPressure, sector.CompetitionSensitivity);
 
@@ -64,7 +69,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                 durationDays,
                 revenue,
                 payrollCost,
-                investmentCost,
+                upfrontInvestmentCost,
+                recurringInvestmentCost,
                 fixedCost,
                 successScore,
                 employeeProfitContribution,
@@ -111,10 +117,16 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             return totalPayrollCost;
         }
 
-        private Money CalculateInvestmentCost(ProjectEconomyRequest request, out float profitContribution, out float successContribution)
+        private void CalculateInvestmentCosts(
+            ProjectEconomyRequest request,
+            out Money upfrontInvestmentCost,
+            out Money recurringInvestmentCost,
+            out float profitContribution,
+            out float successContribution)
         {
             var allocations = request.InvestmentAllocations;
-            var totalInvestmentCost = Money.Zero;
+            upfrontInvestmentCost = Money.Zero;
+            recurringInvestmentCost = Money.Zero;
             var weightedProfitValue = 0f;
             var weightedSuccessValue = 0f;
             var totalProfitWeight = 0f;
@@ -131,7 +143,14 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                     continue;
                 }
 
-                totalInvestmentCost += allocation.AllocatedBudget;
+                if (investmentType.IsRecurringExpense)
+                {
+                    recurringInvestmentCost += allocation.AllocatedBudget;
+                }
+                else
+                {
+                    upfrontInvestmentCost += allocation.AllocatedBudget;
+                }
 
                 var budgetMultiplier = investmentType.EvaluateBudgetMultiplier(allocatedBudgetAmount);
                 weightedProfitValue += budgetMultiplier * investmentType.ProfitWeight;
@@ -142,7 +161,6 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
 
             profitContribution = totalProfitWeight > 0f ? (weightedProfitValue / totalProfitWeight) - 1f : 0f;
             successContribution = totalSuccessWeight > 0f ? (weightedSuccessValue / totalSuccessWeight) - 1f : 0f;
-            return totalInvestmentCost;
         }
 
         private float CalculateCompetitionMultiplier(float competitorPressure, float sectorSensitivity)

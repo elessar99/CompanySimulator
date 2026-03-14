@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Investments.Runtime.Definitions;
 using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Definitions;
 using UnityEngine;
@@ -30,6 +31,24 @@ namespace CompanySimulator.Features.Finance.Runtime.Definitions
                 investmentAllocations,
                 MarketDemandMultiplier,
                 CompetitorPressure);
+        }
+
+        public int GetAllocatedBudgetFor(InvestmentTypeDefinition investmentType)
+        {
+            if (investmentType == null)
+            {
+                return 0;
+            }
+
+            for (var i = 0; i < investmentAllocations.Length; i++)
+            {
+                if (investmentAllocations[i].InvestmentType == investmentType)
+                {
+                    return investmentAllocations[i].AllocatedBudgetAmount;
+                }
+            }
+
+            return 0;
         }
     }
 }
