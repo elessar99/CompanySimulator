@@ -11,6 +11,8 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
     public sealed class EmployeeRoleDefinition : DefinitionBase
     {
         [SerializeField, Min(0)] private int baseDailySalary = 100;
+        [SerializeField, Min(0)] private int minimumExpectedSalary = 300;
+        [SerializeField, Min(0)] private int maximumExpectedSalary = 800;
         [SerializeField, Min(0f)] private float qualityWeight = 1f;
         [SerializeField, Min(0f)] private float profitWeight = 1f;
         [SerializeField] private bool requiresOffice = true;
@@ -18,10 +20,14 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         [SerializeField] private SectorDefinition[] allowedSectors = Array.Empty<SectorDefinition>();
 
         public Money BaseDailySalary => Money.From(baseDailySalary);
+        public int MinimumExpectedSalary => Mathf.Max(0, minimumExpectedSalary);
+        public int MaximumExpectedSalary => Mathf.Max(MinimumExpectedSalary, maximumExpectedSalary);
         public float QualityWeight => Mathf.Max(0f, qualityWeight);
         public float ProfitWeight => Mathf.Max(0f, profitWeight);
         public bool RequiresOffice => requiresOffice;
-        public int MaxConcurrentAssignmentsPerEmployee => Mathf.Max(1, maxConcurrentAssignmentsPerEmployee);
+
+        // Şimdilik her çalışan aynı anda sadece tek bir işte çalışabilir.
+        public int MaxConcurrentAssignmentsPerEmployee => 1;
         public IReadOnlyList<SectorDefinition> AllowedSectors => allowedSectors;
 
         public bool CanWorkInSector(SectorDefinition sector)

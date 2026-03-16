@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f30b35a445731424183e673505e492cd, type: 3}
   m_Name: EconomySetupDefinition
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Finance.Runtime.Definitions.EconomySetupDefinition
-  id: 
-  displayName: 
-  balanceDefinition: {fileID: 0}
+  id: EconomySetupDefinition
+  displayName: EconomySetupDefinition
+  balanceDefinition: {fileID: 11400000, guid: df9a12e20e655324493936f15734dbfc, type: 2}
   startingCapital: 500000
   startupProjects: []

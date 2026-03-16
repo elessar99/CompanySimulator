@@ -15,5 +15,9 @@ MonoBehaviour:
   id: SectorCatalogDefinition
   displayName: SectorCatalogDefinition
   sectors:
+  - {fileID: 11400000, guid: 88bfb5defa21b3144bfdb92fb5ed6859, type: 2}
+  - {fileID: 11400000, guid: e651d4d844aeeb643b9adc60245fefe4, type: 2}
+  - {fileID: 11400000, guid: 15d55f8fc0829c34d9540d836702c6e0, type: 2}
   - {fileID: 11400000, guid: a00e1e086365ad140a47c5e372f7b561, type: 2}
+  - {fileID: 11400000, guid: a44b7c6c9894e1f498437ece15819db6, type: 2}
   projects: []

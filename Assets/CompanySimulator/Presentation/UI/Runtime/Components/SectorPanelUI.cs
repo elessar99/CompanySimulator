@@ -18,6 +18,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
     {
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private SectorManager sectorManager;
+        [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
@@ -39,12 +40,15 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             // Referanslar inspector'dan atanmadýysa sahneden otomatik bulunur.
             economyManager ??= FindObjectOfType<EconomyManager>();
             sectorManager ??= FindObjectOfType<SectorManager>();
+            employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
 
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
             BuildStaticUi();
         }
+
+        public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
         private void OnEnable()
         {
@@ -64,6 +68,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            if (employeePanelUI != null && employeePanelUI.IsOpen)
+            {
+                employeePanelUI.ClosePanel();
+            }
+
             panelRoot.SetActive(true);
             NavigateToSectorList();
         }

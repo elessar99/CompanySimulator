@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
@@ -18,6 +19,8 @@ namespace CompanySimulator.Tools.Editor
         private const string SectorsFolder = RootFolder + "/Sectors";
         private const string ProjectsFolder = RootFolder + "/Projects";
         private const string ExecutionsFolder = RootFolder + "/Executions";
+        private const string EmployeesFolder = RootFolder + "/Employees";
+        private const string ApplicantsFolder = RootFolder + "/Applicants";
 
         [MenuItem("Company Simulator/Generate/Sample Economy Content")]
         public static void Generate()
@@ -28,6 +31,8 @@ namespace CompanySimulator.Tools.Editor
             EnsureFolder(SectorsFolder);
             EnsureFolder(ProjectsFolder);
             EnsureFolder(ExecutionsFolder);
+            EnsureFolder(EmployeesFolder);
+            EnsureFolder(ApplicantsFolder);
 
             var budgetCurve = CreateBudgetCurve();
             var balance = CreateBalanceDefinition();
@@ -38,13 +43,14 @@ namespace CompanySimulator.Tools.Editor
             var executionAssets = CreateProjectsAndExecutions(roleAssets, investmentAssets, sectorAssets);
             CreateSectorCatalog(sectorAssets, executionAssets);
             CreateEconomySetup(balance);
+            CreateEmployeeRosterSetup(roleAssets);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             EditorUtility.DisplayDialog(
                 "Company Simulator",
-                $"Tüm temel sektör, rol ve yatırım içerikleri şu klasöre oluşturuldu:\n{RootFolder}\n\nBoş bir objeye EconomyManager, SectorManager ve SectorPanelUI ekleyip assetleri bağlayabilirsin.",
+                $"Tüm temel sektör, rol, çalışan ve yatırım içerikleri şu klasöre oluşturuldu:\n{RootFolder}\n\nBoş bir objeye EconomyManager, SectorManager, EmployeeManager, SectorPanelUI ve EmployeePanelUI ekleyip assetleri bağlayabilirsin.",
                 "Tamam");
         }
 
@@ -83,19 +89,19 @@ namespace CompanySimulator.Tools.Editor
         {
             var roles = new[]
             {
-                new RoleSeed("yazilimci", "Yazılımcı", 220, 1.15f, 1.1f, true, 3),
-                new RoleSeed("grafiker", "Grafiker", 180, 1.1f, 0.95f, true, 3),
-                new RoleSeed("ses_sanatcisi", "Ses Sanatçısı", 190, 1.2f, 1f, false, 2),
-                new RoleSeed("yonetmen", "Yönetmen", 260, 1.3f, 1.1f, false, 2),
-                new RoleSeed("yazar", "Yazar", 170, 1.1f, 1.05f, true, 3),
-                new RoleSeed("oyuncu", "Oyuncu", 210, 1.15f, 1f, false, 2),
-                new RoleSeed("asci", "Aşçı", 160, 1.05f, 1.1f, false, 2),
-                new RoleSeed("personel", "Personel", 110, 0.9f, 0.9f, false, 4),
-                new RoleSeed("editor", "Editör", 175, 1.1f, 1f, true, 3),
-                new RoleSeed("sunucu", "Sunucu", 190, 1.05f, 1f, false, 2),
-                new RoleSeed("ziraat_muhendisi", "Ziraat Mühendisi", 200, 1.15f, 1.05f, false, 2),
-                new RoleSeed("veteriner", "Veteriner", 220, 1.2f, 1.05f, false, 2),
-                new RoleSeed("analist", "Analist", 230, 1.15f, 1.15f, true, 3)
+                new RoleSeed("yazilimci", "Yazılımcı", 220, 300, 800, 1.15f, 1.1f, true, 1),
+                new RoleSeed("grafiker", "Grafiker", 180, 260, 650, 1.1f, 0.95f, true, 1),
+                new RoleSeed("ses_sanatcisi", "Ses Sanatçısı", 190, 280, 700, 1.2f, 1f, false, 1),
+                new RoleSeed("yonetmen", "Yönetmen", 260, 400, 1000, 1.3f, 1.1f, false, 1),
+                new RoleSeed("yazar", "Yazar", 170, 220, 600, 1.1f, 1.05f, true, 1),
+                new RoleSeed("oyuncu", "Oyuncu", 210, 300, 900, 1.15f, 1f, false, 1),
+                new RoleSeed("asci", "Aşçı", 160, 240, 620, 1.05f, 1.1f, false, 1),
+                new RoleSeed("personel", "Personel", 110, 180, 450, 0.9f, 0.9f, false, 1),
+                new RoleSeed("editor", "Editör", 175, 240, 620, 1.1f, 1f, true, 1),
+                new RoleSeed("sunucu", "Sunucu", 190, 260, 700, 1.05f, 1f, false, 1),
+                new RoleSeed("ziraat_muhendisi", "Ziraat Mühendisi", 200, 300, 780, 1.15f, 1.05f, false, 1),
+                new RoleSeed("veteriner", "Veteriner", 220, 320, 820, 1.2f, 1.05f, false, 1),
+                new RoleSeed("analist", "Analist", 230, 320, 850, 1.15f, 1.15f, true, 1)
             };
 
             var assets = new Dictionary<string, EmployeeRoleDefinition>(roles.Length);
@@ -105,6 +111,8 @@ namespace CompanySimulator.Tools.Editor
                 var asset = CreateOrLoadAsset<EmployeeRoleDefinition>($"{RolesFolder}/Role_{role.Id}.asset");
                 SetIdentity(asset, role.Id, role.DisplayName);
                 SetInt(asset, "baseDailySalary", role.BaseDailySalary);
+                SetInt(asset, "minimumExpectedSalary", role.MinimumExpectedSalary);
+                SetInt(asset, "maximumExpectedSalary", role.MaximumExpectedSalary);
                 SetFloat(asset, "qualityWeight", role.QualityWeight);
                 SetFloat(asset, "profitWeight", role.ProfitWeight);
                 SetBool(asset, "requiresOffice", role.RequiresOffice);
@@ -270,6 +278,48 @@ namespace CompanySimulator.Tools.Editor
             SetObjectReferenceArray(setup, "startupProjects");
         }
 
+        private static void CreateEmployeeRosterSetup(Dictionary<string, EmployeeRoleDefinition> roleAssets)
+        {
+            var employeeProfiles = new List<Object>(32);
+            var applicantProfiles = new List<Object>(32);
+
+            foreach (var pair in roleAssets)
+            {
+                var role = pair.Value;
+                var startingCount = GetStartingEmployeeProfileCount(pair.Key);
+                var applicantCount = GetApplicantProfileCount(pair.Key);
+
+                for (var i = 0; i < startingCount; i++)
+                {
+                    var asset = CreateOrLoadAsset<EmployeeProfileDefinition>($"{EmployeesFolder}/{pair.Key}_employee_{i + 1}.asset");
+                    SetIdentity(asset, $"{pair.Key}_employee_{i + 1}", $"{role.DisplayName} Çalışan {i + 1}");
+                    SetObjectReference(asset, "role", role);
+                    SetFloat(asset, "quality", GetEmployeeProfileQuality(pair.Key, i, false));
+                    SetInt(asset, "expectedDailySalary", GetEmployeeProfileSalary(role, false));
+                    employeeProfiles.Add(asset);
+                }
+
+                for (var i = 0; i < applicantCount; i++)
+                {
+                    var asset = CreateOrLoadAsset<EmployeeProfileDefinition>($"{ApplicantsFolder}/{pair.Key}_applicant_{i + 1}.asset");
+                    SetIdentity(asset, $"{pair.Key}_applicant_{i + 1}", $"{role.DisplayName} Aday {i + 1}");
+                    SetObjectReference(asset, "role", role);
+                    SetFloat(asset, "quality", GetEmployeeProfileQuality(pair.Key, i, true));
+                    SetInt(asset, "expectedDailySalary", GetEmployeeProfileSalary(role, true));
+                    applicantProfiles.Add(asset);
+                }
+            }
+
+            var rosterSetup = CreateOrLoadAsset<EmployeeRosterSetupDefinition>($"{RootFolder}/EmployeeRosterSetup_Default.asset");
+            SetIdentity(rosterSetup, "employee_roster_setup_default", "Varsayılan Çalışan Kurulumu");
+            SetObjectReferenceArray(rosterSetup, "availableRoles", roleAssets.Values.ToArray());
+            SetObjectReferenceArray(rosterSetup, "startingEmployees", employeeProfiles.ToArray());
+            SetObjectReferenceArray(rosterSetup, "jobApplicants", applicantProfiles.ToArray());
+            SetBool(rosterSetup, "autoGenerateApplicants", true);
+            SetInt(rosterSetup, "minGeneratedApplicantsPerRole", 2);
+            SetInt(rosterSetup, "maxGeneratedApplicantsPerRole", 4);
+        }
+
         private static void SetEmployeeAssignments(
             ProjectExecutionDefinition execution,
             SectorSeed sector,
@@ -365,6 +415,45 @@ namespace CompanySimulator.Tools.Editor
                 default:
                     return 55f;
             }
+        }
+
+        private static int GetStartingEmployeeProfileCount(string roleId)
+        {
+            switch (roleId)
+            {
+                case "personel":
+                    return 3;
+                case "yazilimci":
+                case "grafiker":
+                case "yazar":
+                    return 2;
+                default:
+                    return 1;
+            }
+        }
+
+        private static int GetApplicantProfileCount(string roleId)
+        {
+            switch (roleId)
+            {
+                case "personel":
+                    return 3;
+                default:
+                    return 2;
+            }
+        }
+
+        private static float GetEmployeeProfileQuality(string roleId, int index, bool isApplicant)
+        {
+            var baseQuality = GetDefaultEmployeeQuality(roleId);
+            var qualityOffset = isApplicant ? -5f : 5f;
+            return Mathf.Clamp(baseQuality + qualityOffset + (index * 3f), 35f, 95f);
+        }
+
+        private static int GetEmployeeProfileSalary(EmployeeRoleDefinition role, bool isApplicant)
+        {
+            var baseSalary = role != null ? (int)role.BaseDailySalary.Amount : 100;
+            return isApplicant ? baseSalary + 20 : baseSalary;
         }
 
         private static SectorSeed[] GetSectorSeeds()
@@ -505,11 +594,13 @@ namespace CompanySimulator.Tools.Editor
 
         private readonly struct RoleSeed
         {
-            public RoleSeed(string id, string displayName, int baseDailySalary, float qualityWeight, float profitWeight, bool requiresOffice, int maxConcurrentAssignmentsPerEmployee)
+            public RoleSeed(string id, string displayName, int baseDailySalary, int minimumExpectedSalary, int maximumExpectedSalary, float qualityWeight, float profitWeight, bool requiresOffice, int maxConcurrentAssignmentsPerEmployee)
             {
                 Id = id;
                 DisplayName = displayName;
                 BaseDailySalary = baseDailySalary;
+                MinimumExpectedSalary = minimumExpectedSalary;
+                MaximumExpectedSalary = maximumExpectedSalary;
                 QualityWeight = qualityWeight;
                 ProfitWeight = profitWeight;
                 RequiresOffice = requiresOffice;
@@ -519,6 +610,8 @@ namespace CompanySimulator.Tools.Editor
             public string Id { get; }
             public string DisplayName { get; }
             public int BaseDailySalary { get; }
+            public int MinimumExpectedSalary { get; }
+            public int MaximumExpectedSalary { get; }
             public float QualityWeight { get; }
             public float ProfitWeight { get; }
             public bool RequiresOffice { get; }

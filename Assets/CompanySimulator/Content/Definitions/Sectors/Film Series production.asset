@@ -10,11 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6ff3d5cac42454b4096f1cb49716ba26, type: 3}
-  m_Name: SectorDefinition
+  m_Name: Film Series production
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Sectors.Runtime.Definitions.SectorDefinition
-  id: game_dev
-  displayName: Game Devoloper
+  id: film_series_production
+  displayName: Film Series Production
+  description: "Film/dizi yap\u0131m\u0131"
   revenueMultiplier: 1
   durationMultiplier: 1
   competitionSensitivity: 1
   successToRevenueWeight: 0.5
+  supportedRoles:
+  - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}
+  - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
+  - {fileID: 11400000, guid: 379253f427d3f144da54891df54442c5, type: 2}
+  - {fileID: 11400000, guid: 747bbd37b05cf224db2f3896ff42a050, type: 2}
+  availableInvestments:
+  - {fileID: 11400000, guid: 862daa3bb64019a4196a9d783af843e6, type: 2}
