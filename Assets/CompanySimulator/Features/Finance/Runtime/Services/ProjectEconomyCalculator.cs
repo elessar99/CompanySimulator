@@ -101,8 +101,9 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                 totalPayrollCost += role.BaseDailySalary * count * durationDays;
 
                 var normalizedQuality = assignment.AverageQuality / balanceDefinition.QualityNormalizationPoint;
-                totalProfitWeight += normalizedQuality * role.ProfitWeight * count;
-                totalSuccessWeight += normalizedQuality * role.QualityWeight * count;
+                var contributionMultiplier = assignment.ContributionMultiplier;
+                totalProfitWeight += normalizedQuality * role.ProfitWeight * contributionMultiplier * count;
+                totalSuccessWeight += normalizedQuality * role.QualityWeight * contributionMultiplier * count;
             }
 
             if (totalEmployeeCount <= 0)

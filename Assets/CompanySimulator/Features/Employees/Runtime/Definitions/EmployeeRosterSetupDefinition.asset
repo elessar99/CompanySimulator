@@ -14,5 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Employees.Runtime.Definitions.EmployeeRosterSetupDefinition
   id: employee_roster_setup
   displayName: EmployeeRosterSetupDefinition
+  availableRoles:
+  - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
+  - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}
+  - {fileID: 11400000, guid: 379253f427d3f144da54891df54442c5, type: 2}
+  - {fileID: 11400000, guid: 76101fd08443a7c409fdeff5c53915bd, type: 2}
+  - {fileID: 11400000, guid: 747bbd37b05cf224db2f3896ff42a050, type: 2}
   startingEmployees: []
   jobApplicants: []
+  autoGenerateApplicants: 1
+  minGeneratedApplicantsPerRole: 2
+  maxGeneratedApplicantsPerRole: 4

@@ -1,11 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using CompanySimulator.Features.Employees.Runtime.Components;
+using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
+using CompanySimulator.Features.Projects.Runtime.Definitions;
+using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Components;
 using CompanySimulator.Features.Sectors.Runtime.Models;
+using CompanySimulator.Shared.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,28 +24,33 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
     {
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private SectorManager sectorManager;
+        [SerializeField] private EmployeeManager employeeManager;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
         private readonly Dictionary<InvestmentTypeDefinition, int> draftBudgetCache = new Dictionary<InvestmentTypeDefinition, int>(8);
+        private readonly Dictionary<string, EmployeeRuntimeData> draftEmployeeSelections = new Dictionary<string, EmployeeRuntimeData>(16);
 
         private Font defaultFont;
         private GameObject panelRoot;
         private RectTransform contentRoot;
         private Text balanceText;
+        private Text dayText;
         private Text pageTitleText;
         private Text draftResultText;
         private Button backButton;
         private SectorRuntimeData selectedSector;
         private ProjectExecutionDefinition selectedProjectTemplate;
+        private InvestmentTypeDefinition selectedPropertyInvestment;
+        private string expandedEmployeeSlotId;
         private PageState currentPage;
 
         private void Awake()
         {
-            // Referanslar inspector'dan atanmadýysa sahneden otomatik bulunur.
             economyManager ??= FindObjectOfType<EconomyManager>();
             sectorManager ??= FindObjectOfType<SectorManager>();
+            employeeManager ??= FindObjectOfType<EmployeeManager>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
 
             EnsureCanvas();
@@ -79,7 +90,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void ClosePanel()
         {
-            // Kapatýrken her zaman ana sektör listesine dönülür.
             NavigateToSectorList();
             panelRoot.SetActive(false);
         }
@@ -103,6 +113,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             selectedSector = null;
             selectedProjectTemplate = null;
+            selectedPropertyInvestment = null;
+            expandedEmployeeSlotId = null;
+            draftEmployeeSelections.Clear();
             currentPage = PageState.SectorList;
             UpdateHeaderButtons();
             ShowSectorList();
@@ -120,6 +133,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (!sectorManager.IsInitialized)
             {
                 sectorManager.Initialize();
+            }
+
+            if (employeeManager != null && !employeeManager.IsInitialized)
+            {
+                employeeManager.Initialize();
             }
 
             switch (currentPage)
@@ -142,12 +160,20 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 economyManager.BalanceChanged -= HandleBalanceChanged;
                 economyManager.BalanceChanged += HandleBalanceChanged;
+                economyManager.DayAdvanced -= HandleDayAdvanced;
+                economyManager.DayAdvanced += HandleDayAdvanced;
             }
 
             if (sectorManager != null)
             {
                 sectorManager.DataChanged -= HandleSectorDataChanged;
                 sectorManager.DataChanged += HandleSectorDataChanged;
+            }
+
+            if (employeeManager != null)
+            {
+                employeeManager.DataChanged -= HandleEmployeeDataChanged;
+                employeeManager.DataChanged += HandleEmployeeDataChanged;
             }
         }
 
@@ -156,11 +182,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (economyManager != null)
             {
                 economyManager.BalanceChanged -= HandleBalanceChanged;
+                economyManager.DayAdvanced -= HandleDayAdvanced;
             }
 
             if (sectorManager != null)
             {
                 sectorManager.DataChanged -= HandleSectorDataChanged;
+            }
+
+            if (employeeManager != null)
+            {
+                employeeManager.DataChanged -= HandleEmployeeDataChanged;
             }
         }
 
@@ -169,9 +201,26 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             RefreshBalanceText();
         }
 
+        private void HandleDayAdvanced(int _)
+        {
+            RefreshDayText();
+            if (currentPage == PageState.NewJob || currentPage == PageState.SectorDetails)
+            {
+                RefreshAll();
+            }
+        }
+
         private void HandleSectorDataChanged()
         {
             RefreshAll();
+        }
+
+        private void HandleEmployeeDataChanged()
+        {
+            if (currentPage == PageState.NewJob)
+            {
+                ShowNewJobPage(selectedSector);
+            }
         }
 
         private void EnsureCanvas()
@@ -208,6 +257,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void BuildStaticUi()
         {
             CreateBalanceWidget();
+            CreateDayWidget();
             CreateOpenButton();
             CreatePanel();
             panelRoot.SetActive(false);
@@ -240,6 +290,34 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             buttonRect.anchoredPosition = new Vector2(20f, -80f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
+        }
+
+        private void CreateDayWidget()
+        {
+            dayText = CreateText(rootCanvas.transform, "Gün: 1", 22, TextAnchor.MiddleRight);
+            var dayRect = dayText.GetComponent<RectTransform>();
+            dayRect.anchorMin = new Vector2(1f, 1f);
+            dayRect.anchorMax = new Vector2(1f, 1f);
+            dayRect.pivot = new Vector2(1f, 1f);
+            dayRect.anchoredPosition = new Vector2(-220f, -20f);
+            dayRect.sizeDelta = new Vector2(180f, 48f);
+
+            var nextDayButton = CreateButton(rootCanvas.transform, "NextDayButton", "Sonraki Gün");
+            var buttonRect = nextDayButton.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(1f, 1f);
+            buttonRect.anchorMax = new Vector2(1f, 1f);
+            buttonRect.pivot = new Vector2(1f, 1f);
+            buttonRect.anchoredPosition = new Vector2(-20f, -20f);
+            buttonRect.sizeDelta = new Vector2(180f, 44f);
+            nextDayButton.onClick.AddListener(() =>
+            {
+                if (economyManager != null)
+                {
+                    economyManager.AdvanceDay();
+                }
+            });
+
+            RefreshDayText();
         }
 
         private void CreatePanel()
@@ -310,9 +388,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             viewportRect.offsetMin = new Vector2(8f, 8f);
             viewportRect.offsetMax = new Vector2(-8f, -8f);
             viewport.AddComponent<RectMask2D>();
-
-            var viewportImage = viewport.AddComponent<Image>();
-            viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+            viewport.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
 
             var content = CreateUiObject("Content", viewport.transform);
             contentRoot = content.GetComponent<RectTransform>();
@@ -336,7 +412,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             scrollRect.viewport = viewportRect;
             scrollRect.content = contentRoot;
-
             UpdateHeaderButtons();
         }
 
@@ -392,7 +467,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 CreateInfoCard(sectorData.Sector.Description, 72f);
             }
 
-            CreateInfoCard($"Toplam tamamlanan iþ: {sectorData.CompletedProjectCount}");
+            CreateInfoCard($"Aktif iþ sayýsý: {sectorData.ActiveProjectCount}");
+            CreateInfoCard($"Bu sektörde gelir döngüsü: {sectorData.Sector.ProfitPayoutIntervalDays} günde bir");
             CreateInfoCard($"Sektörde çalýþabilecek meslek sayýsý: {sectorData.Sector.SupportedRoles.Count}");
 
             var availableProjects = sectorData.AvailableProjects;
@@ -432,9 +508,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             pageTitleText.text = sectorData.Sector.DisplayName + " / Yeni Ýþ";
             ClearChildren(contentRoot);
 
-            if (selectedProjectTemplate == null || !ContainsProject(sectorData, selectedProjectTemplate))
+            if (!IsProjectUsableForSector(sectorData, selectedProjectTemplate))
             {
-                selectedProjectTemplate = sectorData.AvailableProjects.Count > 0 ? sectorData.AvailableProjects[0] : null;
+                selectedProjectTemplate = sectorData.AvailableProjects.Count > 0
+                    ? sectorData.AvailableProjects[0]
+                    : CreateTransientProjectTemplate(sectorData.Sector);
+                selectedPropertyInvestment = null;
+                expandedEmployeeSlotId = null;
+                draftEmployeeSelections.Clear();
             }
 
             if (selectedProjectTemplate == null)
@@ -443,18 +524,29 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
+            CleanupDraftState(selectedProjectTemplate);
+
             if (!string.IsNullOrWhiteSpace(sectorData.Sector.Description))
             {
                 CreateInfoCard(sectorData.Sector.Description, 72f);
             }
 
-            CreateSectionTitle("Ýþ Þablonlarý");
-            for (var i = 0; i < sectorData.AvailableProjects.Count; i++)
+            CreateInfoCard($"Bu sektörde iþ gelirleri {sectorData.Sector.ProfitPayoutIntervalDays} günde bir döngüsel olarak gelir.", 64f);
+
+            if (sectorData.AvailableProjects.Count > 0)
             {
-                CreateProjectTemplateSelector(sectorData.AvailableProjects[i]);
+                CreateSectionTitle("Ýþ Þablonlarý");
+                for (var i = 0; i < sectorData.AvailableProjects.Count; i++)
+                {
+                    CreateProjectTemplateSelector(sectorData.AvailableProjects[i]);
+                }
+            }
+            else
+            {
+                CreateInfoCard("Bu sektörde kayýtlý hazýr iþ þablonu yok. Yeni iþ ekraný sektör verilerinden geçici bir taslak kullanýyor.", 72f);
             }
 
-            CreateSectionTitle("Gerekli Çalýþanlar");
+            CreateSectionTitle("Çalýþan Atamalarý");
             CreateEmployeeRequirementCards(selectedProjectTemplate);
 
             CreateSectionTitle("Yatýrýmlar");
@@ -465,7 +557,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             previewButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 56f);
             previewButton.onClick.AddListener(PreviewDraft);
 
-            draftResultText = CreateInfoCard("Bütçeleri girip önizleme yapabilirsin.", 128f);
+            draftResultText = CreateInfoCard("Çalýþan seçip yatýrým tutarlarýný girdikten sonra önizleme yapabilirsin.", 148f);
 
             var startButton = CreateButton(contentRoot, "StartButton", "Ýþi Baþlat");
             startButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 62f);
@@ -486,9 +578,124 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return false;
         }
 
+        private bool IsProjectUsableForSector(SectorRuntimeData sectorData, ProjectExecutionDefinition project)
+        {
+            if (sectorData == null || project == null)
+            {
+                return false;
+            }
+
+            if (ContainsProject(sectorData, project))
+            {
+                return true;
+            }
+
+            return sectorData.AvailableProjects.Count == 0 && project.ProjectType != null && project.ProjectType.Sector == sectorData.Sector;
+        }
+
+        private ProjectExecutionDefinition CreateTransientProjectTemplate(SectorDefinition sector)
+        {
+            if (sector == null)
+            {
+                return null;
+            }
+
+            var projectType = ScriptableObject.CreateInstance<ProjectTypeDefinition>();
+            projectType.hideFlags = HideFlags.HideAndDontSave;
+            projectType.name = sector.DisplayName + " Geçici Proje";
+            SetDefinitionIdentity(projectType, "transient_project_" + sector.Id, sector.DisplayName + " Ýþi");
+            SetField(projectType, "sector", sector);
+            SetField(projectType, "baseRevenue", 250000);
+            SetField(projectType, "fixedCost", 20000);
+            SetField(projectType, "baseDurationDays", Mathf.Max(1, sector.ProfitPayoutIntervalDays));
+            SetField(projectType, "baseSuccessScore", 1f);
+            SetField(projectType, "demandMultiplier", 1f);
+            SetField(projectType, "preferredRoles", ToArray(sector.SupportedRoles));
+            SetField(projectType, "recommendedInvestments", ToArray(sector.AvailableInvestments));
+
+            var execution = ScriptableObject.CreateInstance<ProjectExecutionDefinition>();
+            execution.hideFlags = HideFlags.HideAndDontSave;
+            execution.name = sector.DisplayName + " Geçici Ýþ";
+            SetDefinitionIdentity(execution, "transient_execution_" + sector.Id, sector.DisplayName + " Ýþi");
+            SetField(execution, "projectType", projectType);
+            SetField(execution, "employeeAssignments", CreateTransientAssignments(sector));
+            SetField(execution, "investmentAllocations", CreateTransientInvestments(sector));
+            SetField(execution, "marketDemandMultiplier", 1f);
+            SetField(execution, "competitorPressure", 0.1f);
+            return execution;
+        }
+
+        private EmployeeAssignmentInput[] CreateTransientAssignments(SectorDefinition sector)
+        {
+            var roles = sector.SupportedRoles;
+            var result = new EmployeeAssignmentInput[roles.Count];
+            for (var i = 0; i < roles.Count; i++)
+            {
+                result[i] = new EmployeeAssignmentInput(roles[i], 1, 50f, 1f);
+            }
+
+            return result;
+        }
+
+        private InvestmentAllocationInput[] CreateTransientInvestments(SectorDefinition sector)
+        {
+            var investments = sector.AvailableInvestments;
+            var result = new InvestmentAllocationInput[investments.Count];
+            for (var i = 0; i < investments.Count; i++)
+            {
+                var investment = investments[i];
+                result[i] = new InvestmentAllocationInput(investment, investment != null ? investment.RecommendedBudget : 0);
+            }
+
+            return result;
+        }
+
+        private void CleanupDraftState(ProjectExecutionDefinition project)
+        {
+            if (project == null)
+            {
+                draftEmployeeSelections.Clear();
+                expandedEmployeeSlotId = null;
+                selectedPropertyInvestment = null;
+                return;
+            }
+
+            var validSlotIds = new HashSet<string>();
+            var assignments = project.EmployeeAssignments;
+            for (var i = 0; i < assignments.Count; i++)
+            {
+                var assignment = assignments[i];
+                var slotCount = Mathf.Max(0, assignment.Count);
+                for (var slotIndex = 0; slotIndex < slotCount; slotIndex++)
+                {
+                    validSlotIds.Add(BuildEmployeeSlotId(assignment.Role, i, slotIndex));
+                }
+            }
+
+            var keysToRemove = new List<string>();
+            foreach (var pair in draftEmployeeSelections)
+            {
+                if (!validSlotIds.Contains(pair.Key))
+                {
+                    keysToRemove.Add(pair.Key);
+                }
+            }
+
+            for (var i = 0; i < keysToRemove.Count; i++)
+            {
+                draftEmployeeSelections.Remove(keysToRemove[i]);
+            }
+
+            var investments = GetEditableInvestments(project);
+            if (selectedPropertyInvestment != null && !investments.Contains(selectedPropertyInvestment))
+            {
+                selectedPropertyInvestment = null;
+            }
+        }
+
         private void CreateSectorButton(SectorRuntimeData sectorData)
         {
-            var label = $"{sectorData.Sector.DisplayName}\nTamamlanan Ýþ: {sectorData.CompletedProjectCount}";
+            var label = $"{sectorData.Sector.DisplayName}\nAktif Ýþ: {sectorData.ActiveProjectCount}";
             var button = CreateButton(contentRoot, $"Sector_{sectorData.Sector.Id}", label);
             button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
             button.onClick.AddListener(() => ShowSectorDetails(sectorData));
@@ -496,14 +703,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateProjectCard(SectorRuntimeData sectorData, ProjectExecutionDefinition project)
         {
-            var completedCount = sectorData.GetCompletedCount(project);
+            var activeCount = sectorData.GetActiveCount(project);
             var resultPreview = economyManager != null ? economyManager.PreviewProject(project) : default;
-            var label = $"{project.DisplayName}\nTamamlanma: {completedCount} | Tahmini Kâr: {resultPreview.Profit.Amount:N0}";
+            var label = $"{project.DisplayName}\nAktif: {activeCount} | Döngü Kârý: {GetCycleProfit(resultPreview).Amount:N0}";
             var button = CreateButton(contentRoot, $"Project_{project.Id}", label);
             button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 84f);
             button.onClick.AddListener(() =>
             {
                 selectedProjectTemplate = project;
+                selectedPropertyInvestment = null;
+                expandedEmployeeSlotId = null;
+                draftEmployeeSelections.Clear();
                 ShowNewJobPage(sectorData);
             });
         }
@@ -516,6 +726,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             button.onClick.AddListener(() =>
             {
                 selectedProjectTemplate = project;
+                selectedPropertyInvestment = null;
+                expandedEmployeeSlotId = null;
+                draftEmployeeSelections.Clear();
                 ShowNewJobPage(selectedSector);
             });
         }
@@ -529,39 +742,148 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            for (var i = 0; i < assignments.Count; i++)
+            if (employeeManager == null)
             {
-                var assignment = assignments[i];
+                CreateInfoCard("Çalýþan sistemi sahnede bulunamadý.");
+                return;
+            }
+
+            for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+            {
+                var assignment = assignments[assignmentIndex];
                 var role = assignment.Role;
                 if (role == null)
                 {
                     continue;
                 }
 
-                var canWorkInSector = selectedSector != null && role.CanWorkInSector(selectedSector.Sector);
-                var compatibilityText = canWorkInSector ? "Uygun" : "Bu sektörde çalýþamaz";
-                CreateInfoCard(
-                    $"{role.DisplayName}\nGerekli Kiþi: {assignment.Count} | Ortalama Kalite: {assignment.AverageQuality:0}\nTek çalýþan eþ zamanlý atama limiti: {role.MaxConcurrentAssignmentsPerEmployee}\nSektör uyumu: {compatibilityText}",
-                    92f);
+                CreateInfoCard($"{role.DisplayName} için {assignment.Count} çalýþan seçmelisin.", 64f);
+
+                for (var slotIndex = 0; slotIndex < assignment.Count; slotIndex++)
+                {
+                    CreateEmployeeSlotEditor(role, assignmentIndex, slotIndex);
+                }
             }
+        }
+
+        private void CreateEmployeeSlotEditor(CompanySimulator.Features.Employees.Runtime.Definitions.EmployeeRoleDefinition role, int assignmentIndex, int slotIndex)
+        {
+            var slotId = BuildEmployeeSlotId(role, assignmentIndex, slotIndex);
+            draftEmployeeSelections.TryGetValue(slotId, out var selectedEmployee);
+            var label = selectedEmployee == null
+                ? $"{role.DisplayName} / Slot {slotIndex + 1}\nBoþ çalýþan seç"
+                : $"{role.DisplayName} / Slot {slotIndex + 1}\n{selectedEmployee.DisplayName} | Kademe: {selectedEmployee.QualityTier} | x{selectedEmployee.IncomeMultiplier:0.0}";
+
+            var slotButton = CreateButton(contentRoot, $"EmployeeSlot_{slotId}", label);
+            slotButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 82f);
+            slotButton.onClick.AddListener(() =>
+            {
+                expandedEmployeeSlotId = expandedEmployeeSlotId == slotId ? null : slotId;
+                ShowNewJobPage(selectedSector);
+            });
+
+            if (expandedEmployeeSlotId != slotId)
+            {
+                return;
+            }
+
+            var availableEmployees = GetSelectableEmployees(role, slotId);
+            if (availableEmployees.Count == 0)
+            {
+                CreateInfoCard($"{role.DisplayName} için boþta çalýþan bulunmuyor.", 60f);
+            }
+            else
+            {
+                for (var i = 0; i < availableEmployees.Count; i++)
+                {
+                    CreateEmployeeCandidateButton(slotId, availableEmployees[i]);
+                }
+            }
+
+            if (selectedEmployee != null)
+            {
+                var clearButton = CreateButton(contentRoot, $"Clear_{slotId}", "Atamayý Temizle");
+                clearButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
+                clearButton.onClick.AddListener(() =>
+                {
+                    draftEmployeeSelections.Remove(slotId);
+                    expandedEmployeeSlotId = null;
+                    ShowNewJobPage(selectedSector);
+                });
+            }
+        }
+
+        private List<EmployeeRuntimeData> GetSelectableEmployees(CompanySimulator.Features.Employees.Runtime.Definitions.EmployeeRoleDefinition role, string currentSlotId)
+        {
+            var result = new List<EmployeeRuntimeData>(8);
+            if (employeeManager == null || role == null)
+            {
+                return result;
+            }
+
+            if (draftEmployeeSelections.TryGetValue(currentSlotId, out var currentSelection) && currentSelection != null)
+            {
+                result.Add(currentSelection);
+            }
+
+            var idleEmployees = employeeManager.GetIdleEmployeesByRole(role);
+            for (var i = 0; i < idleEmployees.Count; i++)
+            {
+                var employee = idleEmployees[i];
+                if (employee == null || result.Contains(employee) || IsSelectedInAnotherSlot(employee, currentSlotId))
+                {
+                    continue;
+                }
+
+                result.Add(employee);
+            }
+
+            return result;
+        }
+
+        private bool IsSelectedInAnotherSlot(EmployeeRuntimeData employee, string currentSlotId)
+        {
+            foreach (var pair in draftEmployeeSelections)
+            {
+                if (pair.Key == currentSlotId)
+                {
+                    continue;
+                }
+
+                if (pair.Value == employee)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void CreateEmployeeCandidateButton(string slotId, EmployeeRuntimeData employee)
+        {
+            var label = $"{employee.DisplayName}\nKademe: {employee.QualityTier} | Çarpan: x{employee.IncomeMultiplier:0.0} | Maaþ: {employee.ExpectedDailySalary.Amount:N0}";
+            var button = CreateButton(contentRoot, $"Candidate_{slotId}_{employee.Id}", label);
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 82f);
+            button.onClick.AddListener(() =>
+            {
+                draftEmployeeSelections[slotId] = employee;
+                expandedEmployeeSlotId = null;
+                ShowNewJobPage(selectedSector);
+            });
         }
 
         private void CreateInvestmentEditors(ProjectExecutionDefinition project)
         {
-            draftBudgetCache.Clear();
+            var investments = GetEditableInvestments(project);
+            var rentInvestment = FindInvestmentById(investments, "kira");
+            var purchaseInvestment = FindInvestmentById(investments, "satinalma");
 
-            var investments = project.ProjectType != null ? project.ProjectType.RecommendedInvestments : Array.Empty<InvestmentTypeDefinition>();
-            if (investments.Count == 0 && selectedSector != null)
+            if (rentInvestment != null && purchaseInvestment != null)
             {
-                investments = selectedSector.Sector.AvailableInvestments;
+                CreatePropertyChoiceEditor(rentInvestment, purchaseInvestment);
             }
 
-            if (investments.Count == 0)
-            {
-                CreateInfoCard("Bu iþ için yatýrým tanýmý bulunmuyor.");
-                return;
-            }
-
+            var hasVisibleInvestment = false;
             for (var i = 0; i < investments.Count; i++)
             {
                 var investment = investments[i];
@@ -570,12 +892,96 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     continue;
                 }
 
+                if ((investment == rentInvestment || investment == purchaseInvestment) && investment != selectedPropertyInvestment)
+                {
+                    continue;
+                }
+
                 CreateInvestmentEditor(project, investment);
+                hasVisibleInvestment = true;
             }
+
+            if (!hasVisibleInvestment && rentInvestment == null && purchaseInvestment == null)
+            {
+                CreateInfoCard("Bu iþ için yatýrým tanýmý bulunmuyor.");
+            }
+        }
+
+        private List<InvestmentTypeDefinition> GetEditableInvestments(ProjectExecutionDefinition project)
+        {
+            var result = new List<InvestmentTypeDefinition>(8);
+            if (project == null)
+            {
+                return result;
+            }
+
+            var investments = project.ProjectType != null && project.ProjectType.RecommendedInvestments.Count > 0
+                ? project.ProjectType.RecommendedInvestments
+                : selectedSector != null ? selectedSector.Sector.AvailableInvestments : Array.Empty<InvestmentTypeDefinition>();
+
+            for (var i = 0; i < investments.Count; i++)
+            {
+                if (investments[i] != null && !result.Contains(investments[i]))
+                {
+                    result.Add(investments[i]);
+                }
+            }
+
+            return result;
+        }
+
+        private InvestmentTypeDefinition FindInvestmentById(IReadOnlyList<InvestmentTypeDefinition> investments, string investmentId)
+        {
+            for (var i = 0; i < investments.Count; i++)
+            {
+                var investment = investments[i];
+                if (investment != null && string.Equals(investment.Id, investmentId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return investment;
+                }
+            }
+
+            return null;
+        }
+
+        private void CreatePropertyChoiceEditor(InvestmentTypeDefinition rentInvestment, InvestmentTypeDefinition purchaseInvestment)
+        {
+            CreateInfoCard("Mülk yatýrýmý için kirala ya da satýn al seçeneklerinden birini seçmelisin.", 76f);
+
+            var row = CreateUiObject("PropertyChoiceRow", contentRoot);
+            var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 10f;
+            rowLayout.childControlWidth = true;
+            rowLayout.childControlHeight = true;
+            rowLayout.childForceExpandWidth = true;
+            rowLayout.childForceExpandHeight = false;
+            row.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            row.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 56f);
+
+            CreatePropertyChoiceButton(row.transform, rentInvestment, "Kirala");
+            CreatePropertyChoiceButton(row.transform, purchaseInvestment, "Satýn Al");
+        }
+
+        private void CreatePropertyChoiceButton(Transform parent, InvestmentTypeDefinition investment, string label)
+        {
+            var button = CreateButton(parent, "PropertyChoice_" + investment.Id, selectedPropertyInvestment == investment ? label + " (Seçili)" : label);
+            var layoutElement = button.gameObject.AddComponent<LayoutElement>();
+            layoutElement.preferredWidth = 180f;
+            layoutElement.preferredHeight = 56f;
+            button.onClick.AddListener(() =>
+            {
+                selectedPropertyInvestment = investment;
+                ShowNewJobPage(selectedSector);
+            });
         }
 
         private void CreateInvestmentEditor(ProjectExecutionDefinition project, InvestmentTypeDefinition investment)
         {
+            if (!draftBudgetCache.ContainsKey(investment))
+            {
+                draftBudgetCache[investment] = GetDefaultBudget(project, investment);
+            }
+
             var card = CreateUiObject($"Investment_{investment.Id}", contentRoot);
             var cardRect = card.GetComponent<RectTransform>();
             cardRect.sizeDelta = new Vector2(0f, 116f);
@@ -594,7 +1000,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 TextAnchor.UpperLeft);
             StretchToParent(detailText.rectTransform, 14f, 42f, 220f, 10f);
 
-            var inputField = CreateInputField(card.transform, GetDefaultBudget(project, investment).ToString());
+            var inputField = CreateInputField(card.transform, draftBudgetCache[investment].ToString());
             var inputRect = inputField.GetComponent<RectTransform>();
             inputRect.anchorMin = new Vector2(1f, 0.5f);
             inputRect.anchorMax = new Vector2(1f, 0.5f);
@@ -628,10 +1034,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var request = BuildDraftRequest();
-            if (request == null)
+            if (!TryBuildDraftRequest(out var request, out var validationMessage))
             {
-                draftResultText.text = "Önizleme için geçerli bir iþ þablonu seçilmedi.";
+                draftResultText.text = validationMessage;
                 return;
             }
 
@@ -646,16 +1051,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var request = BuildDraftRequest();
-            if (request == null)
+            if (!TryBuildDraftRequest(out var request, out var validationMessage))
             {
-                draftResultText.text = "Ýþ baþlatmak için geçerli bir iþ þablonu seçilmedi.";
+                draftResultText.text = validationMessage;
                 return;
             }
 
             var displayName = selectedProjectTemplate != null ? selectedProjectTemplate.DisplayName : request.ProjectType.DisplayName;
             if (economyManager.TryExecuteProject(selectedProjectTemplate, request, displayName, out var result))
             {
+                draftEmployeeSelections.Clear();
+                expandedEmployeeSlotId = null;
                 ShowNewJobPage(selectedSector);
                 if (draftResultText != null)
                 {
@@ -668,24 +1074,103 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
         }
 
-        private ProjectEconomyRequest BuildDraftRequest()
+        private bool TryBuildDraftRequest(out ProjectEconomyRequest request, out string validationMessage)
         {
+            request = null;
+            validationMessage = string.Empty;
+
             if (selectedProjectTemplate == null)
             {
-                return null;
+                validationMessage = "Ýþ baþlatmak için geçerli bir iþ þablonu seçilmedi.";
+                return false;
             }
 
             var projectType = selectedProjectTemplate.ProjectType;
             if (projectType == null)
             {
-                return null;
+                validationMessage = "Seçilen iþ þablonunun proje tipi eksik.";
+                return false;
             }
 
-            var investments = projectType.RecommendedInvestments.Count > 0
-                ? projectType.RecommendedInvestments
-                : selectedSector != null ? selectedSector.Sector.AvailableInvestments : Array.Empty<InvestmentTypeDefinition>();
+            if (!TryBuildEmployeeAssignments(selectedProjectTemplate, out var employeeAssignments, out validationMessage))
+            {
+                return false;
+            }
 
-            var allocationList = new List<InvestmentAllocationInput>(investments.Count);
+            if (!TryBuildInvestmentAllocations(selectedProjectTemplate, out var investmentAllocations, out validationMessage))
+            {
+                return false;
+            }
+
+            request = new ProjectEconomyRequest(
+                projectType,
+                employeeAssignments,
+                investmentAllocations,
+                selectedProjectTemplate.MarketDemandMultiplier,
+                selectedProjectTemplate.CompetitorPressure);
+            return true;
+        }
+
+        private bool TryBuildEmployeeAssignments(ProjectExecutionDefinition project, out List<EmployeeAssignmentInput> assignments, out string validationMessage)
+        {
+            assignments = new List<EmployeeAssignmentInput>(8);
+            validationMessage = string.Empty;
+
+            var templateAssignments = project.EmployeeAssignments;
+            for (var assignmentIndex = 0; assignmentIndex < templateAssignments.Count; assignmentIndex++)
+            {
+                var templateAssignment = templateAssignments[assignmentIndex];
+                var role = templateAssignment.Role;
+                if (role == null)
+                {
+                    continue;
+                }
+
+                var totalQuality = 0f;
+                var totalContributionMultiplier = 0f;
+                var requiredCount = Mathf.Max(0, templateAssignment.Count);
+                if (requiredCount <= 0)
+                {
+                    continue;
+                }
+
+                for (var slotIndex = 0; slotIndex < requiredCount; slotIndex++)
+                {
+                    var slotId = BuildEmployeeSlotId(role, assignmentIndex, slotIndex);
+                    if (!draftEmployeeSelections.TryGetValue(slotId, out var selectedEmployee) || selectedEmployee == null)
+                    {
+                        validationMessage = $"{role.DisplayName} için tüm çalýþan kutularýný doldurmalýsýn.";
+                        return false;
+                    }
+
+                    totalQuality += selectedEmployee.Quality;
+                    totalContributionMultiplier += selectedEmployee.IncomeMultiplier;
+                }
+
+                assignments.Add(new EmployeeAssignmentInput(
+                    role,
+                    requiredCount,
+                    totalQuality / requiredCount,
+                    totalContributionMultiplier / requiredCount));
+            }
+
+            return true;
+        }
+
+        private bool TryBuildInvestmentAllocations(ProjectExecutionDefinition project, out List<InvestmentAllocationInput> allocations, out string validationMessage)
+        {
+            allocations = new List<InvestmentAllocationInput>(8);
+            validationMessage = string.Empty;
+
+            var investments = GetEditableInvestments(project);
+            var rentInvestment = FindInvestmentById(investments, "kira");
+            var purchaseInvestment = FindInvestmentById(investments, "satinalma");
+            if (rentInvestment != null && purchaseInvestment != null && selectedPropertyInvestment == null)
+            {
+                validationMessage = "Kira ya da satýn al seçeneklerinden birini seçmelisin.";
+                return false;
+            }
+
             for (var i = 0; i < investments.Count; i++)
             {
                 var investment = investments[i];
@@ -694,31 +1179,45 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     continue;
                 }
 
+                if ((investment == rentInvestment || investment == purchaseInvestment) && investment != selectedPropertyInvestment)
+                {
+                    continue;
+                }
+
                 var budget = draftBudgetCache.TryGetValue(investment, out var cachedBudget)
                     ? cachedBudget
-                    : GetDefaultBudget(selectedProjectTemplate, investment);
-                allocationList.Add(new InvestmentAllocationInput(investment, budget));
+                    : GetDefaultBudget(project, investment);
+                allocations.Add(new InvestmentAllocationInput(investment, budget));
             }
 
-            return new ProjectEconomyRequest(
-                projectType,
-                selectedProjectTemplate.EmployeeAssignments,
-                allocationList,
-                selectedProjectTemplate.MarketDemandMultiplier,
-                selectedProjectTemplate.CompetitorPressure);
+            return true;
+        }
+
+        private string BuildEmployeeSlotId(CompanySimulator.Features.Employees.Runtime.Definitions.EmployeeRoleDefinition role, int assignmentIndex, int slotIndex)
+        {
+            return $"{role?.Id ?? "role"}_{assignmentIndex}_{slotIndex}";
         }
 
         private string BuildResultSummary(ProjectEconomyResult result)
         {
+            var cycleProfit = GetCycleProfit(result);
+            var payoutIntervalDays = selectedSector != null ? selectedSector.Sector.ProfitPayoutIntervalDays : 1;
             return
                 $"Tahmini Gelir: {result.Revenue.Amount:N0}\n" +
                 $"Personel Gideri: {result.PayrollCost.Amount:N0}\n" +
                 $"Peþin Yatýrým: {result.UpfrontInvestmentCost.Amount:N0}\n" +
                 $"Gelirden Düþen Gider: {result.RecurringInvestmentCost.Amount:N0}\n" +
                 $"Sabit Gider: {result.FixedCost.Amount:N0}\n" +
-                $"Toplam Kâr: {result.Profit.Amount:N0}\n" +
+                $"Kurulum Sonrasý Döngü Kârý: {cycleProfit.Amount:N0}\n" +
+                $"Gelir Aralýðý: {payoutIntervalDays} gün\n" +
+                $"Ýlk Kurulum Toplam Kârý: {result.Profit.Amount:N0}\n" +
                 $"Baþarý Puaný: {result.SuccessScore:0.00}\n" +
                 $"Süre: {result.DurationDays} gün";
+        }
+
+        private Money GetCycleProfit(ProjectEconomyResult result)
+        {
+            return result.Revenue - result.PayrollCost - result.RecurringInvestmentCost;
         }
 
         private int GetDefaultBudget(ProjectExecutionDefinition project, InvestmentTypeDefinition investment)
@@ -782,7 +1281,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var text = CreateText(buttonObject.transform, label, 22, TextAnchor.MiddleLeft);
             StretchToParent(text.rectTransform, 16f, 8f, 16f, 8f);
-
             return button;
         }
 
@@ -834,6 +1332,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             balanceText.text = $"Para: {balanceAmount:N0}";
         }
 
+        private void RefreshDayText()
+        {
+            if (dayText == null)
+            {
+                return;
+            }
+
+            var day = economyManager != null ? economyManager.CurrentDay : 1;
+            dayText.text = $"Gün: {day}";
+        }
+
         private Font LoadDefaultFont()
         {
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -862,6 +1371,41 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 Destroy(parent.GetChild(i).gameObject);
             }
+        }
+
+        private static T[] ToArray<T>(IReadOnlyList<T> source)
+        {
+            var result = new T[source.Count];
+            for (var i = 0; i < source.Count; i++)
+            {
+                result[i] = source[i];
+            }
+
+            return result;
+        }
+
+        private void SetDefinitionIdentity(DefinitionBase definition, string id, string displayName)
+        {
+            SetField(definition, "id", id);
+            SetField(definition, "displayName", displayName);
+        }
+
+        private void SetField(object target, string fieldName, object value)
+        {
+            var currentType = target.GetType();
+            while (currentType != null)
+            {
+                var field = currentType.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+                if (field != null)
+                {
+                    field.SetValue(target, value);
+                    return;
+                }
+
+                currentType = currentType.BaseType;
+            }
+
+            throw new MissingFieldException(target.GetType().Name, fieldName);
         }
 
         private enum PageState

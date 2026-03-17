@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Models;
 using UnityEngine;
@@ -60,7 +61,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             }
 
             BuildCatalogState();
-            RefreshCompletedProjectCounts();
+            RefreshActiveProjectCounts();
             isInitialized = true;
             DataChanged?.Invoke();
         }
@@ -127,7 +128,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             return sectorData;
         }
 
-        private void RefreshCompletedProjectCounts()
+        private void RefreshActiveProjectCounts()
         {
             for (var i = 0; i < sectors.Count; i++)
             {
@@ -139,10 +140,10 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
                 return;
             }
 
-            var history = economyManager.ExecutionHistory;
-            for (var i = 0; i < history.Count; i++)
+            var activeProjects = economyManager.ActiveProjects;
+            for (var i = 0; i < activeProjects.Count; i++)
             {
-                RegisterCompletedProject(history[i]);
+                RegisterActiveProject(activeProjects[i]);
             }
         }
 
@@ -170,14 +171,28 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
 
         private void HandleProjectExecuted(ProjectExecutionDefinition executionDefinition, ProjectEconomyResult result)
         {
-            RegisterCompletedProject(new ProjectExecutionHistoryEntry(executionDefinition, executionDefinition.DisplayName, executionDefinition.ProjectType, result));
+            RegisterActiveProject(executionDefinition);
             DataChanged?.Invoke();
         }
 
-        private void RegisterCompletedProject(ProjectExecutionHistoryEntry historyEntry)
+        private void RegisterActiveProject(ActiveProjectRuntimeEntry activeProject)
         {
-            var executionDefinition = historyEntry.SourceDefinition;
-            var projectType = historyEntry.ProjectType;
+            if (activeProject == null)
+            {
+                return;
+            }
+
+            RegisterActiveProject(activeProject.SourceDefinition, activeProject.ProjectType);
+        }
+
+        private void RegisterActiveProject(ProjectExecutionDefinition executionDefinition)
+        {
+            var projectType = executionDefinition != null ? executionDefinition.ProjectType : null;
+            RegisterActiveProject(executionDefinition, projectType);
+        }
+
+        private void RegisterActiveProject(ProjectExecutionDefinition executionDefinition, ProjectTypeDefinition projectType)
+        {
             var sector = projectType != null ? projectType.Sector : null;
             if (sector == null)
             {
@@ -185,7 +200,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             }
 
             var sectorData = RegisterSector(sector);
-            sectorData?.RegisterCompletedProject(executionDefinition);
+            sectorData?.RegisterActiveProject(executionDefinition);
         }
     }
 }

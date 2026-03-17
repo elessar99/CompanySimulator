@@ -14,6 +14,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
         [SerializeField] private EconomySetupDefinition setup;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private bool runStartupProjectsOnStart = true;
+        [SerializeField] private int currentDay = 1;
         [SerializeField] private long currentBalance;
         [SerializeField] private int executedProjectCount;
         [SerializeField] private string lastExecutionSummary;
@@ -21,16 +22,20 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
         private CompanyLedger ledger;
         private ProjectEconomyCalculator calculator;
         private readonly List<ProjectExecutionHistoryEntry> executionHistory = new List<ProjectExecutionHistoryEntry>(32);
+        private readonly List<ActiveProjectRuntimeEntry> activeProjects = new List<ActiveProjectRuntimeEntry>(32);
         private bool isInitialized;
 
         public event Action<Money> BalanceChanged;
+        public event Action<int> DayAdvanced;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecuted;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecutionRejected;
 
         public bool IsInitialized => isInitialized;
+        public int CurrentDay => currentDay;
         public Money Balance => ledger != null ? ledger.Balance : Money.Zero;
         public IReadOnlyList<LedgerEntry> Entries => ledger != null ? ledger.Entries : Array.Empty<LedgerEntry>();
         public IReadOnlyList<ProjectExecutionHistoryEntry> ExecutionHistory => executionHistory;
+        public IReadOnlyList<ActiveProjectRuntimeEntry> ActiveProjects => activeProjects;
         public string LastExecutionSummary => lastExecutionSummary;
         public int ExecutedProjectCount => executedProjectCount;
 
@@ -72,6 +77,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             ledger.Clear();
             calculator = new ProjectEconomyCalculator(setup.BalanceDefinition);
             executionHistory.Clear();
+            activeProjects.Clear();
+            currentDay = 1;
             executedProjectCount = 0;
             lastExecutionSummary = string.Empty;
             isInitialized = true;
@@ -104,6 +111,21 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             }
 
             return executedCount;
+        }
+
+        [ContextMenu("Advance Day")]
+        public void AdvanceDay()
+        {
+            if (!EnsureInitialized())
+            {
+                return;
+            }
+
+            currentDay++;
+            ProcessRecurringPayouts();
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            DayAdvanced?.Invoke(currentDay);
         }
 
         public ProjectEconomyResult PreviewProject(ProjectExecutionDefinition executionDefinition)
@@ -199,19 +221,11 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             }
 
             ApplyExpense(result.FixedCost, LedgerEntryType.MiscExpense, $"{safeDisplayName} sabit gider");
-            ApplyExpense(result.PayrollCost, LedgerEntryType.PayrollExpense, $"{safeDisplayName} personel gideri");
             ApplyExpense(result.UpfrontInvestmentCost, LedgerEntryType.InvestmentExpense, $"{safeDisplayName} peşin yatırım gideri");
-            ApplyExpense(result.RecurringInvestmentCost, LedgerEntryType.InvestmentExpense, $"{safeDisplayName} gelirden düşen yatırım gideri");
-
-            if (result.Revenue > Money.Zero)
-            {
-                ledger.RecordIncome(result.Revenue, LedgerEntryType.ProjectRevenue, safeDisplayName);
-            }
-
-            // Geçmiş kayıtları sektör paneli gibi ekranların tamamlanan işleri sayabilmesi için tutulur.
-            executionHistory.Add(new ProjectExecutionHistoryEntry(sourceDefinition, safeDisplayName, request.ProjectType, result));
+            var activeProject = new ActiveProjectRuntimeEntry(sourceDefinition, safeDisplayName, request.ProjectType, result, currentDay);
+            activeProjects.Add(activeProject);
             executedProjectCount++;
-            lastExecutionSummary = $"{safeDisplayName}: kâr {result.Profit.Amount}, başarı {result.SuccessScore:0.00}.";
+            lastExecutionSummary = $"{safeDisplayName}: iş başladı, {activeProject.PayoutIntervalDays} günde bir gelir döngüsü oluşturacak.";
             UpdateSnapshot();
             BalanceChanged?.Invoke(Balance);
             if (sourceDefinition != null)
@@ -243,6 +257,35 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             if (!ledger.TryRecordExpense(amount, type, description))
             {
                 throw new InvalidOperationException("Bakiye kontrolü geçildiği halde gider uygulanamadı.");
+            }
+        }
+
+        private void ProcessRecurringPayouts()
+        {
+            for (var i = 0; i < activeProjects.Count; i++)
+            {
+                var activeProject = activeProjects[i];
+                while (activeProject.NextPayoutDay <= currentDay)
+                {
+                    var cycleCosts = activeProject.CyclePayrollCost + activeProject.CycleRecurringInvestmentCost;
+                    if (Balance < cycleCosts)
+                    {
+                        lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde döngü gideri için bakiye yetersiz.";
+                        break;
+                    }
+
+                    ApplyExpense(activeProject.CyclePayrollCost, LedgerEntryType.PayrollExpense, $"{activeProject.DisplayName} dönemsel personel gideri");
+                    ApplyExpense(activeProject.CycleRecurringInvestmentCost, LedgerEntryType.InvestmentExpense, $"{activeProject.DisplayName} dönemsel yatırım gideri");
+
+                    if (activeProject.CycleRevenue > Money.Zero)
+                    {
+                        ledger.RecordIncome(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
+                    }
+
+                    executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.StartupResult));
+                    lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde dönemsel kâr {activeProject.CycleProfit.Amount:N0}.";
+                    activeProject.RegisterPayout();
+                }
             }
         }
 

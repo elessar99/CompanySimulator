@@ -111,8 +111,10 @@ namespace CompanySimulator.Tools.Editor
                 var asset = CreateOrLoadAsset<EmployeeRoleDefinition>($"{RolesFolder}/Role_{role.Id}.asset");
                 SetIdentity(asset, role.Id, role.DisplayName);
                 SetInt(asset, "baseDailySalary", role.BaseDailySalary);
-                SetInt(asset, "minimumExpectedSalary", role.MinimumExpectedSalary);
-                SetInt(asset, "maximumExpectedSalary", role.MaximumExpectedSalary);
+                SetTierSettings(asset, "kotuSettings", role.KotuMinimumExpectedSalary, role.KotuMaximumExpectedSalary, role.KotuIncomeMultiplier, role.KotuSpawnChanceWeight);
+                SetTierSettings(asset, "ortalamaSettings", role.OrtalamaMinimumExpectedSalary, role.OrtalamaMaximumExpectedSalary, role.OrtalamaIncomeMultiplier, role.OrtalamaSpawnChanceWeight);
+                SetTierSettings(asset, "iyiSettings", role.IyiMinimumExpectedSalary, role.IyiMaximumExpectedSalary, role.IyiIncomeMultiplier, role.IyiSpawnChanceWeight);
+                SetTierSettings(asset, "profesyonelSettings", role.ProfesyonelMinimumExpectedSalary, role.ProfesyonelMaximumExpectedSalary, role.ProfesyonelIncomeMultiplier, role.ProfesyonelSpawnChanceWeight);
                 SetFloat(asset, "qualityWeight", role.QualityWeight);
                 SetFloat(asset, "profitWeight", role.ProfitWeight);
                 SetBool(asset, "requiresOffice", role.RequiresOffice);
@@ -178,6 +180,7 @@ namespace CompanySimulator.Tools.Editor
                 SetFloat(asset, "durationMultiplier", sector.DurationMultiplier);
                 SetFloat(asset, "competitionSensitivity", sector.CompetitionSensitivity);
                 SetFloat(asset, "successToRevenueWeight", sector.SuccessToRevenueWeight);
+                SetInt(asset, "profitPayoutIntervalDays", sector.ProfitPayoutIntervalDays);
                 SetObjectReferenceArray(asset, "supportedRoles", ResolveRoles(roleAssets, sector.RoleIds));
                 SetObjectReferenceArray(asset, "availableInvestments", ResolveInvestments(investmentAssets, sector.InvestmentIds));
                 assets.Add(sector.Id, asset);
@@ -460,26 +463,26 @@ namespace CompanySimulator.Tools.Editor
         {
             return new[]
             {
-                new SectorSeed("oyun_gelistirme", "Oyun Geliştirme", "Oyun projeleri üretir.", new[] { "yazilimci", "grafiker", "ses_sanatcisi" }, new[] { "animasyon", "pazarlama" }, 1.3f, 1f, 1f, 0.7f, 420000, 30000, 35, 0.15f),
-                new SectorSeed("uygulama_gelistirme", "Uygulama Geliştirme", "Uygulama ve yazılım işleri üretir.", new[] { "yazilimci", "grafiker" }, new[] { "pazarlama" }, 1.15f, 0.9f, 0.9f, 0.55f, 280000, 20000, 24, 0.1f),
-                new SectorSeed("film_dizi", "Film / Dizi Yapımı", "Film ve dizi prodüksiyonları üretir.", new[] { "yonetmen", "yazar", "oyuncu", "grafiker" }, new[] { "kast_ajansi", "pazarlama", "animasyon" }, 1.45f, 1.2f, 1.1f, 0.8f, 520000, 50000, 40, 0.18f),
-                new SectorSeed("motion_capture", "Motion Capture", "Hareket yakalama üretimleri yapar.", new[] { "oyuncu", "grafiker" }, new[] { "ekipman" }, 1.1f, 0.95f, 0.8f, 0.55f, 240000, 18000, 18, 0.08f),
-                new SectorSeed("reklam", "Reklam", "Reklam filmi ve kampanya üretir.", new[] { "yonetmen", "oyuncu" }, new[] { "kast_ajansi" }, 1.2f, 0.8f, 1f, 0.65f, 260000, 20000, 14, 0.12f),
-                new SectorSeed("restoran", "Restoran", "Yemek servisi ve restoran işletir.", new[] { "asci", "personel" }, new[] { "kira", "satinalma" }, 1.1f, 1f, 0.9f, 0.5f, 230000, 16000, 20, 0.1f),
-                new SectorSeed("catering", "Catering", "Toplu yemek hizmeti verir.", new[] { "asci", "personel" }, new[] { "mutfak" }, 1.05f, 0.9f, 0.85f, 0.45f, 210000, 15000, 16, 0.08f),
-                new SectorSeed("muzik", "Müzik", "Müzik üretimi ve yayın işleri yapar.", new[] { "ses_sanatcisi" }, new[] { "studyo", "pazarlama" }, 1.15f, 0.85f, 0.95f, 0.6f, 250000, 17000, 18, 0.12f),
-                new SectorSeed("yayincilik", "Yayıncılık", "Dergi, kitap ve manga yayınlar.", new[] { "yazar", "grafiker", "editor" }, new[] { "pazarlama", "matbaa" }, 1.1f, 1f, 0.9f, 0.55f, 260000, 19000, 22, 0.1f),
-                new SectorSeed("gazete", "Gazete", "Günlük veya periyodik gazete basar.", new[] { "yazar", "editor" }, new[] { "matbaa" }, 1.05f, 0.85f, 1f, 0.45f, 220000, 18000, 15, 0.14f),
-                new SectorSeed("matbaa_sektoru", "Matbaa", "Baskı ve üretim işleri yapar.", new[] { "personel" }, new[] { "techizat" }, 1f, 0.95f, 0.7f, 0.4f, 200000, 16000, 18, 0.06f),
-                new SectorSeed("televizyon", "Televizyon", "Yayın ve program işleri yapar.", new[] { "sunucu", "yonetmen", "editor" }, new[] { "ekipman" }, 1.2f, 0.9f, 1.05f, 0.6f, 300000, 24000, 20, 0.14f),
-                new SectorSeed("tarim", "Tarım", "Tarım üretimi ve arazi yönetimi yapar.", new[] { "ziraat_muhendisi", "personel" }, new[] { "arazi" }, 1.1f, 1.1f, 0.8f, 0.55f, 250000, 20000, 28, 0.07f),
-                new SectorSeed("hayvancilik", "Hayvancılık", "Hayvan yetiştiriciliği ve bakım işleri yapar.", new[] { "veteriner", "personel", "ziraat_muhendisi" }, new[] { "yem", "arazi" }, 1.15f, 1.15f, 0.8f, 0.6f, 280000, 24000, 30, 0.08f),
-                new SectorSeed("veteriner_klinigi", "Veteriner Kliniği", "Hayvan sağlık hizmeti verir.", new[] { "veteriner" }, new[] { "kira", "satinalma" }, 1.08f, 0.95f, 0.75f, 0.5f, 230000, 17000, 18, 0.08f),
-                new SectorSeed("market", "Market", "Perakende market işletir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.02f, 0.9f, 0.95f, 0.4f, 210000, 15000, 15, 0.11f),
-                new SectorSeed("kargo_lojistik", "Kargo Lojistik", "Dağıtım ve lojistik işi yapar.", new[] { "personel" }, new[] { "arac_filosu", "kira", "satinalma" }, 1.18f, 1f, 0.95f, 0.5f, 300000, 22000, 22, 0.12f),
-                new SectorSeed("banka", "Banka", "Finansal hizmet ve bankacılık yapar.", new[] { "analist", "personel", "yazilimci" }, new[] { "kira", "satinalma", "sermaye" }, 1.3f, 1f, 1.2f, 0.65f, 420000, 40000, 24, 0.16f),
-                new SectorSeed("sigorta", "Sigorta Şirketi", "Sigorta ürünleri ve risk yönetimi yapar.", new[] { "personel", "analist" }, new[] { "kira", "satinalma" }, 1.18f, 0.95f, 1f, 0.55f, 310000, 26000, 20, 0.13f),
-                new SectorSeed("otel", "Otel", "Konaklama hizmeti verir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.12f, 1.05f, 0.9f, 0.5f, 320000, 28000, 24, 0.12f)
+                new SectorSeed("oyun_gelistirme", "Oyun Geliştirme", "Oyun projeleri üretir.", new[] { "yazilimci", "grafiker", "ses_sanatcisi" }, new[] { "animasyon", "pazarlama" }, 1.3f, 1f, 1f, 0.7f, 420000, 30000, 35, 7, 0.15f),
+                new SectorSeed("uygulama_gelistirme", "Uygulama Geliştirme", "Uygulama ve yazılım işleri üretir.", new[] { "yazilimci", "grafiker" }, new[] { "pazarlama" }, 1.15f, 0.9f, 0.9f, 0.55f, 280000, 20000, 24, 5, 0.1f),
+                new SectorSeed("film_dizi", "Film / Dizi Yapımı", "Film ve dizi prodüksiyonları üretir.", new[] { "yonetmen", "yazar", "oyuncu", "grafiker" }, new[] { "kast_ajansi", "pazarlama", "animasyon" }, 1.45f, 1.2f, 1.1f, 0.8f, 520000, 50000, 40, 10, 0.18f),
+                new SectorSeed("motion_capture", "Motion Capture", "Hareket yakalama üretimleri yapar.", new[] { "oyuncu", "grafiker" }, new[] { "ekipman" }, 1.1f, 0.95f, 0.8f, 0.55f, 240000, 18000, 18, 4, 0.08f),
+                new SectorSeed("reklam", "Reklam", "Reklam filmi ve kampanya üretir.", new[] { "yonetmen", "oyuncu" }, new[] { "kast_ajansi" }, 1.2f, 0.8f, 1f, 0.65f, 260000, 20000, 14, 3, 0.12f),
+                new SectorSeed("restoran", "Restoran", "Yemek servisi ve restoran işletir.", new[] { "asci", "personel" }, new[] { "kira", "satinalma" }, 1.1f, 1f, 0.9f, 0.5f, 230000, 16000, 20, 2, 0.1f),
+                new SectorSeed("catering", "Catering", "Toplu yemek hizmeti verir.", new[] { "asci", "personel" }, new[] { "mutfak" }, 1.05f, 0.9f, 0.85f, 0.45f, 210000, 15000, 16, 3, 0.08f),
+                new SectorSeed("muzik", "Müzik", "Müzik üretimi ve yayın işleri yapar.", new[] { "ses_sanatcisi" }, new[] { "studyo", "pazarlama" }, 1.15f, 0.85f, 0.95f, 0.6f, 250000, 17000, 18, 6, 0.12f),
+                new SectorSeed("yayincilik", "Yayıncılık", "Dergi, kitap ve manga yayınlar.", new[] { "yazar", "grafiker", "editor" }, new[] { "pazarlama", "matbaa" }, 1.1f, 1f, 0.9f, 0.55f, 260000, 19000, 22, 5, 0.1f),
+                new SectorSeed("gazete", "Gazete", "Günlük veya periyodik gazete basar.", new[] { "yazar", "editor" }, new[] { "matbaa" }, 1.05f, 0.85f, 1f, 0.45f, 220000, 18000, 15, 1, 0.14f),
+                new SectorSeed("matbaa_sektoru", "Matbaa", "Baskı ve üretim işleri yapar.", new[] { "personel" }, new[] { "techizat" }, 1f, 0.95f, 0.7f, 0.4f, 200000, 16000, 18, 4, 0.06f),
+                new SectorSeed("televizyon", "Televizyon", "Yayın ve program işleri yapar.", new[] { "sunucu", "yonetmen", "editor" }, new[] { "ekipman" }, 1.2f, 0.9f, 1.05f, 0.6f, 300000, 24000, 20, 3, 0.14f),
+                new SectorSeed("tarim", "Tarım", "Tarım üretimi ve arazi yönetimi yapar.", new[] { "ziraat_muhendisi", "personel" }, new[] { "arazi" }, 1.1f, 1.1f, 0.8f, 0.55f, 250000, 20000, 28, 7, 0.07f),
+                new SectorSeed("hayvancilik", "Hayvancılık", "Hayvan yetiştiriciliği ve bakım işleri yapar.", new[] { "veteriner", "personel", "ziraat_muhendisi" }, new[] { "yem", "arazi" }, 1.15f, 1.15f, 0.8f, 0.6f, 280000, 24000, 30, 5, 0.08f),
+                new SectorSeed("veteriner_klinigi", "Veteriner Kliniği", "Hayvan sağlık hizmeti verir.", new[] { "veteriner" }, new[] { "kira", "satinalma" }, 1.08f, 0.95f, 0.75f, 0.5f, 230000, 17000, 18, 3, 0.08f),
+                new SectorSeed("market", "Market", "Perakende market işletir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.02f, 0.9f, 0.95f, 0.4f, 210000, 15000, 15, 2, 0.11f),
+                new SectorSeed("kargo_lojistik", "Kargo Lojistik", "Dağıtım ve lojistik işi yapar.", new[] { "personel" }, new[] { "arac_filosu", "kira", "satinalma" }, 1.18f, 1f, 0.95f, 0.5f, 300000, 22000, 22, 3, 0.12f),
+                new SectorSeed("banka", "Banka", "Finansal hizmet ve bankacılık yapar.", new[] { "analist", "personel", "yazilimci" }, new[] { "kira", "satinalma", "sermaye" }, 1.3f, 1f, 1.2f, 0.65f, 420000, 40000, 24, 4, 0.16f),
+                new SectorSeed("sigorta", "Sigorta Şirketi", "Sigorta ürünleri ve risk yönetimi yapar.", new[] { "personel", "analist" }, new[] { "kira", "satinalma" }, 1.18f, 0.95f, 1f, 0.55f, 310000, 26000, 20, 4, 0.13f),
+                new SectorSeed("otel", "Otel", "Konaklama hizmeti verir.", new[] { "personel" }, new[] { "kira", "satinalma" }, 1.12f, 1.05f, 0.9f, 0.5f, 320000, 28000, 24, 2, 0.12f)
             };
         }
 
@@ -553,6 +556,18 @@ namespace CompanySimulator.Tools.Editor
             EditorUtility.SetDirty(asset);
         }
 
+        private static void SetTierSettings(Object asset, string propertyName, int minimumExpectedSalary, int maximumExpectedSalary, float incomeMultiplier, float spawnChanceWeight)
+        {
+            var serializedObject = new SerializedObject(asset);
+            var tierProperty = serializedObject.FindProperty(propertyName);
+            tierProperty.FindPropertyRelative("minimumExpectedSalary").intValue = minimumExpectedSalary;
+            tierProperty.FindPropertyRelative("maximumExpectedSalary").intValue = maximumExpectedSalary;
+            tierProperty.FindPropertyRelative("incomeMultiplier").floatValue = incomeMultiplier;
+            tierProperty.FindPropertyRelative("spawnChanceWeight").floatValue = spawnChanceWeight;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(asset);
+        }
+
         private static void SetObjectReference(Object asset, string propertyName, Object reference)
         {
             var serializedObject = new SerializedObject(asset);
@@ -599,8 +614,28 @@ namespace CompanySimulator.Tools.Editor
                 Id = id;
                 DisplayName = displayName;
                 BaseDailySalary = baseDailySalary;
-                MinimumExpectedSalary = minimumExpectedSalary;
-                MaximumExpectedSalary = maximumExpectedSalary;
+                var salaryRange = Mathf.Max(4, maximumExpectedSalary - minimumExpectedSalary);
+                var firstCut = minimumExpectedSalary + Mathf.RoundToInt(salaryRange * 0.25f);
+                var secondCut = minimumExpectedSalary + Mathf.RoundToInt(salaryRange * 0.5f);
+                var thirdCut = minimumExpectedSalary + Mathf.RoundToInt(salaryRange * 0.75f);
+
+                KotuMinimumExpectedSalary = minimumExpectedSalary;
+                KotuMaximumExpectedSalary = Mathf.Max(KotuMinimumExpectedSalary, firstCut);
+                OrtalamaMinimumExpectedSalary = Mathf.Max(KotuMaximumExpectedSalary + 1, firstCut + 1);
+                OrtalamaMaximumExpectedSalary = Mathf.Max(OrtalamaMinimumExpectedSalary, secondCut);
+                IyiMinimumExpectedSalary = Mathf.Max(OrtalamaMaximumExpectedSalary + 1, secondCut + 1);
+                IyiMaximumExpectedSalary = Mathf.Max(IyiMinimumExpectedSalary, thirdCut);
+                ProfesyonelMinimumExpectedSalary = Mathf.Max(IyiMaximumExpectedSalary + 1, thirdCut + 1);
+                ProfesyonelMaximumExpectedSalary = Mathf.Max(ProfesyonelMinimumExpectedSalary, maximumExpectedSalary);
+
+                KotuIncomeMultiplier = 0.5f;
+                OrtalamaIncomeMultiplier = 1f;
+                IyiIncomeMultiplier = 1.5f;
+                ProfesyonelIncomeMultiplier = 3f;
+                KotuSpawnChanceWeight = 35f;
+                OrtalamaSpawnChanceWeight = 35f;
+                IyiSpawnChanceWeight = 20f;
+                ProfesyonelSpawnChanceWeight = 10f;
                 QualityWeight = qualityWeight;
                 ProfitWeight = profitWeight;
                 RequiresOffice = requiresOffice;
@@ -610,8 +645,22 @@ namespace CompanySimulator.Tools.Editor
             public string Id { get; }
             public string DisplayName { get; }
             public int BaseDailySalary { get; }
-            public int MinimumExpectedSalary { get; }
-            public int MaximumExpectedSalary { get; }
+            public int KotuMinimumExpectedSalary { get; }
+            public int KotuMaximumExpectedSalary { get; }
+            public int OrtalamaMinimumExpectedSalary { get; }
+            public int OrtalamaMaximumExpectedSalary { get; }
+            public int IyiMinimumExpectedSalary { get; }
+            public int IyiMaximumExpectedSalary { get; }
+            public int ProfesyonelMinimumExpectedSalary { get; }
+            public int ProfesyonelMaximumExpectedSalary { get; }
+            public float KotuIncomeMultiplier { get; }
+            public float OrtalamaIncomeMultiplier { get; }
+            public float IyiIncomeMultiplier { get; }
+            public float ProfesyonelIncomeMultiplier { get; }
+            public float KotuSpawnChanceWeight { get; }
+            public float OrtalamaSpawnChanceWeight { get; }
+            public float IyiSpawnChanceWeight { get; }
+            public float ProfesyonelSpawnChanceWeight { get; }
             public float QualityWeight { get; }
             public float ProfitWeight { get; }
             public bool RequiresOffice { get; }
@@ -655,6 +704,7 @@ namespace CompanySimulator.Tools.Editor
                 int baseRevenue,
                 int fixedCost,
                 int baseDurationDays,
+                int profitPayoutIntervalDays,
                 float defaultCompetitorPressure)
             {
                 Id = id;
@@ -669,6 +719,7 @@ namespace CompanySimulator.Tools.Editor
                 BaseRevenue = baseRevenue;
                 FixedCost = fixedCost;
                 BaseDurationDays = baseDurationDays;
+                ProfitPayoutIntervalDays = profitPayoutIntervalDays;
                 DefaultCompetitorPressure = defaultCompetitorPressure;
             }
 
@@ -684,6 +735,7 @@ namespace CompanySimulator.Tools.Editor
             public int BaseRevenue { get; }
             public int FixedCost { get; }
             public int BaseDurationDays { get; }
+            public int ProfitPayoutIntervalDays { get; }
             public float DefaultCompetitorPressure { get; }
             public string ProjectDisplayName => DisplayName + " İşi";
         }

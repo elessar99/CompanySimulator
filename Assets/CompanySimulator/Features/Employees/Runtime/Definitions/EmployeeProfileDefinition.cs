@@ -27,22 +27,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         {
             get
             {
-                if (Quality < 25f)
-                {
-                    return EmployeeQualityTier.Kotu;
-                }
-
-                if (Quality < 50f)
-                {
-                    return EmployeeQualityTier.Ortalama;
-                }
-
-                if (Quality < 75f)
-                {
-                    return EmployeeQualityTier.Iyi;
-                }
-
-                return EmployeeQualityTier.Profesyonel;
+                return role != null ? role.GetQualityTier(Quality) : ResolveFallbackQualityTier(Quality);
             }
         }
 
@@ -50,18 +35,28 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         {
             get
             {
-                switch (QualityTier)
-                {
-                    case EmployeeQualityTier.Kotu:
-                        return 0.5f;
-                    case EmployeeQualityTier.Ortalama:
-                        return 1f;
-                    case EmployeeQualityTier.Iyi:
-                        return 1.5f;
-                    default:
-                        return 3f;
-                }
+                return role != null ? role.GetIncomeMultiplier(QualityTier) : 1f;
             }
+        }
+
+        private static EmployeeQualityTier ResolveFallbackQualityTier(float quality)
+        {
+            if (quality < 25f)
+            {
+                return EmployeeQualityTier.Kotu;
+            }
+
+            if (quality < 50f)
+            {
+                return EmployeeQualityTier.Ortalama;
+            }
+
+            if (quality < 75f)
+            {
+                return EmployeeQualityTier.Iyi;
+            }
+
+            return EmployeeQualityTier.Profesyonel;
         }
     }
 }

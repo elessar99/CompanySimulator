@@ -25,8 +25,8 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             Role = role;
             Quality = quality;
             ExpectedDailySalary = expectedDailySalary;
-            QualityTier = ResolveQualityTier(quality);
-            IncomeMultiplier = ResolveIncomeMultiplier(QualityTier);
+            QualityTier = role != null ? role.GetQualityTier(quality) : ResolveQualityTier(quality);
+            IncomeMultiplier = role != null ? role.GetIncomeMultiplier(QualityTier) : ResolveIncomeMultiplier(QualityTier);
         }
 
         public string Id { get; }

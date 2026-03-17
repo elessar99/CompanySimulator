@@ -15,6 +15,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Definitions
         [SerializeField, Min(0.1f)] private float durationMultiplier = 1f;
         [SerializeField, Range(0f, 2f)] private float competitionSensitivity = 1f;
         [SerializeField, Min(0f)] private float successToRevenueWeight = 0.5f;
+        [SerializeField, Min(1)] private int profitPayoutIntervalDays = 7;
         [SerializeField] private EmployeeRoleDefinition[] supportedRoles = Array.Empty<EmployeeRoleDefinition>();
         [SerializeField] private InvestmentTypeDefinition[] availableInvestments = Array.Empty<InvestmentTypeDefinition>();
 
@@ -23,6 +24,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Definitions
         public float DurationMultiplier => Mathf.Max(0.1f, durationMultiplier);
         public float CompetitionSensitivity => Mathf.Max(0f, competitionSensitivity);
         public float SuccessToRevenueWeight => Mathf.Max(0f, successToRevenueWeight);
+        public int ProfitPayoutIntervalDays => Mathf.Max(1, profitPayoutIntervalDays);
         public IReadOnlyList<EmployeeRoleDefinition> SupportedRoles => supportedRoles;
         public IReadOnlyList<InvestmentTypeDefinition> AvailableInvestments => availableInvestments;
     }

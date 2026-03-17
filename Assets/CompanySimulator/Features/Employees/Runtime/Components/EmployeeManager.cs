@@ -83,6 +83,26 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return FilterByRole(employees, role);
         }
 
+        public IReadOnlyList<EmployeeRuntimeData> GetIdleEmployeesByRole(EmployeeRoleDefinition role)
+        {
+            if (!EnsureInitialized())
+            {
+                return Array.Empty<EmployeeRuntimeData>();
+            }
+
+            var result = new List<EmployeeRuntimeData>(8);
+            for (var i = 0; i < employees.Count; i++)
+            {
+                var employee = employees[i];
+                if (employee.Role == role && !employee.IsAssigned)
+                {
+                    result.Add(employee);
+                }
+            }
+
+            return result;
+        }
+
         public IReadOnlyList<EmployeeRuntimeData> GetApplicantsByRole(EmployeeRoleDefinition role)
         {
             EnsureApplicantsForRole(role);
@@ -245,7 +265,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
         {
             generatedApplicantSequence++;
 
-            var qualityTier = RollQualityTier();
+            var qualityTier = RollQualityTier(role);
             var quality = RollQualityValue(qualityTier);
             var salary = RollExpectedSalary(role, qualityTier);
             var displayName = $"{RollFirstName()} {RollLastName()}";
@@ -258,20 +278,38 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
                 Money.From(salary));
         }
 
-        private EmployeeQualityTier RollQualityTier()
+        private EmployeeQualityTier RollQualityTier(EmployeeRoleDefinition role)
         {
-            var chance = UnityEngine.Random.Range(0, 100);
-            if (chance < 35)
-            {
-                return EmployeeQualityTier.Kotu;
-            }
-
-            if (chance < 70)
+            if (role == null)
             {
                 return EmployeeQualityTier.Ortalama;
             }
 
-            if (chance < 90)
+            var kotuWeight = role.GetSpawnChanceWeight(EmployeeQualityTier.Kotu);
+            var ortalamaWeight = role.GetSpawnChanceWeight(EmployeeQualityTier.Ortalama);
+            var iyiWeight = role.GetSpawnChanceWeight(EmployeeQualityTier.Iyi);
+            var profesyonelWeight = role.GetSpawnChanceWeight(EmployeeQualityTier.Profesyonel);
+            var totalWeight = kotuWeight + ortalamaWeight + iyiWeight + profesyonelWeight;
+
+            if (totalWeight <= 0f)
+            {
+                return EmployeeQualityTier.Ortalama;
+            }
+
+            var rolledValue = UnityEngine.Random.Range(0f, totalWeight);
+            if (rolledValue < kotuWeight)
+            {
+                return EmployeeQualityTier.Kotu;
+            }
+
+            rolledValue -= kotuWeight;
+            if (rolledValue < ortalamaWeight)
+            {
+                return EmployeeQualityTier.Ortalama;
+            }
+
+            rolledValue -= ortalamaWeight;
+            if (rolledValue < iyiWeight)
             {
                 return EmployeeQualityTier.Iyi;
             }
@@ -296,21 +334,19 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
 
         private int RollExpectedSalary(EmployeeRoleDefinition role, EmployeeQualityTier qualityTier)
         {
-            var minimum = role.MinimumExpectedSalary;
-            var maximum = role.MaximumExpectedSalary;
-            var salaryRange = Mathf.Max(1, maximum - minimum);
-
-            switch (qualityTier)
+            if (role == null)
             {
-                case EmployeeQualityTier.Kotu:
-                    return minimum + UnityEngine.Random.Range(0, Mathf.CeilToInt(salaryRange * 0.25f));
-                case EmployeeQualityTier.Ortalama:
-                    return minimum + UnityEngine.Random.Range(Mathf.FloorToInt(salaryRange * 0.25f), Mathf.CeilToInt(salaryRange * 0.5f));
-                case EmployeeQualityTier.Iyi:
-                    return minimum + UnityEngine.Random.Range(Mathf.FloorToInt(salaryRange * 0.5f), Mathf.CeilToInt(salaryRange * 0.75f));
-                default:
-                    return minimum + UnityEngine.Random.Range(Mathf.FloorToInt(salaryRange * 0.75f), salaryRange + 1);
+                return 100;
             }
+
+            var minimum = role.GetMinimumExpectedSalary(qualityTier);
+            var maximum = role.GetMaximumExpectedSalary(qualityTier);
+            if (maximum <= minimum)
+            {
+                return minimum;
+            }
+
+            return UnityEngine.Random.Range(minimum, maximum + 1);
         }
 
         private string RollFirstName()
