@@ -316,7 +316,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 for (var i = 0; i < employees.Count; i++)
                 {
                     var employee = employees[i];
-                    var durum = employee.IsAssigned ? $"Görev: {employee.CurrentAssignmentName}" : "Durum: Boşta";
+                    var durum = employee.IsAssigned ? $"Durum: Çalışıyor\nGörev: {employee.CurrentAssignmentName}" : "Durum: Boşta";
                     CreateInfoCard($"{employee.DisplayName}\nKademe: {employee.QualityTier} | Katkı Çarpanı: x{employee.IncomeMultiplier:0.0}\nBeklenen Ücret: {employee.ExpectedDailySalary.Amount:N0}\n{durum}", 96f);
                 }
             }

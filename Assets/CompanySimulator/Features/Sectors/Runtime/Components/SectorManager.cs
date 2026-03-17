@@ -171,7 +171,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
 
         private void HandleProjectExecuted(ProjectExecutionDefinition executionDefinition, ProjectEconomyResult result)
         {
-            RegisterActiveProject(executionDefinition);
+            RefreshActiveProjectCounts();
             DataChanged?.Invoke();
         }
 
@@ -182,25 +182,14 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
                 return;
             }
 
-            RegisterActiveProject(activeProject.SourceDefinition, activeProject.ProjectType);
-        }
-
-        private void RegisterActiveProject(ProjectExecutionDefinition executionDefinition)
-        {
-            var projectType = executionDefinition != null ? executionDefinition.ProjectType : null;
-            RegisterActiveProject(executionDefinition, projectType);
-        }
-
-        private void RegisterActiveProject(ProjectExecutionDefinition executionDefinition, ProjectTypeDefinition projectType)
-        {
-            var sector = projectType != null ? projectType.Sector : null;
+            var sector = activeProject.ProjectType != null ? activeProject.ProjectType.Sector : null;
             if (sector == null)
             {
                 return;
             }
 
             var sectorData = RegisterSector(sector);
-            sectorData?.RegisterActiveProject(executionDefinition);
+            sectorData?.RegisterActiveProject(activeProject);
         }
     }
 }

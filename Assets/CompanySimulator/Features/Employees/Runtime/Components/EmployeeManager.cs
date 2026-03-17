@@ -139,6 +139,100 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public bool CanReassignEmployees(IReadOnlyList<EmployeeRuntimeData> currentEmployees, IReadOnlyList<EmployeeRuntimeData> newEmployees)
+        {
+            if (!EnsureInitialized() || newEmployees == null)
+            {
+                return false;
+            }
+
+            var allowedEmployees = currentEmployees != null ? new HashSet<EmployeeRuntimeData>(currentEmployees) : new HashSet<EmployeeRuntimeData>();
+            var uniqueEmployees = new HashSet<EmployeeRuntimeData>();
+            for (var i = 0; i < newEmployees.Count; i++)
+            {
+                var employee = newEmployees[i];
+                if (employee == null || !employees.Contains(employee) || !uniqueEmployees.Add(employee))
+                {
+                    return false;
+                }
+
+                if (employee.IsAssigned && !allowedEmployees.Contains(employee))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool TryReassignEmployees(IReadOnlyList<EmployeeRuntimeData> currentEmployees, IReadOnlyList<EmployeeRuntimeData> newEmployees, string assignmentName)
+        {
+            if (!CanReassignEmployees(currentEmployees, newEmployees) || string.IsNullOrWhiteSpace(assignmentName))
+            {
+                return false;
+            }
+
+            var currentLookup = currentEmployees != null ? new HashSet<EmployeeRuntimeData>(currentEmployees) : new HashSet<EmployeeRuntimeData>();
+            var newLookup = new HashSet<EmployeeRuntimeData>(newEmployees);
+
+            foreach (var employee in currentLookup)
+            {
+                if (employee != null && !newLookup.Contains(employee))
+                {
+                    employee.ClearAssignment();
+                }
+            }
+
+            foreach (var employee in newLookup)
+            {
+                if (employee != null && !currentLookup.Contains(employee) && !employee.TryAssign(assignmentName))
+                {
+                    return false;
+                }
+            }
+
+            DataChanged?.Invoke();
+            return true;
+        }
+
+        public bool CanAssignEmployees(IReadOnlyList<EmployeeRuntimeData> selectedEmployees)
+        {
+            if (!EnsureInitialized() || selectedEmployees == null)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < selectedEmployees.Count; i++)
+            {
+                var employee = selectedEmployees[i];
+                if (employee == null || employee.IsAssigned || !employees.Contains(employee))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool TryAssignEmployees(IReadOnlyList<EmployeeRuntimeData> selectedEmployees, string assignmentName)
+        {
+            if (!CanAssignEmployees(selectedEmployees) || string.IsNullOrWhiteSpace(assignmentName))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < selectedEmployees.Count; i++)
+            {
+                if (!selectedEmployees[i].TryAssign(assignmentName))
+                {
+                    return false;
+                }
+            }
+
+            DataChanged?.Invoke();
+            return true;
+        }
+
         private bool EnsureInitialized()
         {
             if (isInitialized)

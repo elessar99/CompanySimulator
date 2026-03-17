@@ -610,6 +610,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Presentation.UI.Runtime.Components.SectorPanelUI
   economyManager: {fileID: 1129450515}
   sectorManager: {fileID: 514144010}
+  employeeManager: {fileID: 1959420496}
+  employeePanelUI: {fileID: 1311983860}
   rootCanvas: {fileID: 1362092756}
   panelSize: {x: 1500, y: 1200}
 --- !u!114 &1052629709
@@ -682,6 +684,7 @@ MonoBehaviour:
   setup: {fileID: 11400000, guid: 7058338d44ef69744933f88e6808c4dc, type: 2}
   initializeOnAwake: 1
   runStartupProjectsOnStart: 1
+  currentDay: 1
   currentBalance: 100000
   executedProjectCount: 0
   lastExecutionSummary: 
@@ -751,6 +754,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Presentation.UI.Runtime.Components.EmployeePanelUI
   employeeManager: {fileID: 1959420496}
+  sectorPanelUI: {fileID: 1052629708}
   rootCanvas: {fileID: 1362092756}
   panelSize: {x: 1500, y: 1200}
 --- !u!114 &1311983861

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Services;
@@ -185,10 +186,20 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 return false;
             }
 
-            return TryExecuteProject(executionDefinition, executionDefinition.CreateRequest(), executionDefinition.DisplayName, out result);
+            return TryExecuteProject(executionDefinition, executionDefinition.CreateRequest(), executionDefinition.DisplayName, null, out result);
         }
 
         public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, out ProjectEconomyResult result)
+        {
+            return TryExecuteProject(sourceDefinition, request, displayName, null, null, out result);
+        }
+
+        public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result)
+        {
+            return TryExecuteProject(sourceDefinition, request, displayName, null, assignedEmployeeNames, out result);
+        }
+
+        public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result)
         {
             result = default;
 
@@ -222,7 +233,17 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
             ApplyExpense(result.FixedCost, LedgerEntryType.MiscExpense, $"{safeDisplayName} sabit gider");
             ApplyExpense(result.UpfrontInvestmentCost, LedgerEntryType.InvestmentExpense, $"{safeDisplayName} peşin yatırım gideri");
-            var activeProject = new ActiveProjectRuntimeEntry(sourceDefinition, safeDisplayName, request.ProjectType, result, currentDay);
+            var activeProject = new ActiveProjectRuntimeEntry(
+                sourceDefinition,
+                safeDisplayName,
+                request.ProjectType,
+                result,
+                currentDay,
+                assignedEmployees != null ? ToArray(assignedEmployees) : null,
+                assignedEmployeeNames != null ? ToArray(assignedEmployeeNames) : null,
+                request.InvestmentAllocations != null ? ToArray(request.InvestmentAllocations) : null,
+                request.MarketDemandMultiplier,
+                request.CompetitorPressure);
             activeProjects.Add(activeProject);
             executedProjectCount++;
             lastExecutionSummary = $"{safeDisplayName}: iş başladı, {activeProject.PayoutIntervalDays} günde bir gelir döngüsü oluşturacak.";
@@ -233,6 +254,55 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 ProjectExecuted?.Invoke(sourceDefinition, result);
             }
 
+            return true;
+        }
+
+        public bool TryUpdateActiveProject(ActiveProjectRuntimeEntry activeProject, ProjectEconomyRequest request, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result, out string validationMessage)
+        {
+            result = default;
+            validationMessage = string.Empty;
+
+            if (!EnsureInitialized())
+            {
+                validationMessage = "Ekonomi sistemi hazır değil.";
+                return false;
+            }
+
+            if (activeProject == null || request == null || !activeProjects.Contains(activeProject))
+            {
+                validationMessage = "Düzenlenecek aktif iş bulunamadı.";
+                return false;
+            }
+
+            if (!AreInvestmentAllocationsNonDecreasing(activeProject, request.InvestmentAllocations))
+            {
+                validationMessage = "Aktif işte yatırım bütçeleri azaltılamaz; yalnızca artırılabilir.";
+                return false;
+            }
+
+            result = calculator.Calculate(request);
+            var additionalUpfrontCost = result.UpfrontInvestmentCost - activeProject.CurrentResult.UpfrontInvestmentCost;
+            if (additionalUpfrontCost > Money.Zero)
+            {
+                if (Balance < additionalUpfrontCost)
+                {
+                    validationMessage = "Yatırım artışı için yeterli bakiye yok.";
+                    return false;
+                }
+
+                ApplyExpense(additionalUpfrontCost, LedgerEntryType.InvestmentExpense, $"{activeProject.DisplayName} güncelleme yatırım gideri");
+            }
+
+            activeProject.UpdateConfiguration(
+                result,
+                assignedEmployees != null ? ToArray(assignedEmployees) : null,
+                assignedEmployeeNames != null ? ToArray(assignedEmployeeNames) : null,
+                request.InvestmentAllocations != null ? ToArray(request.InvestmentAllocations) : null,
+                currentDay);
+
+            lastExecutionSummary = $"{activeProject.DisplayName}: aktif iş güncellendi, gelir döngüsü sıfırlandı.";
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
             return true;
         }
 
@@ -282,16 +352,62 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                         ledger.RecordIncome(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
                     }
 
-                    executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.StartupResult));
+                    executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.CurrentResult));
                     lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde dönemsel kâr {activeProject.CycleProfit.Amount:N0}.";
                     activeProject.RegisterPayout();
                 }
             }
         }
 
+        private bool AreInvestmentAllocationsNonDecreasing(ActiveProjectRuntimeEntry activeProject, IReadOnlyList<InvestmentAllocationInput> newAllocations)
+        {
+            if (newAllocations == null)
+            {
+                return true;
+            }
+
+            for (var i = 0; i < newAllocations.Count; i++)
+            {
+                var allocation = newAllocations[i];
+                if (allocation.InvestmentType == null)
+                {
+                    continue;
+                }
+
+                if (allocation.AllocatedBudgetAmount < activeProject.GetCurrentBudgetFor(allocation.InvestmentType))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void UpdateSnapshot()
         {
             currentBalance = Balance.Amount;
+        }
+
+        private string[] ToArray(IReadOnlyList<string> source)
+        {
+            var result = new string[source.Count];
+            for (var i = 0; i < source.Count; i++)
+            {
+                result[i] = source[i];
+            }
+
+            return result;
+        }
+
+        private T[] ToArray<T>(IReadOnlyList<T> source)
+        {
+            var result = new T[source.Count];
+            for (var i = 0; i < source.Count; i++)
+            {
+                result[i] = source[i];
+            }
+
+            return result;
         }
     }
 }

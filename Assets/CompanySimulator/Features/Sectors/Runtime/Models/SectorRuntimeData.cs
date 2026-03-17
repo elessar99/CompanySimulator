@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
+using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 
 namespace CompanySimulator.Features.Sectors.Runtime.Models
@@ -7,6 +8,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Models
     public sealed class SectorRuntimeData
     {
         private readonly List<ProjectExecutionDefinition> availableProjects = new List<ProjectExecutionDefinition>(8);
+        private readonly List<ActiveProjectRuntimeEntry> activeProjects = new List<ActiveProjectRuntimeEntry>(8);
         private readonly Dictionary<ProjectExecutionDefinition, int> activeProjectCounts = new Dictionary<ProjectExecutionDefinition, int>(8);
 
         // Her sektör için panelde gösterilecek çalışma verisini tek yerde toplar.
@@ -17,6 +19,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Models
 
         public SectorDefinition Sector { get; }
         public IReadOnlyList<ProjectExecutionDefinition> AvailableProjects => availableProjects;
+        public IReadOnlyList<ActiveProjectRuntimeEntry> ActiveProjects => activeProjects;
         public int ActiveProjectCount { get; private set; }
 
         public void AddProject(ProjectExecutionDefinition project)
@@ -40,6 +43,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Models
         public void ResetProgress()
         {
             ActiveProjectCount = 0;
+            activeProjects.Clear();
 
             var projectCount = availableProjects.Count;
             for (var i = 0; i < projectCount; i++)
@@ -48,14 +52,16 @@ namespace CompanySimulator.Features.Sectors.Runtime.Models
             }
         }
 
-        public void RegisterActiveProject(ProjectExecutionDefinition project)
+        public void RegisterActiveProject(ActiveProjectRuntimeEntry activeProject)
         {
-            if (project == null)
+            if (activeProject == null)
             {
                 return;
             }
 
+            var project = activeProject.SourceDefinition;
             AddProject(project);
+            activeProjects.Add(activeProject);
             ActiveProjectCount++;
             activeProjectCounts[project] = activeProjectCounts[project] + 1;
         }
