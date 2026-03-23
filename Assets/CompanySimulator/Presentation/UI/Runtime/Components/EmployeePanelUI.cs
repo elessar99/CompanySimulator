@@ -1,6 +1,7 @@
 using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
+using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,6 +13,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
     {
         [SerializeField] private EmployeeManager employeeManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
+        [SerializeField] private AccountingPanelUI accountingPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(700f, 680f);
 
@@ -27,6 +29,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             employeeManager ??= FindObjectOfType<EmployeeManager>();
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
+            accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -59,6 +62,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
+            }
+
+            if (accountingPanelUI != null && accountingPanelUI.IsOpen)
+            {
+                accountingPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -123,6 +131,94 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     ShowRoleList();
                     break;
             }
+        }
+
+        private void ShowRoleList()
+        {
+            currentPage = EmployeePageState.RoleList;
+            UpdateHeaderButtons();
+            pageTitleText.text = "Çalışanlar";
+            ClearChildren();
+
+            EmployeeRoleListPage.Render(employeeManager, message => CreateInfoCard(message), CreateRoleButton);
+        }
+
+        private void ShowEmployeesForRole(EmployeeRoleDefinition role)
+        {
+            if (role == null)
+            {
+                NavigateToRoleList();
+                return;
+            }
+
+            currentPage = EmployeePageState.RoleEmployees;
+            selectedRole = role;
+            UpdateHeaderButtons();
+            pageTitleText.text = role.DisplayName;
+            ClearChildren();
+
+            var employees = employeeManager.GetEmployeesByRole(role);
+            EmployeeRoleEmployeesPage.Render(employees, (message, height) => CreateInfoCard(message, height), CreateEmployeeCard);
+
+            var applicationsButton = CreateButton(contentRoot, "ApplicationsButton", "İş Başvuruları");
+            applicationsButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 62f);
+            applicationsButton.onClick.AddListener(() => ShowApplicationsForRole(role));
+        }
+
+        private void ShowApplicationsForRole(EmployeeRoleDefinition role)
+        {
+            if (role == null)
+            {
+                NavigateToRoleList();
+                return;
+            }
+
+            currentPage = EmployeePageState.Applications;
+            selectedRole = role;
+            UpdateHeaderButtons();
+            pageTitleText.text = role.DisplayName + " / İş Başvuruları";
+            ClearChildren();
+
+            var applicants = employeeManager.GetApplicantsByRole(role);
+            EmployeeApplicationsPage.Render(applicants, message => CreateInfoCard(message), CreateApplicantButton);
+        }
+
+        private void CreateRoleButton(EmployeeRoleDefinition role)
+        {
+            var employeeCount = employeeManager.GetEmployeeCount(role);
+            var applicantCount = employeeManager.GetApplicantCount(role);
+            var button = CreateButton(contentRoot, $"Role_{role.Id}", $"{role.DisplayName}\nÇalışan: {employeeCount} | Başvuru: {applicantCount}");
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
+            button.onClick.AddListener(() => ShowEmployeesForRole(role));
+        }
+
+        private void CreateApplicantButton(EmployeeRuntimeData applicant)
+        {
+            var button = CreateButton(contentRoot, $"Applicant_{applicant.Id}", $"{applicant.DisplayName}\nKademe: {applicant.QualityTier} | Katkı Çarpanı: x{applicant.IncomeMultiplier:0.0}\nİstenen Maaş: {applicant.ExpectedDailySalary.Amount:N0}\nİşe Al");
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 108f);
+            button.onClick.AddListener(() =>
+            {
+                employeeManager.TryHireApplicant(applicant);
+                ShowApplicationsForRole(selectedRole);
+            });
+        }
+
+        private void CreateEmployeeCard(EmployeeRuntimeData employee)
+        {
+            var durum = employee.IsAssigned ? $"Durum: Çalışıyor\nGörev: {employee.CurrentAssignmentName}" : "Durum: Boşta";
+            CreateInfoCard($"{employee.DisplayName}\nKademe: {employee.QualityTier} | Katkı Çarpanı: x{employee.IncomeMultiplier:0.0}\nGünlük Maaş: {employee.ExpectedDailySalary.Amount:N0}\n{durum}", 96f);
+
+            var canFire = employeeManager != null && employeeManager.CanFireEmployee(employee);
+            var fireButton = CreateButton(contentRoot, $"Fire_{employee.Id}", canFire ? "Çalışanı Kov" : "Çalışıyor - Kovulamaz");
+            fireButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
+            fireButton.interactable = canFire;
+            fireButton.onClick.AddListener(() =>
+            {
+                if (employeeManager != null && employeeManager.TryFireEmployee(employee))
+                {
+                    ShowEmployeesForRole(selectedRole);
+                }
+            });
         }
 
         private void EnsureCanvas()
@@ -266,162 +362,24 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             UpdateHeaderButtons();
         }
 
-        private void ShowRoleList()
-        {
-            currentPage = EmployeePageState.RoleList;
-            UpdateHeaderButtons();
-            pageTitleText.text = "Çalışanlar";
-            ClearChildren();
-
-            if (employeeManager == null)
-            {
-                CreateInfoCard("Çalışan sistemi henüz hazır değil.");
-                return;
-            }
-
-            var roles = employeeManager.Roles;
-            if (roles.Count == 0)
-            {
-                CreateInfoCard("Henüz meslek listesi bulunmuyor.");
-                return;
-            }
-
-            for (var i = 0; i < roles.Count; i++)
-            {
-                CreateRoleButton(roles[i]);
-            }
-        }
-
-        private void ShowEmployeesForRole(EmployeeRoleDefinition role)
-        {
-            if (role == null)
-            {
-                NavigateToRoleList();
-                return;
-            }
-
-            currentPage = EmployeePageState.RoleEmployees;
-            selectedRole = role;
-            UpdateHeaderButtons();
-            pageTitleText.text = role.DisplayName;
-            ClearChildren();
-
-            var employees = employeeManager.GetEmployeesByRole(role);
-            if (employees.Count == 0)
-            {
-                CreateInfoCard("Bu meslekte çalışan bulunmuyor.");
-            }
-            else
-            {
-                for (var i = 0; i < employees.Count; i++)
-                {
-                    var employee = employees[i];
-                    var durum = employee.IsAssigned ? $"Durum: Çalışıyor\nGörev: {employee.CurrentAssignmentName}" : "Durum: Boşta";
-                    CreateInfoCard($"{employee.DisplayName}\nKademe: {employee.QualityTier} | Katkı Çarpanı: x{employee.IncomeMultiplier:0.0}\nBeklenen Ücret: {employee.ExpectedDailySalary.Amount:N0}\n{durum}", 96f);
-                }
-            }
-
-            var applicationsButton = CreateButton(contentRoot, "ApplicationsButton", "İş Başvuruları");
-            applicationsButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 62f);
-            applicationsButton.onClick.AddListener(() => ShowApplicationsForRole(role));
-        }
-
-        private void ShowApplicationsForRole(EmployeeRoleDefinition role)
-        {
-            if (role == null)
-            {
-                NavigateToRoleList();
-                return;
-            }
-
-            currentPage = EmployeePageState.Applications;
-            selectedRole = role;
-            UpdateHeaderButtons();
-            pageTitleText.text = role.DisplayName + " / İş Başvuruları";
-            ClearChildren();
-
-            var applicants = employeeManager.GetApplicantsByRole(role);
-            if (applicants.Count == 0)
-            {
-                CreateInfoCard("Bu meslek için bekleyen başvuru bulunmuyor.");
-                return;
-            }
-
-            for (var i = 0; i < applicants.Count; i++)
-            {
-                CreateApplicantButton(applicants[i]);
-            }
-        }
-
-        private void CreateRoleButton(EmployeeRoleDefinition role)
-        {
-            var employeeCount = employeeManager.GetEmployeeCount(role);
-            var applicantCount = employeeManager.GetApplicantCount(role);
-            var button = CreateButton(contentRoot, $"Role_{role.Id}", $"{role.DisplayName}\nÇalışan: {employeeCount} | Başvuru: {applicantCount}");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
-            button.onClick.AddListener(() => ShowEmployeesForRole(role));
-        }
-
-        private void CreateApplicantButton(EmployeeRuntimeData applicant)
-        {
-            var button = CreateButton(contentRoot, $"Applicant_{applicant.Id}", $"{applicant.DisplayName}\nKademe: {applicant.QualityTier} | Katkı Çarpanı: x{applicant.IncomeMultiplier:0.0}\nİstenen Maaş: {applicant.ExpectedDailySalary.Amount:N0}\nİşe Al");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 108f);
-            button.onClick.AddListener(() =>
-            {
-                employeeManager.TryHireApplicant(applicant);
-                ShowApplicationsForRole(selectedRole);
-            });
-        }
-
         private Text CreateInfoCard(string message, float height = 58f)
         {
-            var card = CreateUiObject("InfoCard", contentRoot);
-            var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(0f, height);
-            card.AddComponent<Image>().color = new Color(0.18f, 0.2f, 0.25f, 1f);
-
-            var text = CreateText(card.transform, message, 20, TextAnchor.MiddleLeft);
-            StretchToParent(text.rectTransform, 14f, 6f, 14f, 6f);
-            return text;
+            return RuntimePanelUiUtility.CreateInfoCard(contentRoot, defaultFont, message, height);
         }
 
         private Button CreateButton(Transform parent, string objectName, string label)
         {
-            var buttonObject = CreateUiObject(objectName, parent);
-            buttonObject.AddComponent<Image>().color = new Color(0.23f, 0.3f, 0.42f, 1f);
-            var button = buttonObject.AddComponent<Button>();
-            var colors = button.colors;
-            colors.normalColor = new Color(0.23f, 0.3f, 0.42f, 1f);
-            colors.highlightedColor = new Color(0.3f, 0.38f, 0.52f, 1f);
-            colors.pressedColor = new Color(0.18f, 0.24f, 0.35f, 1f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.7f);
-            button.colors = colors;
-
-            var text = CreateText(buttonObject.transform, label, 22, TextAnchor.MiddleLeft);
-            StretchToParent(text.rectTransform, 16f, 8f, 16f, 8f);
-            return button;
+            return RuntimePanelUiUtility.CreateButton(parent, defaultFont, objectName, label);
         }
 
         private Text CreateText(Transform parent, string value, int fontSize, TextAnchor anchor)
         {
-            var textObject = CreateUiObject("Text", parent);
-            var text = textObject.AddComponent<Text>();
-            text.font = defaultFont;
-            text.text = value;
-            text.fontSize = fontSize;
-            text.alignment = anchor;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            return text;
+            return RuntimePanelUiUtility.CreateText(parent, defaultFont, value, fontSize, anchor);
         }
 
         private GameObject CreateUiObject(string objectName, Transform parent)
         {
-            var uiObject = new GameObject(objectName, typeof(RectTransform));
-            uiObject.transform.SetParent(parent, false);
-            return uiObject;
+            return RuntimePanelUiUtility.CreateUiObject(objectName, parent);
         }
 
         private Font LoadDefaultFont()
@@ -432,10 +390,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void StretchToParent(RectTransform rectTransform, float left, float bottom, float right, float top)
         {
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.offsetMin = new Vector2(left, bottom);
-            rectTransform.offsetMax = new Vector2(-right, -top);
+            RuntimePanelUiUtility.StretchToParent(rectTransform, left, bottom, right, top);
         }
 
         private void UpdateHeaderButtons()
@@ -448,10 +403,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void ClearChildren()
         {
-            for (var i = contentRoot.childCount - 1; i >= 0; i--)
-            {
-                Destroy(contentRoot.GetChild(i).gameObject);
-            }
+            RuntimePanelUiUtility.ClearChildren(contentRoot);
         }
 
         private enum EmployeePageState

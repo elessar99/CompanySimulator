@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using CompanySimulator.Features.Accounting.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
+using CompanySimulator.Presentation.UI.Runtime.Common;
 using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Components;
@@ -25,7 +27,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private SectorManager sectorManager;
         [SerializeField] private EmployeeManager employeeManager;
+        [SerializeField] private CompanyAccountingManager companyAccountingManager;
         [SerializeField] private EmployeePanelUI employeePanelUI;
+        [SerializeField] private AccountingPanelUI accountingPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
@@ -52,7 +56,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             economyManager ??= FindObjectOfType<EconomyManager>();
             sectorManager ??= FindObjectOfType<SectorManager>();
             employeeManager ??= FindObjectOfType<EmployeeManager>();
+            companyAccountingManager ??= FindObjectOfType<CompanyAccountingManager>();
+            if (companyAccountingManager == null)
+            {
+                companyAccountingManager = new GameObject("CompanyAccountingManager", typeof(CompanyAccountingManager)).GetComponent<CompanyAccountingManager>();
+            }
+
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
+            accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
+            if (accountingPanelUI == null)
+            {
+                accountingPanelUI = new GameObject("AccountingPanelUI", typeof(AccountingPanelUI)).GetComponent<AccountingPanelUI>();
+            }
 
             EnsureCanvas();
             EnsureEventSystem();
@@ -83,6 +98,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (employeePanelUI != null && employeePanelUI.IsOpen)
             {
                 employeePanelUI.ClosePanel();
+            }
+
+            if (accountingPanelUI != null && accountingPanelUI.IsOpen)
+            {
+                accountingPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -432,23 +452,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             draftResultText = null;
             ClearChildren(contentRoot);
 
-            if (sectorManager == null || !sectorManager.IsInitialized)
-            {
-                CreateInfoCard("Sektör sistemi henüz hazýr deðil.");
-                return;
-            }
-
-            var sectors = sectorManager.Sectors;
-            if (sectors.Count == 0)
-            {
-                CreateInfoCard("Henüz listelenecek sektör bulunmuyor.");
-                return;
-            }
-
-            for (var i = 0; i < sectors.Count; i++)
-            {
-                CreateSectorButton(sectors[i]);
-            }
+            SectorListPage.Render(sectorManager, message => CreateInfoCard(message), CreateSectorButton);
         }
 
         private void ShowSectorDetails(SectorRuntimeData sectorData)
@@ -471,17 +475,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             draftResultText = null;
             ClearChildren(contentRoot);
 
-            if (!string.IsNullOrWhiteSpace(sectorData.Sector.Description))
-            {
-                CreateInfoCard(sectorData.Sector.Description, 72f);
-            }
-
-            CreateInfoCard($"Aktif iþ sayýsý: {sectorData.ActiveProjectCount}");
-            CreateInfoCard($"Bu sektörde gelir döngüsü: {sectorData.Sector.ProfitPayoutIntervalDays} günde bir");
-            CreateInfoCard($"Sektörde çalýþabilecek meslek sayýsý: {sectorData.Sector.SupportedRoles.Count}");
-
-            CreateSectionTitle("Aktif Ýþler");
-            CreateActiveProjectCards(sectorData);
+            SectorDetailsPage.Render(sectorData, economyManager, message => CreateInfoCard(message), (message, height) => CreateInfoCard(message, height), CreateSectionTitle, CreateActiveProjectCards);
 
             var newJobButton = CreateButton(contentRoot, "NewJobButton", "+ Yeni Ýþ");
             newJobButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 62f);
@@ -526,31 +520,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             CleanupDraftState(selectedProjectTemplate);
 
-            if (!string.IsNullOrWhiteSpace(sectorData.Sector.Description))
+            if (companyAccountingManager != null)
             {
-                CreateInfoCard(sectorData.Sector.Description, 72f);
-            }
-
-            CreateInfoCard($"Bu sektörde iþ gelirleri {sectorData.Sector.ProfitPayoutIntervalDays} günde bir döngüsel olarak gelir.", 64f);
-
-            if (sectorData.AvailableProjects.Count > 0)
-            {
-                CreateSectionTitle("Ýþ Þablonlarý");
-                for (var i = 0; i < sectorData.AvailableProjects.Count; i++)
+                var capacitySnapshot = companyAccountingManager.GetCurrentCycleSnapshot();
+                CreateInfoCard($"Ýþ Kapasitesi: {capacitySnapshot.ActiveProjectCount} / {capacitySnapshot.MaxActiveProjectCount}", 58f);
+                if (!companyAccountingManager.CanCreateAdditionalProject(out var capacityValidationMessage))
                 {
-                    CreateProjectTemplateSelector(sectorData.AvailableProjects[i]);
+                    CreateInfoCard(capacityValidationMessage, 72f);
                 }
             }
-            else
-            {
-                CreateInfoCard("Bu sektörde kayýtlý hazýr iþ þablonu yok. Yeni iþ ekraný sektör verilerinden geçici bir taslak kullanýyor.", 72f);
-            }
 
-            CreateSectionTitle("Çalýþan Atamalarý");
-            CreateEmployeeRequirementCards(selectedProjectTemplate);
-
-            CreateSectionTitle("Yatýrýmlar");
-            CreateInvestmentEditors(selectedProjectTemplate);
+            SectorNewJobPage.Render(sectorData, selectedProjectTemplate, message => CreateInfoCard(message), (message, height) => CreateInfoCard(message, height), CreateSectionTitle, CreateProjectTemplateSelector, CreateEmployeeRequirementCards, CreateInvestmentEditors);
 
             CreateSectionTitle("Önizleme");
             var previewButton = CreateButton(contentRoot, "PreviewButton", "Önizleme Yap");
@@ -591,14 +571,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 LoadDraftFromActiveProject(activeProject);
             }
 
-            CreateInfoCard($"Bu aktif iþte çalýþanlarý deðiþtirebilir veya yatýrýmlarý yalnýzca artýrabilirsin. Kaydedince gelir döngüsü sýfýrlanýr.", 82f);
-            CreateInfoCard($"Sonraki gelir: {(economyManager != null ? activeProject.DaysUntilNextPayout(economyManager.CurrentDay) : 0)} gün sonra | Döngü kârý: {activeProject.CycleProfit.Amount:N0}", 62f);
-
-            CreateSectionTitle("Çalýþan Atamalarý");
-            CreateEmployeeRequirementCards(selectedProjectTemplate);
-
-            CreateSectionTitle("Yatýrýmlar");
-            CreateInvestmentEditors(selectedProjectTemplate);
+            SectorActiveProjectEditPage.Render(activeProject, economyManager, message => CreateInfoCard(message), (message, height) => CreateInfoCard(message, height), CreateSectionTitle, CreateEmployeeRequirementCards, CreateInvestmentEditors);
 
             CreateSectionTitle("Önizleme");
             var previewButton = CreateButton(contentRoot, "PreviewActiveButton", "Deðiþikliði Önizle");
@@ -634,6 +607,33 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             ShowNewJobPage(selectedSector);
+        }
+
+        private void CreateSectorButton(SectorRuntimeData sectorData)
+        {
+            var label = $"{sectorData.Sector.DisplayName}\nAktif Ýþ: {sectorData.ActiveProjectCount}";
+            var button = CreateButton(contentRoot, $"Sector_{sectorData.Sector.Id}", label);
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
+            button.onClick.AddListener(() => ShowSectorDetails(sectorData));
+        }
+
+        private void CreateActiveProjectCards(SectorRuntimeData sectorData)
+        {
+            SectorDetailsPage.RenderActiveProjects(sectorData, economyManager, CreateActiveProjectCard, (message, height) => CreateInfoCard(message, height));
+        }
+
+        private void CreateActiveProjectCard(ActiveProjectRuntimeEntry activeProject)
+        {
+            var employeeNames = activeProject.AssignedEmployeeNames.Count > 0
+                ? string.Join(", ", activeProject.AssignedEmployeeNames)
+                : "Atama bilgisi yok";
+            var remainingDays = economyManager != null ? activeProject.DaysUntilNextPayout(economyManager.CurrentDay) : 0;
+            var button = CreateButton(
+                contentRoot,
+                $"ActiveProject_{activeProject.DisplayName}",
+                $"{activeProject.DisplayName}\nSonraki Gelir: {remainingDays} gün sonra\nDöngü Geliri: {activeProject.CycleRevenue.Amount:N0} | Döngü Kârý: {activeProject.CycleProfit.Amount:N0}\nÇalýþanlar: {employeeNames}");
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 112f);
+            button.onClick.AddListener(() => ShowActiveProjectEditor(selectedSector, activeProject));
         }
 
         private bool ContainsProject(SectorRuntimeData sectorData, ProjectExecutionDefinition project)
@@ -776,21 +776,39 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var assignments = selectedProjectTemplate.EmployeeAssignments;
             var assignedEmployees = activeProject.AssignedEmployees;
-            var employeeIndex = 0;
-            for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+            var assignedSlotIds = activeProject.AssignedEmployeeSlotIds;
+            if (assignedEmployees.Count == assignedSlotIds.Count && assignedSlotIds.Count > 0)
             {
-                var assignment = assignments[assignmentIndex];
-                for (var slotIndex = 0; slotIndex < assignment.Count; slotIndex++)
+                for (var i = 0; i < assignedSlotIds.Count; i++)
                 {
-                    if (employeeIndex >= assignedEmployees.Count)
+                    var slotId = assignedSlotIds[i];
+                    var employee = assignedEmployees[i];
+                    if (string.IsNullOrWhiteSpace(slotId) || employee == null)
                     {
-                        break;
+                        continue;
                     }
 
-                    draftEmployeeSelections[BuildEmployeeSlotId(assignment.Role, assignmentIndex, slotIndex)] = assignedEmployees[employeeIndex];
-                    employeeIndex++;
+                    draftEmployeeSelections[slotId] = employee;
+                }
+            }
+            else
+            {
+                var assignments = selectedProjectTemplate.EmployeeAssignments;
+                var employeeIndex = 0;
+                for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+                {
+                    var assignment = assignments[assignmentIndex];
+                    for (var slotIndex = 0; slotIndex < assignment.Count; slotIndex++)
+                    {
+                        if (employeeIndex >= assignedEmployees.Count)
+                        {
+                            break;
+                        }
+
+                        draftEmployeeSelections[BuildEmployeeSlotId(assignment.Role, assignmentIndex, slotIndex)] = assignedEmployees[employeeIndex];
+                        employeeIndex++;
+                    }
                 }
             }
 
@@ -818,14 +836,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     break;
                 }
             }
-        }
-
-        private void CreateSectorButton(SectorRuntimeData sectorData)
-        {
-            var label = $"{sectorData.Sector.DisplayName}\nAktif Ýþ: {sectorData.ActiveProjectCount}";
-            var button = CreateButton(contentRoot, $"Sector_{sectorData.Sector.Id}", label);
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
-            button.onClick.AddListener(() => ShowSectorDetails(sectorData));
         }
 
         private void CreateProjectCard(SectorRuntimeData sectorData, ProjectExecutionDefinition project)
@@ -1145,11 +1155,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var typeLabel = investment.IsRecurringExpense ? "Gelirden Düþer" : "Peþin";
             var minimumBudget = GetMinimumAllowedBudget(project, investment);
+            var maximumBudget = GetMaximumAllowedBudget(investment);
             var detailText = CreateText(
                 card.transform,
                 selectedActiveProject == null
-                    ? $"Gider Tipi: {typeLabel}\nMinimum: {investment.MinimumBudget:N0} | Önerilen: {investment.RecommendedBudget:N0}"
-                    : $"Gider Tipi: {typeLabel}\nMevcut: {minimumBudget:N0} | Sadece artýþ yapýlabilir",
+                    ? $"Gider Tipi: {typeLabel}\nMinimum: {investment.MinimumBudget:N0} | Önerilen: {investment.RecommendedBudget:N0} | Maksimum: {maximumBudget:N0}"
+                    : $"Gider Tipi: {typeLabel}\nMevcut: {minimumBudget:N0} | Maksimum: {maximumBudget:N0} | Sadece artýþ yapýlabilir",
                 18,
                 TextAnchor.UpperLeft);
             StretchToParent(detailText.rectTransform, 14f, 42f, 220f, 10f);
@@ -1172,7 +1183,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             void RefreshEvaluation(string inputValue)
             {
-                var parsedBudget = ParseBudget(inputValue, minimumBudget);
+                var parsedBudget = ParseBudget(inputValue, minimumBudget, maximumBudget);
                 draftBudgetCache[investment] = parsedBudget;
                 inputField.text = parsedBudget.ToString();
                 evaluationText.text = $"Deðerlendirme: {investment.GetBudgetEvaluationLabel(parsedBudget)}";
@@ -1212,13 +1223,20 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
+            if (companyAccountingManager != null && !companyAccountingManager.CanCreateAdditionalProject(out var accountingValidationMessage))
+            {
+                draftResultText.text = accountingValidationMessage;
+                return;
+            }
+
             if (selectedActiveProject != null)
             {
                 ApplyActiveProjectChanges(request);
                 return;
             }
 
-            var selectedEmployees = GetSelectedEmployees();
+            var selectedEmployees = GetSelectedEmployees(selectedProjectTemplate);
+            var assignedEmployeeSlotIds = BuildAssignedEmployeeSlotIds(selectedProjectTemplate);
             if (employeeManager != null && !employeeManager.CanAssignEmployees(selectedEmployees))
             {
                 draftResultText.text = "Seçtiðin çalýþanlardan en az biri artýk boþta deðil. Lütfen çalýþan seçimini yenile.";
@@ -1228,7 +1246,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var displayName = selectedProjectTemplate != null ? selectedProjectTemplate.DisplayName : request.ProjectType.DisplayName;
             var assignedEmployeeNames = BuildAssignedEmployeeNames(selectedEmployees);
-            if (economyManager.TryExecuteProject(selectedProjectTemplate, request, displayName, selectedEmployees, assignedEmployeeNames, out var result))
+            if (economyManager.TryExecuteProject(selectedProjectTemplate, request, displayName, selectedEmployees, assignedEmployeeSlotIds, assignedEmployeeNames, out var result))
             {
                 draftEmployeeSelections.Clear();
                 expandedEmployeeSlotId = null;
@@ -1259,7 +1277,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var selectedEmployees = GetSelectedEmployees();
+            var selectedEmployees = GetSelectedEmployees(selectedProjectTemplate);
+            var assignedEmployeeSlotIds = BuildAssignedEmployeeSlotIds(selectedProjectTemplate);
             var currentAssignedEmployees = selectedActiveProject.AssignedEmployees;
             if (employeeManager != null && !employeeManager.CanReassignEmployees(currentAssignedEmployees, selectedEmployees))
             {
@@ -1269,7 +1288,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             var assignedEmployeeNames = BuildAssignedEmployeeNames(selectedEmployees);
-            if (!economyManager.TryUpdateActiveProject(selectedActiveProject, request, selectedEmployees, assignedEmployeeNames, out var result, out var validationMessage))
+            if (!economyManager.TryUpdateActiveProject(selectedActiveProject, request, selectedEmployees, assignedEmployeeSlotIds, assignedEmployeeNames, out var result, out var validationMessage))
             {
                 draftResultText.text = validationMessage;
                 return;
@@ -1403,11 +1422,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     ? cachedBudget
                     : GetDefaultBudget(project, investment);
                 var minimumAllowedBudget = GetMinimumAllowedBudget(project, investment);
-                if (budget < minimumAllowedBudget)
-                {
-                    validationMessage = $"{investment.DisplayName} bütçesi {minimumAllowedBudget:N0} altýna düþürülemez.";
-                    return false;
-                }
+                var maximumAllowedBudget = GetMaximumAllowedBudget(investment);
+                budget = Mathf.Clamp(budget, minimumAllowedBudget, maximumAllowedBudget);
+                draftBudgetCache[investment] = budget;
 
                 allocations.Add(new InvestmentAllocationInput(investment, budget));
             }
@@ -1420,14 +1437,52 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return $"{role?.Id ?? "role"}_{assignmentIndex}_{slotIndex}";
         }
 
-        private List<EmployeeRuntimeData> GetSelectedEmployees()
+        private List<EmployeeRuntimeData> GetSelectedEmployees(ProjectExecutionDefinition project)
         {
             var result = new List<EmployeeRuntimeData>(draftEmployeeSelections.Count);
-            foreach (var pair in draftEmployeeSelections)
+            if (project == null)
             {
-                if (pair.Value != null)
+                return result;
+            }
+
+            var assignments = project.EmployeeAssignments;
+            for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+            {
+                var assignment = assignments[assignmentIndex];
+                var requiredCount = Mathf.Max(0, assignment.Count);
+                for (var slotIndex = 0; slotIndex < requiredCount; slotIndex++)
                 {
-                    result.Add(pair.Value);
+                    var slotId = BuildEmployeeSlotId(assignment.Role, assignmentIndex, slotIndex);
+                    if (draftEmployeeSelections.TryGetValue(slotId, out var selectedEmployee) && selectedEmployee != null)
+                    {
+                        result.Add(selectedEmployee);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private List<string> BuildAssignedEmployeeSlotIds(ProjectExecutionDefinition project)
+        {
+            var result = new List<string>(draftEmployeeSelections.Count);
+            if (project == null)
+            {
+                return result;
+            }
+
+            var assignments = project.EmployeeAssignments;
+            for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+            {
+                var assignment = assignments[assignmentIndex];
+                var requiredCount = Mathf.Max(0, assignment.Count);
+                for (var slotIndex = 0; slotIndex < requiredCount; slotIndex++)
+                {
+                    var slotId = BuildEmployeeSlotId(assignment.Role, assignmentIndex, slotIndex);
+                    if (draftEmployeeSelections.TryGetValue(slotId, out var selectedEmployee) && selectedEmployee != null)
+                    {
+                        result.Add(slotId);
+                    }
                 }
             }
 
@@ -1448,55 +1503,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return result;
         }
 
-        private void CreateActiveProjectCards(SectorRuntimeData sectorData)
-        {
-            var activeProjects = sectorData.ActiveProjects;
-            if (activeProjects.Count == 0)
-            {
-                CreateInfoCard("Bu sektörde þu anda aktif iþ bulunmuyor.", 62f);
-                return;
-            }
-
-            for (var i = 0; i < activeProjects.Count; i++)
-            {
-                CreateActiveProjectCard(activeProjects[i]);
-            }
-        }
-
-        private void CreateActiveProjectCard(ActiveProjectRuntimeEntry activeProject)
-        {
-            if (activeProject == null)
-            {
-                return;
-            }
-
-            var employeeNames = activeProject.AssignedEmployeeNames.Count > 0
-                ? string.Join(", ", activeProject.AssignedEmployeeNames)
-                : "Atama bilgisi yok";
-            var remainingDays = economyManager != null ? activeProject.DaysUntilNextPayout(economyManager.CurrentDay) : 0;
-            var button = CreateButton(
-                contentRoot,
-                $"ActiveProject_{activeProject.DisplayName}",
-                $"{activeProject.DisplayName}\nSonraki Gelir: {remainingDays} gün sonra\nDöngü Geliri: {activeProject.CycleRevenue.Amount:N0} | Döngü Kârý: {activeProject.CycleProfit.Amount:N0}\nÇalýþanlar: {employeeNames}");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 112f);
-            button.onClick.AddListener(() => ShowActiveProjectEditor(selectedSector, activeProject));
-        }
-
         private string BuildResultSummary(ProjectEconomyResult result)
         {
-            var cycleProfit = GetCycleProfit(result);
-            var payoutIntervalDays = selectedSector != null ? selectedSector.Sector.ProfitPayoutIntervalDays : 1;
-            return
-                $"Tahmini Gelir: {result.Revenue.Amount:N0}\n" +
-                $"Personel Gideri: {result.PayrollCost.Amount:N0}\n" +
-                $"Peþin Yatýrým: {result.UpfrontInvestmentCost.Amount:N0}\n" +
-                $"Gelirden Düþen Gider: {result.RecurringInvestmentCost.Amount:N0}\n" +
-                $"Sabit Gider: {result.FixedCost.Amount:N0}\n" +
-                $"Kurulum Sonrasý Döngü Kârý: {cycleProfit.Amount:N0}\n" +
-                $"Gelir Aralýðý: {payoutIntervalDays} gün\n" +
-                $"Ýlk Kurulum Toplam Kârý: {result.Profit.Amount:N0}\n" +
-                $"Baþarý Puaný: {result.SuccessScore:0.00}\n" +
-                $"Süre: {result.DurationDays} gün";
+            return $"Tahmini Gelir: {result.Revenue.Amount:N0}";
         }
 
         private Money GetCycleProfit(ProjectEconomyResult result)
@@ -1515,15 +1524,22 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var templateBudget = project.GetAllocatedBudgetFor(investment);
             if (templateBudget > 0)
             {
-                return templateBudget;
+                return Mathf.Min(templateBudget, GetMaximumAllowedBudget(investment));
             }
 
-            return Mathf.Max(investment.MinimumBudget, investment.RecommendedBudget);
+            return Mathf.Clamp(Mathf.Max(investment.MinimumBudget, investment.RecommendedBudget), investment.MinimumBudget, GetMaximumAllowedBudget(investment));
         }
 
-        private int ParseBudget(string inputValue, int fallbackValue)
+        private int GetMaximumAllowedBudget(InvestmentTypeDefinition investment)
         {
-            return int.TryParse(inputValue, out var parsedValue) && parsedValue >= 0 ? parsedValue : fallbackValue;
+            return investment != null ? investment.MaximumBudget : 0;
+        }
+
+        private int ParseBudget(string inputValue, int minimumValue, int maximumValue)
+        {
+            var fallbackValue = Mathf.Clamp(minimumValue, minimumValue, maximumValue);
+            var parsedValue = int.TryParse(inputValue, out var parsedBudget) && parsedBudget >= 0 ? parsedBudget : fallbackValue;
+            return Mathf.Clamp(parsedValue, minimumValue, maximumValue);
         }
 
         private void CreateSectionTitle(string title)
@@ -1535,80 +1551,27 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private Text CreateInfoCard(string message, float height = 58f)
         {
-            var infoRoot = CreateUiObject("InfoCard", contentRoot);
-            var rect = infoRoot.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(0f, height);
-
-            var image = infoRoot.AddComponent<Image>();
-            image.color = new Color(0.18f, 0.2f, 0.25f, 1f);
-
-            var text = CreateText(infoRoot.transform, message, 20, TextAnchor.MiddleLeft);
-            StretchToParent(text.rectTransform, 14f, 6f, 14f, 6f);
-            return text;
+            return RuntimePanelUiUtility.CreateInfoCard(contentRoot, defaultFont, message, height);
         }
 
         private GameObject CreateUiObject(string objectName, Transform parent)
         {
-            var uiObject = new GameObject(objectName, typeof(RectTransform));
-            uiObject.transform.SetParent(parent, false);
-            return uiObject;
+            return RuntimePanelUiUtility.CreateUiObject(objectName, parent);
         }
 
         private Button CreateButton(Transform parent, string objectName, string label)
         {
-            var buttonObject = CreateUiObject(objectName, parent);
-            var image = buttonObject.AddComponent<Image>();
-            image.color = new Color(0.23f, 0.3f, 0.42f, 1f);
-
-            var button = buttonObject.AddComponent<Button>();
-            var colors = button.colors;
-            colors.normalColor = new Color(0.23f, 0.3f, 0.42f, 1f);
-            colors.highlightedColor = new Color(0.3f, 0.38f, 0.52f, 1f);
-            colors.pressedColor = new Color(0.18f, 0.24f, 0.35f, 1f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.2f, 0.2f, 0.2f, 0.7f);
-            button.colors = colors;
-
-            var text = CreateText(buttonObject.transform, label, 22, TextAnchor.MiddleLeft);
-            StretchToParent(text.rectTransform, 16f, 8f, 16f, 8f);
-            return button;
+            return RuntimePanelUiUtility.CreateButton(parent, defaultFont, objectName, label);
         }
 
         private InputField CreateInputField(Transform parent, string initialValue)
         {
-            var inputObject = CreateUiObject("InputField", parent);
-            var image = inputObject.AddComponent<Image>();
-            image.color = new Color(0.1f, 0.12f, 0.16f, 1f);
-
-            var inputField = inputObject.AddComponent<InputField>();
-            inputField.contentType = InputField.ContentType.IntegerNumber;
-            inputField.lineType = InputField.LineType.SingleLine;
-            inputField.text = initialValue;
-
-            var placeholder = CreateText(inputObject.transform, "Bütçe", 18, TextAnchor.MiddleLeft);
-            placeholder.color = new Color(1f, 1f, 1f, 0.35f);
-            StretchToParent(placeholder.rectTransform, 10f, 6f, 10f, 6f);
-
-            var text = CreateText(inputObject.transform, initialValue, 18, TextAnchor.MiddleLeft);
-            StretchToParent(text.rectTransform, 10f, 6f, 10f, 6f);
-
-            inputField.placeholder = placeholder;
-            inputField.textComponent = text;
-            return inputField;
+            return RuntimePanelUiUtility.CreateInputField(parent, defaultFont, initialValue);
         }
 
         private Text CreateText(Transform parent, string value, int fontSize, TextAnchor anchor)
         {
-            var textObject = CreateUiObject("Text", parent);
-            var text = textObject.AddComponent<Text>();
-            text.font = defaultFont;
-            text.text = value;
-            text.fontSize = fontSize;
-            text.alignment = anchor;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            return text;
+            return RuntimePanelUiUtility.CreateText(parent, defaultFont, value, fontSize, anchor);
         }
 
         private void RefreshBalanceText()
@@ -1649,18 +1612,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void StretchToParent(RectTransform rectTransform, float left, float bottom, float right, float top)
         {
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.offsetMin = new Vector2(left, bottom);
-            rectTransform.offsetMax = new Vector2(-right, -top);
+            RuntimePanelUiUtility.StretchToParent(rectTransform, left, bottom, right, top);
         }
 
         private void ClearChildren(RectTransform parent)
         {
-            for (var i = parent.childCount - 1; i >= 0; i--)
-            {
-                Destroy(parent.GetChild(i).gameObject);
-            }
+            RuntimePanelUiUtility.ClearChildren(parent);
         }
 
         private static T[] ToArray<T>(IReadOnlyList<T> source)

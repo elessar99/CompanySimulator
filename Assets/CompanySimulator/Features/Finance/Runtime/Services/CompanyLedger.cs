@@ -13,7 +13,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
         public Money Balance => balance;
         public IReadOnlyList<LedgerEntry> Entries => entries;
 
-        public void RecordIncome(Money amount, LedgerEntryType type, string description)
+        public LedgerEntry RecordIncome(int day, Money amount, LedgerEntryType type, string description)
         {
             if (amount.IsNegative)
             {
@@ -21,11 +21,14 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             }
 
             balance += amount;
-            entries.Add(new LedgerEntry(type, amount, description));
+            var entry = new LedgerEntry(day, type, amount, description);
+            entries.Add(entry);
+            return entry;
         }
 
-        public bool TryRecordExpense(Money amount, LedgerEntryType type, string description)
+        public bool TryRecordExpense(int day, Money amount, LedgerEntryType type, string description, out LedgerEntry entry)
         {
+            entry = default;
             if (amount.IsNegative)
             {
                 throw new ArgumentOutOfRangeException(nameof(amount));
@@ -37,7 +40,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             }
 
             balance -= amount;
-            entries.Add(new LedgerEntry(type, -amount, description));
+            entry = new LedgerEntry(day, type, -amount, description);
+            entries.Add(entry);
             return true;
         }
 

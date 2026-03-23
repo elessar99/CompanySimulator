@@ -29,6 +29,7 @@ namespace CompanySimulator.Features.Investments.Runtime.Definitions
         public InvestmentExpenseMode ExpenseMode => expenseMode;
         public int MinimumBudget => Mathf.Max(0, minimumBudget);
         public int RecommendedBudget => Mathf.Max(0, recommendedBudget);
+        public int MaximumBudget => Mathf.Max(MinimumBudget, RecommendedBudget * 10);
         public bool IsRecurringExpense => expenseMode == InvestmentExpenseMode.GelirdenDus;
 
         public float EvaluateBudgetMultiplier(int allocatedBudget)

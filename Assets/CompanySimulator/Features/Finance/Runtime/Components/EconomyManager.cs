@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
@@ -13,6 +14,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
     public sealed class EconomyManager : MonoBehaviour
     {
         [SerializeField] private EconomySetupDefinition setup;
+        [SerializeField] private EmployeeManager employeeManager;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private bool runStartupProjectsOnStart = true;
         [SerializeField] private int currentDay = 1;
@@ -28,6 +30,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
         public event Action<Money> BalanceChanged;
         public event Action<int> DayAdvanced;
+        public event Action<LedgerEntry> LedgerEntryRecorded;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecuted;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecutionRejected;
 
@@ -42,6 +45,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
         private void Awake()
         {
+            employeeManager ??= FindObjectOfType<EmployeeManager>();
             if (initializeOnAwake)
             {
                 Initialize();
@@ -86,7 +90,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
             if (setup.StartingCapital > Money.Zero)
             {
-                ledger.RecordIncome(setup.StartingCapital, LedgerEntryType.InitialCapital, "Başlangıç sermayesi");
+                RecordIncome(setup.StartingCapital, LedgerEntryType.InitialCapital, "Başlangıç sermayesi");
             }
 
             UpdateSnapshot();
@@ -123,6 +127,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             }
 
             currentDay++;
+            ProcessDailyPayroll();
             ProcessRecurringPayouts();
             UpdateSnapshot();
             BalanceChanged?.Invoke(Balance);
@@ -191,15 +196,15 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
         public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, out ProjectEconomyResult result)
         {
-            return TryExecuteProject(sourceDefinition, request, displayName, null, null, out result);
+            return TryExecuteProject(sourceDefinition, request, displayName, null, null, null, out result);
         }
 
         public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result)
         {
-            return TryExecuteProject(sourceDefinition, request, displayName, null, assignedEmployeeNames, out result);
+            return TryExecuteProject(sourceDefinition, request, displayName, null, null, assignedEmployeeNames, out result);
         }
 
-        public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result)
+        public bool TryExecuteProject(ProjectExecutionDefinition sourceDefinition, ProjectEconomyRequest request, string displayName, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeSlotIds, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result)
         {
             result = default;
 
@@ -240,6 +245,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 result,
                 currentDay,
                 assignedEmployees != null ? ToArray(assignedEmployees) : null,
+                assignedEmployeeSlotIds != null ? ToArray(assignedEmployeeSlotIds) : null,
                 assignedEmployeeNames != null ? ToArray(assignedEmployeeNames) : null,
                 request.InvestmentAllocations != null ? ToArray(request.InvestmentAllocations) : null,
                 request.MarketDemandMultiplier,
@@ -257,7 +263,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             return true;
         }
 
-        public bool TryUpdateActiveProject(ActiveProjectRuntimeEntry activeProject, ProjectEconomyRequest request, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result, out string validationMessage)
+        public bool TryUpdateActiveProject(ActiveProjectRuntimeEntry activeProject, ProjectEconomyRequest request, IReadOnlyList<EmployeeRuntimeData> assignedEmployees, IReadOnlyList<string> assignedEmployeeSlotIds, IReadOnlyList<string> assignedEmployeeNames, out ProjectEconomyResult result, out string validationMessage)
         {
             result = default;
             validationMessage = string.Empty;
@@ -296,11 +302,30 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             activeProject.UpdateConfiguration(
                 result,
                 assignedEmployees != null ? ToArray(assignedEmployees) : null,
+                assignedEmployeeSlotIds != null ? ToArray(assignedEmployeeSlotIds) : null,
                 assignedEmployeeNames != null ? ToArray(assignedEmployeeNames) : null,
                 request.InvestmentAllocations != null ? ToArray(request.InvestmentAllocations) : null,
                 currentDay);
 
             lastExecutionSummary = $"{activeProject.DisplayName}: aktif iş güncellendi, gelir döngüsü sıfırlandı.";
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            return true;
+        }
+
+        public bool TryRecordExpense(Money amount, LedgerEntryType type, string description)
+        {
+            if (!EnsureInitialized())
+            {
+                return false;
+            }
+
+            if (amount <= Money.Zero || Balance < amount)
+            {
+                return false;
+            }
+
+            ApplyExpense(amount, type, description);
             UpdateSnapshot();
             BalanceChanged?.Invoke(Balance);
             return true;
@@ -324,10 +349,61 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 return;
             }
 
-            if (!ledger.TryRecordExpense(amount, type, description))
+            if (!ledger.TryRecordExpense(currentDay, amount, type, description, out var entry))
             {
                 throw new InvalidOperationException("Bakiye kontrolü geçildiği halde gider uygulanamadı.");
             }
+
+            LedgerEntryRecorded?.Invoke(entry);
+        }
+
+        private void RecordIncome(Money amount, LedgerEntryType type, string description)
+        {
+            if (amount <= Money.Zero)
+            {
+                return;
+            }
+
+            var entry = ledger.RecordIncome(currentDay, amount, type, description);
+            LedgerEntryRecorded?.Invoke(entry);
+        }
+
+        private void ProcessDailyPayroll()
+        {
+            if (employeeManager == null)
+            {
+                employeeManager = FindObjectOfType<EmployeeManager>();
+            }
+
+            if (employeeManager == null)
+            {
+                return;
+            }
+
+            if (!employeeManager.IsInitialized)
+            {
+                employeeManager.Initialize();
+            }
+
+            var employees = employeeManager.Employees;
+            var totalDailyPayroll = Money.Zero;
+            for (var i = 0; i < employees.Count; i++)
+            {
+                totalDailyPayroll += employees[i].ExpectedDailySalary;
+            }
+
+            if (totalDailyPayroll <= Money.Zero)
+            {
+                return;
+            }
+
+            if (Balance < totalDailyPayroll)
+            {
+                lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için bakiye yetersiz.";
+                return;
+            }
+
+            ApplyExpense(totalDailyPayroll, LedgerEntryType.PayrollExpense, $"{currentDay}. gün tüm çalışan maaşları");
         }
 
         private void ProcessRecurringPayouts()
@@ -349,7 +425,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
                     if (activeProject.CycleRevenue > Money.Zero)
                     {
-                        ledger.RecordIncome(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
+                        RecordIncome(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
                     }
 
                     executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.CurrentResult));

@@ -139,6 +139,50 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public bool TryClearAssignment(EmployeeRuntimeData employee, string expectedAssignmentName = null)
+        {
+            if (!EnsureInitialized() || employee == null || !employees.Contains(employee) || !employee.IsAssigned)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(expectedAssignmentName) && !string.Equals(employee.CurrentAssignmentName, expectedAssignmentName, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            employee.ClearAssignment();
+            DataChanged?.Invoke();
+            return true;
+        }
+
+        public bool CanFireEmployee(EmployeeRuntimeData employee)
+        {
+            if (!EnsureInitialized() || employee == null)
+            {
+                return false;
+            }
+
+            return employees.Contains(employee) && !employee.IsAssigned;
+        }
+
+        public bool TryFireEmployee(EmployeeRuntimeData employee)
+        {
+            if (!CanFireEmployee(employee))
+            {
+                return false;
+            }
+
+            if (!employees.Remove(employee))
+            {
+                return false;
+            }
+
+            UpdateSnapshot();
+            DataChanged?.Invoke();
+            return true;
+        }
+
         public bool CanReassignEmployees(IReadOnlyList<EmployeeRuntimeData> currentEmployees, IReadOnlyList<EmployeeRuntimeData> newEmployees)
         {
             if (!EnsureInitialized() || newEmployees == null)

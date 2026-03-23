@@ -30,6 +30,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
     {
         private ProjectEconomyResult currentResult;
         private EmployeeRuntimeData[] assignedEmployees;
+        private string[] assignedEmployeeSlotIds;
         private string[] assignedEmployeeNames;
         private InvestmentAllocationInput[] currentInvestmentAllocations;
 
@@ -40,6 +41,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             ProjectEconomyResult startupResult,
             int startedDay,
             EmployeeRuntimeData[] assignedEmployees = null,
+            string[] assignedEmployeeSlotIds = null,
             string[] assignedEmployeeNames = null,
             InvestmentAllocationInput[] currentInvestmentAllocations = null,
             float marketDemandMultiplier = 1f,
@@ -51,6 +53,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             currentResult = startupResult;
             StartedDay = startedDay;
             this.assignedEmployees = assignedEmployees ?? System.Array.Empty<EmployeeRuntimeData>();
+            this.assignedEmployeeSlotIds = assignedEmployeeSlotIds ?? System.Array.Empty<string>();
             this.assignedEmployeeNames = assignedEmployeeNames ?? System.Array.Empty<string>();
             this.currentInvestmentAllocations = currentInvestmentAllocations ?? System.Array.Empty<InvestmentAllocationInput>();
             MarketDemandMultiplier = Mathf.Max(0f, marketDemandMultiplier);
@@ -70,6 +73,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         public int NextPayoutDay { get; private set; }
         public int PayoutCount { get; private set; }
         public IReadOnlyList<EmployeeRuntimeData> AssignedEmployees => assignedEmployees;
+        public IReadOnlyList<string> AssignedEmployeeSlotIds => assignedEmployeeSlotIds;
         public IReadOnlyList<string> AssignedEmployeeNames => assignedEmployeeNames;
         public IReadOnlyList<InvestmentAllocationInput> CurrentInvestmentAllocations => currentInvestmentAllocations;
         public float MarketDemandMultiplier { get; }
@@ -87,10 +91,11 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             NextPayoutDay += PayoutIntervalDays;
         }
 
-        public void UpdateConfiguration(ProjectEconomyResult result, EmployeeRuntimeData[] employees, string[] employeeNames, InvestmentAllocationInput[] investmentAllocations, int currentDay)
+        public void UpdateConfiguration(ProjectEconomyResult result, EmployeeRuntimeData[] employees, string[] employeeSlotIds, string[] employeeNames, InvestmentAllocationInput[] investmentAllocations, int currentDay)
         {
             currentResult = result;
             assignedEmployees = employees ?? System.Array.Empty<EmployeeRuntimeData>();
+            assignedEmployeeSlotIds = employeeSlotIds ?? System.Array.Empty<string>();
             assignedEmployeeNames = employeeNames ?? System.Array.Empty<string>();
             currentInvestmentAllocations = investmentAllocations ?? System.Array.Empty<InvestmentAllocationInput>();
             PayoutCount = 0;

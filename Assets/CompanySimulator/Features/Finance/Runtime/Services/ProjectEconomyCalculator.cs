@@ -47,7 +47,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                 out var recurringInvestmentCost,
                 out var investmentProfitContribution,
                 out var investmentSuccessContribution);
-            var fixedCost = projectType.FixedCost;
+            var fixedCost = Money.Zero;
             var competitionMultiplier = CalculateCompetitionMultiplier(request.CompetitorPressure, sector.CompetitionSensitivity);
 
             var successScore = projectType.BaseSuccessScore;
@@ -98,8 +98,6 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                 }
 
                 totalEmployeeCount += count;
-                totalPayrollCost += role.BaseDailySalary * count * durationDays;
-
                 var normalizedQuality = assignment.AverageQuality / balanceDefinition.QualityNormalizationPoint;
                 var contributionMultiplier = assignment.ContributionMultiplier;
                 totalProfitWeight += normalizedQuality * role.ProfitWeight * contributionMultiplier * count;
@@ -137,9 +135,13 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             {
                 var allocation = allocations[i];
                 var investmentType = allocation.InvestmentType;
-                var allocatedBudgetAmount = allocation.AllocatedBudgetAmount;
+                if (investmentType == null)
+                {
+                    continue;
+                }
 
-                if (investmentType == null || allocatedBudgetAmount <= 0)
+                var allocatedBudgetAmount = Mathf.Clamp(allocation.AllocatedBudgetAmount, investmentType.MinimumBudget, investmentType.MaximumBudget);
+                if (allocatedBudgetAmount <= 0)
                 {
                     continue;
                 }
