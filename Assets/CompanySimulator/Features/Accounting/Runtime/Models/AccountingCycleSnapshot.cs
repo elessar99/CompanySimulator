@@ -13,7 +13,8 @@ namespace CompanySimulator.Features.Accounting.Runtime.Models
             Money income,
             Money expenses,
             Money profit,
-            Money estimatedTax)
+            Money estimatedTax,
+            Money lastTaxPayment)
         {
             CycleStartDay = cycleStartDay;
             NextTaxDay = nextTaxDay;
@@ -24,6 +25,7 @@ namespace CompanySimulator.Features.Accounting.Runtime.Models
             Expenses = expenses;
             Profit = profit;
             EstimatedTax = estimatedTax;
+            LastTaxPayment = lastTaxPayment;
         }
 
         public int CycleStartDay { get; }
@@ -35,5 +37,6 @@ namespace CompanySimulator.Features.Accounting.Runtime.Models
         public Money Expenses { get; }
         public Money Profit { get; }
         public Money EstimatedTax { get; }
+        public Money LastTaxPayment { get; }
     }
 }

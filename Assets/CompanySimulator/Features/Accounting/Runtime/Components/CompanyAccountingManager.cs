@@ -23,6 +23,7 @@ namespace CompanySimulator.Features.Accounting.Runtime.Components
         [SerializeField, Min(1)] private int taxCycleLengthDays = 30;
         [SerializeField, Range(0f, 1f)] private float incomeTaxRate = 0.25f;
         [SerializeField, Min(1)] private int currentCycleStartDay = 1;
+        [SerializeField] private long lastTaxPaymentAmount;
 
         private bool isInitialized;
 
@@ -73,6 +74,7 @@ namespace CompanySimulator.Features.Accounting.Runtime.Components
 
             ResolveAccountantRole();
             currentCycleStartDay = Mathf.Max(1, economyManager != null ? economyManager.CurrentDay : currentCycleStartDay);
+            lastTaxPaymentAmount = 0L;
             isInitialized = true;
             DataChanged?.Invoke();
         }
@@ -147,7 +149,8 @@ namespace CompanySimulator.Features.Accounting.Runtime.Components
                 income,
                 expenses,
                 profit,
-                estimatedTax);
+                estimatedTax,
+                Money.From(lastTaxPaymentAmount));
         }
 
         public bool CanCreateAdditionalProject(out string validationMessage)
@@ -341,6 +344,7 @@ namespace CompanySimulator.Features.Accounting.Runtime.Components
                 return;
             }
 
+            lastTaxPaymentAmount = snapshot.EstimatedTax.Amount;
             currentCycleStartDay = economyManager.CurrentDay + 1;
         }
 

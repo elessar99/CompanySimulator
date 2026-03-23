@@ -23,20 +23,20 @@ MonoBehaviour:
   kotuSettings:
     minimumExpectedSalary: 300
     maximumExpectedSalary: 450
-    incomeMultiplier: 0.5
+    incomeMultiplier: 2
     spawnChanceWeight: 35
   ortalamaSettings:
     minimumExpectedSalary: 451
     maximumExpectedSalary: 600
-    incomeMultiplier: 1
+    incomeMultiplier: 4
     spawnChanceWeight: 35
   iyiSettings:
     minimumExpectedSalary: 601
     maximumExpectedSalary: 725
-    incomeMultiplier: 1.5
+    incomeMultiplier: 6
     spawnChanceWeight: 20
   profesyonelSettings:
     minimumExpectedSalary: 726
     maximumExpectedSalary: 800
-    incomeMultiplier: 3
+    incomeMultiplier: 10
     spawnChanceWeight: 10

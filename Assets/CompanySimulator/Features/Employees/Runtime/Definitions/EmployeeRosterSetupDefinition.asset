@@ -15,6 +15,7 @@ MonoBehaviour:
   id: employee_roster_setup
   displayName: EmployeeRosterSetupDefinition
   availableRoles:
+  - {fileID: 11400000, guid: e89b39457da3c9d4eaa490367819c3ad, type: 2}
   - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
   - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}
   - {fileID: 11400000, guid: 379253f427d3f144da54891df54442c5, type: 2}

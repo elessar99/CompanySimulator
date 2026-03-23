@@ -1,6 +1,5 @@
-using CompanySimulator.Features.Accounting.Runtime.Components;
-using CompanySimulator.Features.Accounting.Runtime.Models;
-using CompanySimulator.Features.Employees.Runtime.Models;
+using CompanySimulator.Features.Banking.Runtime.Components;
+using CompanySimulator.Features.Banking.Runtime.Models;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -9,12 +8,12 @@ using UnityEngine.UI;
 namespace CompanySimulator.Presentation.UI.Runtime.Components
 {
     [DisallowMultipleComponent]
-    public sealed class AccountingPanelUI : MonoBehaviour
+    public sealed class BankPanelUI : MonoBehaviour
     {
-        [SerializeField] private CompanyAccountingManager companyAccountingManager;
+        [SerializeField] private CompanyBankManager companyBankManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
-        [SerializeField] private BankPanelUI bankPanelUI;
+        [SerializeField] private AccountingPanelUI accountingPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(720f, 700f);
 
@@ -27,15 +26,15 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void Awake()
         {
-            companyAccountingManager ??= FindObjectOfType<CompanyAccountingManager>();
-            if (companyAccountingManager == null)
+            companyBankManager ??= FindObjectOfType<CompanyBankManager>();
+            if (companyBankManager == null)
             {
-                companyAccountingManager = new GameObject("CompanyAccountingManager", typeof(CompanyAccountingManager)).GetComponent<CompanyAccountingManager>();
+                companyBankManager = new GameObject("CompanyBankManager", typeof(CompanyBankManager)).GetComponent<CompanyBankManager>();
             }
 
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
-            bankPanelUI ??= FindObjectOfType<BankPanelUI>();
+            accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -44,10 +43,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnEnable()
         {
-            if (companyAccountingManager != null)
+            if (companyBankManager != null)
             {
-                companyAccountingManager.DataChanged -= RefreshPage;
-                companyAccountingManager.DataChanged += RefreshPage;
+                companyBankManager.DataChanged -= RefreshPage;
+                companyBankManager.DataChanged += RefreshPage;
             }
 
             RefreshPage();
@@ -55,9 +54,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnDisable()
         {
-            if (companyAccountingManager != null)
+            if (companyBankManager != null)
             {
-                companyAccountingManager.DataChanged -= RefreshPage;
+                companyBankManager.DataChanged -= RefreshPage;
             }
         }
 
@@ -73,9 +72,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 employeePanelUI.ClosePanel();
             }
 
-            if (bankPanelUI != null && bankPanelUI.IsOpen)
+            if (accountingPanelUI != null && accountingPanelUI.IsOpen)
             {
-                bankPanelUI.ClosePanel();
+                accountingPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -89,56 +88,83 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void RefreshPage()
         {
-            if (contentRoot == null || companyAccountingManager == null)
+            if (contentRoot == null || companyBankManager == null)
             {
                 return;
             }
 
-            if (!companyAccountingManager.IsInitialized)
+            if (!companyBankManager.IsInitialized)
             {
-                companyAccountingManager.Initialize();
+                companyBankManager.Initialize();
             }
 
-            pageTitleText.text = "Muhasebe";
+            pageTitleText.text = "Banka";
             RuntimePanelUiUtility.ClearChildren(contentRoot);
 
-            var snapshot = companyAccountingManager.GetCurrentCycleSnapshot();
-            CreateInfoCard($"Aktif İş / Kapasite: {snapshot.ActiveProjectCount} / {snapshot.MaxActiveProjectCount}", 62f);
-            CreateInfoCard($"Vergiye Kalan Gün: {snapshot.DaysUntilTaxPayment}\nTahmini Vergi: {snapshot.EstimatedTax.Amount:N0}\nSon Vergi Ödemesi: {snapshot.LastTaxPayment.Amount:N0}", 98f);
-            CreateInfoCard($"Döngü Geliri: {snapshot.Income.Amount:N0}\nDöngü Gideri: {snapshot.Expenses.Amount:N0}\nDöngü Kârı: {snapshot.Profit.Amount:N0}", 94f);
-
-            if (companyAccountingManager.AccountantRole == null)
+            CreateInfoCard($"30 Günlük Aktif İş Geliri: {companyBankManager.GetMonthlyActiveProjectRevenue().Amount:N0}", 62f);
+            if (!string.IsNullOrWhiteSpace(companyBankManager.LastBankSummary))
             {
-                CreateInfoCard("Muhasebeçi rolü bulunamadı. Rol kimliği veya görünen adı 'muhasebeci' olmalı.", 76f);
+                CreateInfoCard(companyBankManager.LastBankSummary, 72f);
+            }
+
+            CreateSectionTitle("Standart Krediler");
+            RenderOffers(companyBankManager.GetStandardOffers());
+
+            CreateSectionTitle("Özel Teklifler");
+            RenderOffers(companyBankManager.GetSpecialOffers());
+
+            CreateSectionTitle("Aktif Krediler");
+            RenderActiveLoans();
+        }
+
+        private void RenderOffers(System.Collections.Generic.IReadOnlyList<LoanOfferSnapshot> offers)
+        {
+            if (offers.Count == 0)
+            {
+                CreateInfoCard("Gösterilecek kredi teklifi yok.", 58f);
                 return;
             }
 
-            CreateSectionTitle("Atanmış Muhasebeciler");
-            var assignedAccountants = companyAccountingManager.GetAssignedAccountants();
-            if (assignedAccountants.Count == 0)
+            for (var i = 0; i < offers.Count; i++)
             {
-                CreateInfoCard("Şirkete atanmış muhasebeçi yok. Muhasebeçi olmadan yeni iş başlatılamaz.", 76f);
+                CreateOfferCard(offers[i]);
             }
-            else
+        }
+
+        private void RenderActiveLoans()
+        {
+            var activeLoans = companyBankManager.ActiveLoans;
+            if (activeLoans.Count == 0)
             {
-                for (var i = 0; i < assignedAccountants.Count; i++)
-                {
-                    CreateAssignedAccountantCard(assignedAccountants[i]);
-                }
+                CreateInfoCard("Aktif kredi bulunmuyor.", 58f);
+                return;
             }
 
-            CreateSectionTitle("Boştaki Muhasebeciler");
-            var availableAccountants = companyAccountingManager.GetAvailableAccountants();
-            if (availableAccountants.Count == 0)
+            for (var i = 0; i < activeLoans.Count; i++)
             {
-                CreateInfoCard("Şu anda şirkete atanabilecek boşta muhasebeçi yok.", 66f);
+                var loan = activeLoans[i];
+                CreateInfoCard($"{loan.DisplayName}\nKalan Borç: {loan.RemainingDebt.Amount:N0}\nTaksit: {loan.BuildCurrentInstallmentAmount().Amount:N0} | Kalan Taksit: {loan.RemainingInstallmentCount}\nSonraki Ödeme Günü: {loan.NextDueDay}", 108f);
             }
-            else
+        }
+
+        private void CreateOfferCard(LoanOfferSnapshot offer)
+        {
+            CreateInfoCard($"{offer.DisplayName}\nTutar: {offer.PrincipalAmount.Amount:N0}\nFaiz: %{offer.InterestRate * 100f:0.0}\nTaksit Aralığı: {offer.InstallmentIntervalDays} gün | Süre: {offer.TotalTermDays} gün", 108f);
+
+            var button = CreateButton(contentRoot, $"Offer_{offer.OfferId}", offer.CanAccept ? "Krediyi Al" : "Şu Anda Alınamaz");
+            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
+            button.interactable = offer.CanAccept;
+            button.onClick.AddListener(() =>
             {
-                for (var i = 0; i < availableAccountants.Count; i++)
+                if (companyBankManager.TryAcceptOffer(offer, out _))
                 {
-                    CreateAvailableAccountantCard(availableAccountants[i]);
+                    RefreshPage();
                 }
+            });
+
+            if (!offer.CanAccept && !string.IsNullOrWhiteSpace(offer.ValidationMessage))
+            {
+                CreateInfoCard(offer.ValidationMessage, 62f);
             }
         }
 
@@ -182,19 +208,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateButton(rootCanvas.transform, "AccountingOpenButton", "Muhasebe");
+            var button = CreateButton(rootCanvas.transform, "BankOpenButton", "Banka");
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(420f, -80f);
+            buttonRect.anchoredPosition = new Vector2(620f, -80f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("AccountingPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("BankPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -213,7 +239,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             headerRect.sizeDelta = new Vector2(0f, 70f);
             headerRoot.AddComponent<Image>().color = new Color(0.17f, 0.21f, 0.29f, 1f);
 
-            pageTitleText = CreateText(headerRoot.transform, "Muhasebe", 28, TextAnchor.MiddleLeft);
+            pageTitleText = CreateText(headerRoot.transform, "Banka", 28, TextAnchor.MiddleLeft);
             RuntimePanelUiUtility.StretchToParent(pageTitleText.rectTransform, 18f, 8f, 140f, 8f);
 
             var closeButton = CreateButton(headerRoot.transform, "CloseButton", "×");
@@ -269,45 +295,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             scrollRect.viewport = viewportRect;
             scrollRect.content = contentRoot;
-        }
-
-        private void CreateAssignedAccountantCard(EmployeeRuntimeData accountant)
-        {
-            var contribution = Mathf.Max(1, Mathf.CeilToInt(accountant.IncomeMultiplier));
-            CreateInfoCard($"{accountant.DisplayName}\nKademe: {accountant.QualityTier} | Kapasite Katkısı: +{contribution}\nGünlük Maaş: {accountant.ExpectedDailySalary.Amount:N0}", 92f);
-
-            var canUnassign = companyAccountingManager.CanUnassignAccountant(accountant, out var validationMessage);
-            var button = CreateButton(contentRoot, $"Unassign_{accountant.Id}", canUnassign ? "Şirketten Ayır" : "Aktif işler yüzünden ayrılamaz");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
-            button.interactable = canUnassign;
-            button.onClick.AddListener(() =>
-            {
-                if (companyAccountingManager.TryUnassignAccountant(accountant, out _))
-                {
-                    RefreshPage();
-                }
-            });
-
-            if (!canUnassign && !string.IsNullOrWhiteSpace(validationMessage))
-            {
-                CreateInfoCard(validationMessage, 66f);
-            }
-        }
-
-        private void CreateAvailableAccountantCard(EmployeeRuntimeData accountant)
-        {
-            var contribution = Mathf.Max(1, Mathf.CeilToInt(accountant.IncomeMultiplier));
-            CreateInfoCard($"{accountant.DisplayName}\nKademe: {accountant.QualityTier} | Kapasite Katkısı: +{contribution}\nGünlük Maaş: {accountant.ExpectedDailySalary.Amount:N0}", 92f);
-
-            var button = CreateButton(contentRoot, $"Assign_{accountant.Id}", "Şirkete Ata");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
-            button.onClick.AddListener(() =>
-            {
-                if (companyAccountingManager.TryAssignAccountant(accountant, out _))
-                {
-                    RefreshPage();
-                }
-            });
         }
 
         private void CreateSectionTitle(string title)

@@ -313,6 +313,18 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             return true;
         }
 
+        public void RecordIncome(Money amount, LedgerEntryType type, string description)
+        {
+            if (!EnsureInitialized())
+            {
+                return;
+            }
+
+            RecordIncomeInternal(amount, type, description);
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+        }
+
         public bool TryRecordExpense(Money amount, LedgerEntryType type, string description)
         {
             if (!EnsureInitialized())
@@ -357,7 +369,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             LedgerEntryRecorded?.Invoke(entry);
         }
 
-        private void RecordIncome(Money amount, LedgerEntryType type, string description)
+        private void RecordIncomeInternal(Money amount, LedgerEntryType type, string description)
         {
             if (amount <= Money.Zero)
             {
@@ -425,7 +437,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
                     if (activeProject.CycleRevenue > Money.Zero)
                     {
-                        RecordIncome(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
+                        RecordIncomeInternal(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
                     }
 
                     executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.CurrentResult));

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3972de9d517e83143bc67e46e59f2031, type: 3}
+  m_Name: BankingSetup
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Banking.Runtime.Definitions.BankingSetupDefinition
+  id: banking_setup
+  displayName: BankingSetup
+  standardOffers:
+  - {fileID: 11400000, guid: 854a9fe4cae99e0468e72c3e35fd485c, type: 2}
+  specialOfferTemplates:
+  - {fileID: 11400000, guid: 01dd191d042d18a46abbed74d3fb210f, type: 2}
+  baseSpecialInterestRate: 0.2
+  wealthyCompanyInterestOffset: -0.03
+  poorCompanyInterestOffset: 0.05
+  lowBalanceToRevenueRatio: 0.25
+  highBalanceToRevenueRatio: 1.5
+  minimumSpecialOfferAmount: 100000

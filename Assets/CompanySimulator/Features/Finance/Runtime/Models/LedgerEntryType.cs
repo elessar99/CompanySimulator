@@ -10,6 +10,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         RentExpense = 5,
         TaxExpense = 6,
         MiscIncome = 7,
-        MiscExpense = 8
+        MiscExpense = 8,
+        LoanIncome = 9,
+        LoanRepaymentExpense = 10
     }
 }

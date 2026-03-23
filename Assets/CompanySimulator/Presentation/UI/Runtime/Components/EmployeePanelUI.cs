@@ -14,6 +14,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private EmployeeManager employeeManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
+        [SerializeField] private BankPanelUI bankPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(700f, 680f);
 
@@ -30,6 +31,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             employeeManager ??= FindObjectOfType<EmployeeManager>();
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
+            bankPanelUI ??= FindObjectOfType<BankPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -67,6 +69,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (accountingPanelUI != null && accountingPanelUI.IsOpen)
             {
                 accountingPanelUI.ClosePanel();
+            }
+
+            if (bankPanelUI != null && bankPanelUI.IsOpen)
+            {
+                bankPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
