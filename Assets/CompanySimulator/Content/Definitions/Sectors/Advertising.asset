@@ -19,6 +19,9 @@ MonoBehaviour:
   durationMultiplier: 1
   competitionSensitivity: 1
   successToRevenueWeight: 0.5
+  profitPayoutIntervalDays: 7
+  riskLevel: 0
+  revenueRiskRatio: 0.2
   supportedRoles:
   - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
   - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}

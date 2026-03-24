@@ -85,6 +85,21 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         public Money CycleProfit => CycleRevenue - CyclePayrollCost - CycleRecurringInvestmentCost;
         public int DaysUntilNextPayout(int currentDay) => Mathf.Max(0, NextPayoutDay - currentDay);
 
+        public Money RollCycleRevenue()
+        {
+            var estimatedRevenue = currentResult.Revenue;
+            var riskRatio = Sector != null ? Sector.RevenueRiskRatio : 0f;
+            if (estimatedRevenue <= Money.Zero || riskRatio <= 0f)
+            {
+                return estimatedRevenue;
+            }
+
+            var minMultiplier = Mathf.Max(0f, 1f - riskRatio);
+            var maxMultiplier = 1f + riskRatio;
+            var realizedAmount = estimatedRevenue.Amount * UnityEngine.Random.Range(minMultiplier, maxMultiplier);
+            return Money.From(realizedAmount);
+        }
+
         public void RegisterPayout()
         {
             PayoutCount++;

@@ -1,6 +1,5 @@
-using CompanySimulator.Features.Employees.Runtime.Components;
-using CompanySimulator.Features.Employees.Runtime.Definitions;
-using CompanySimulator.Features.Employees.Runtime.Models;
+using CompanySimulator.Features.FinanceOverview.Runtime.Components;
+using CompanySimulator.Features.FinanceOverview.Runtime.Models;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -9,45 +8,48 @@ using UnityEngine.UI;
 namespace CompanySimulator.Presentation.UI.Runtime.Components
 {
     [DisallowMultipleComponent]
-    public sealed class EmployeePanelUI : MonoBehaviour
+    public sealed class FinanceOverviewPanelUI : MonoBehaviour
     {
-        [SerializeField] private EmployeeManager employeeManager;
+        [SerializeField] private CompanyFinanceOverviewManager companyFinanceOverviewManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
+        [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
         [SerializeField] private BankPanelUI bankPanelUI;
-        [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private Canvas rootCanvas;
-        [SerializeField] private Vector2 panelSize = new Vector2(700f, 680f);
+        [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
         private Font defaultFont;
         private GameObject panelRoot;
         private RectTransform contentRoot;
         private Text pageTitleText;
-        private Button backButton;
-        private EmployeeRoleDefinition selectedRole;
-        private EmployeePageState currentPage;
+        private FinanceOverviewTab currentTab;
+
+        public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
         private void Awake()
         {
-            employeeManager ??= FindObjectOfType<EmployeeManager>();
+            companyFinanceOverviewManager ??= FindObjectOfType<CompanyFinanceOverviewManager>();
+            if (companyFinanceOverviewManager == null)
+            {
+                companyFinanceOverviewManager = new GameObject("CompanyFinanceOverviewManager", typeof(CompanyFinanceOverviewManager)).GetComponent<CompanyFinanceOverviewManager>();
+            }
+
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
+            employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
             bankPanelUI ??= FindObjectOfType<BankPanelUI>();
-            financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
             BuildUi();
         }
 
-        public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
-
         private void OnEnable()
         {
-            if (employeeManager != null)
+            if (companyFinanceOverviewManager != null)
             {
-                employeeManager.DataChanged -= HandleDataChanged;
-                employeeManager.DataChanged += HandleDataChanged;
+                companyFinanceOverviewManager.DataChanged -= RefreshPage;
+                companyFinanceOverviewManager.DataChanged += RefreshPage;
             }
 
             RefreshPage();
@@ -55,9 +57,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnDisable()
         {
-            if (employeeManager != null)
+            if (companyFinanceOverviewManager != null)
             {
-                employeeManager.DataChanged -= HandleDataChanged;
+                companyFinanceOverviewManager.DataChanged -= RefreshPage;
             }
         }
 
@@ -66,6 +68,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
+            }
+
+            if (employeePanelUI != null && employeePanelUI.IsOpen)
+            {
+                employeePanelUI.ClosePanel();
             }
 
             if (accountingPanelUI != null && accountingPanelUI.IsOpen)
@@ -78,161 +85,130 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 bankPanelUI.ClosePanel();
             }
 
-            if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen)
-            {
-                financeOverviewPanelUI.ClosePanel();
-            }
-
             panelRoot.SetActive(true);
-            NavigateToRoleList();
+            RefreshPage();
         }
 
         public void ClosePanel()
         {
-            NavigateToRoleList();
             panelRoot.SetActive(false);
-        }
-
-        private void GoBack()
-        {
-            switch (currentPage)
-            {
-                case EmployeePageState.Applications:
-                    ShowEmployeesForRole(selectedRole);
-                    return;
-                case EmployeePageState.RoleEmployees:
-                    NavigateToRoleList();
-                    return;
-                default:
-                    return;
-            }
-        }
-
-        private void NavigateToRoleList()
-        {
-            selectedRole = null;
-            currentPage = EmployeePageState.RoleList;
-            UpdateHeaderButtons();
-            ShowRoleList();
-        }
-
-        private void HandleDataChanged()
-        {
-            RefreshPage();
         }
 
         private void RefreshPage()
         {
-            if (employeeManager == null)
+            if (contentRoot == null || companyFinanceOverviewManager == null)
             {
                 return;
             }
 
-            if (!employeeManager.IsInitialized)
+            if (!companyFinanceOverviewManager.IsInitialized)
             {
-                employeeManager.Initialize();
+                companyFinanceOverviewManager.Initialize();
             }
 
-            switch (currentPage)
+            pageTitleText.text = "Finans Takibi";
+            RuntimePanelUiUtility.ClearChildren(contentRoot);
+            CreateTabRow();
+
+            switch (currentTab)
             {
-                case EmployeePageState.RoleEmployees:
-                    ShowEmployeesForRole(selectedRole);
+                case FinanceOverviewTab.CurrentDay:
+                    RenderCurrentDayTab();
                     break;
-                case EmployeePageState.Applications:
-                    ShowApplicationsForRole(selectedRole);
+                case FinanceOverviewTab.NextDay:
+                    RenderNextDayTab();
+                    break;
+                case FinanceOverviewTab.ExpectedIncome:
+                    RenderExpectedIncomeTab();
                     break;
                 default:
-                    ShowRoleList();
+                    RenderPreviousDayTab();
                     break;
             }
         }
 
-        private void ShowRoleList()
+        private void RenderPreviousDayTab()
         {
-            currentPage = EmployeePageState.RoleList;
-            UpdateHeaderButtons();
-            pageTitleText.text = "Çalışanlar";
-            ClearChildren();
-
-            EmployeeRoleListPage.Render(employeeManager, message => CreateInfoCard(message), CreateRoleButton);
+            var snapshot = companyFinanceOverviewManager.GetPreviousDaySnapshot();
+            CreateInfoCard($"Dün (Gün {snapshot.Day})\nToplam Gelir: {snapshot.TotalIncome.Amount:N0}\nToplam Gider: {snapshot.TotalExpense.Amount:N0}\nNet: {snapshot.NetAmount.Amount:N0}", 116f);
+            RenderLineItems("Gelen Gelirler", snapshot.Incomes, "Dün gelir kaydı yok.");
+            RenderLineItems("Yapılan Harcamalar", snapshot.Expenses, "Dün gider kaydı yok.");
         }
 
-        private void ShowEmployeesForRole(EmployeeRoleDefinition role)
+        private void RenderCurrentDayTab()
         {
-            if (role == null)
-            {
-                NavigateToRoleList();
-                return;
-            }
-
-            currentPage = EmployeePageState.RoleEmployees;
-            selectedRole = role;
-            UpdateHeaderButtons();
-            pageTitleText.text = role.DisplayName;
-            ClearChildren();
-
-            var employees = employeeManager.GetEmployeesByRole(role);
-            EmployeeRoleEmployeesPage.Render(employees, (message, height) => CreateInfoCard(message, height), CreateEmployeeCard);
-
-            var applicationsButton = CreateButton(contentRoot, "ApplicationsButton", "İş Başvuruları");
-            applicationsButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 62f);
-            applicationsButton.onClick.AddListener(() => ShowApplicationsForRole(role));
+            var daySnapshot = companyFinanceOverviewManager.GetCurrentDaySnapshot();
+            CreateInfoCard($"Bugün (Gün {daySnapshot.Day})\nToplam Gelir: {daySnapshot.TotalIncome.Amount:N0}\nToplam Gider: {daySnapshot.TotalExpense.Amount:N0}\nNet: {daySnapshot.NetAmount.Amount:N0}", 116f);
+            RenderLineItems("Bugünkü Harcamalar", daySnapshot.Expenses, "Bugün harcama kaydı yok.");
+            RenderLineItems("Bugünkü Gelirler", daySnapshot.Incomes, "Bugün gelir kaydı yok.");
         }
 
-        private void ShowApplicationsForRole(EmployeeRoleDefinition role)
+        private void RenderNextDayTab()
         {
-            if (role == null)
-            {
-                NavigateToRoleList();
-                return;
-            }
-
-            currentPage = EmployeePageState.Applications;
-            selectedRole = role;
-            UpdateHeaderButtons();
-            pageTitleText.text = role.DisplayName + " / İş Başvuruları";
-            ClearChildren();
-
-            var applicants = employeeManager.GetApplicantsByRole(role);
-            EmployeeApplicationsPage.Render(applicants, message => CreateInfoCard(message), CreateApplicantButton);
+            var paymentForecast = companyFinanceOverviewManager.GetNextDayPaymentSnapshot();
+            var incomeForecast = companyFinanceOverviewManager.GetNextDayIncomeSnapshot();
+            CreateInfoCard($"Yarın (Gün {paymentForecast.ReferenceDay})\nToplam Beklenen Ödeme: {paymentForecast.TotalAmount.Amount:N0}\nToplam Beklenen Gelir: {incomeForecast.TotalAmount.Amount:N0}", 108f);
+            RenderLineItems("Yarının Ödemeleri", paymentForecast.Items, "Yarın için planlı ödeme görünmüyor.");
+            RenderLineItems("Yarının Beklenen Gelirleri", incomeForecast.Items, "Yarın için beklenen gelir görünmüyor.");
         }
 
-        private void CreateRoleButton(EmployeeRoleDefinition role)
+        private void RenderExpectedIncomeTab()
         {
-            var employeeCount = employeeManager.GetEmployeeCount(role);
-            var applicantCount = employeeManager.GetApplicantCount(role);
-            var button = CreateButton(contentRoot, $"Role_{role.Id}", $"{role.DisplayName}\nÇalışan: {employeeCount} | Başvuru: {applicantCount}");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 78f);
-            button.onClick.AddListener(() => ShowEmployeesForRole(role));
+            var upcomingIncomeSnapshot = companyFinanceOverviewManager.GetUpcomingIncomeSnapshot();
+            CreateInfoCard($"Beklenen Gelirler\nToplam Beklenen Gelir: {upcomingIncomeSnapshot.TotalAmount.Amount:N0}", 78f);
+            RenderPlainLineItems(upcomingIncomeSnapshot.Items, "Planlanmış gelecek gelir yok.");
         }
 
-        private void CreateApplicantButton(EmployeeRuntimeData applicant)
+        private void CreateTabRow()
         {
-            var button = CreateButton(contentRoot, $"Applicant_{applicant.Id}", $"{applicant.DisplayName}\nKademe: {applicant.QualityTier} | Katkı Çarpanı: x{applicant.IncomeMultiplier:0.0}\nİstenen Maaş: {applicant.ExpectedDailySalary.Amount:N0}\nİşe Al");
-            button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 108f);
+            var row = CreateUiObject("TabRow", contentRoot);
+            var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 10f;
+            rowLayout.childControlWidth = true;
+            rowLayout.childControlHeight = true;
+            rowLayout.childForceExpandWidth = true;
+            rowLayout.childForceExpandHeight = false;
+            row.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            row.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 56f);
+
+            CreateTabButton(row.transform, FinanceOverviewTab.PreviousDay, "Dün");
+            CreateTabButton(row.transform, FinanceOverviewTab.CurrentDay, "Bugün");
+            CreateTabButton(row.transform, FinanceOverviewTab.NextDay, "Yarın");
+            CreateTabButton(row.transform, FinanceOverviewTab.ExpectedIncome, "Beklenen Gelirler");
+        }
+
+        private void CreateTabButton(Transform parent, FinanceOverviewTab tab, string label)
+        {
+            var button = CreateButton(parent, "Tab_" + tab, currentTab == tab ? label + " (Seçili)" : label);
+            var layoutElement = button.gameObject.AddComponent<LayoutElement>();
+            layoutElement.preferredHeight = 56f;
             button.onClick.AddListener(() =>
             {
-                employeeManager.TryHireApplicant(applicant);
-                ShowApplicationsForRole(selectedRole);
+                currentTab = tab;
+                RefreshPage();
             });
         }
 
-        private void CreateEmployeeCard(EmployeeRuntimeData employee)
+        private void RenderLineItems(string sectionTitle, System.Collections.Generic.IReadOnlyList<FinanceLineItemSnapshot> items, string emptyMessage)
         {
-            var durum = employee.IsAssigned ? $"Durum: Çalışıyor\nGörev: {employee.CurrentAssignmentName}" : "Durum: Boşta";
-            CreateInfoCard($"{employee.DisplayName}\nKademe: {employee.QualityTier} | Katkı Çarpanı: x{employee.IncomeMultiplier:0.0}\nGünlük Maaş: {employee.ExpectedDailySalary.Amount:N0}\n{durum}", 96f);
+            CreateSectionTitle(sectionTitle);
+            RenderPlainLineItems(items, emptyMessage);
+        }
 
-            var canFire = employeeManager != null && employeeManager.CanFireEmployee(employee);
-            var fireButton = CreateButton(contentRoot, $"Fire_{employee.Id}", canFire ? "Çalışanı Kov" : "Çalışıyor - Kovulamaz");
-            fireButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
-            fireButton.interactable = canFire;
-            fireButton.onClick.AddListener(() =>
+        private void RenderPlainLineItems(System.Collections.Generic.IReadOnlyList<FinanceLineItemSnapshot> items, string emptyMessage)
+        {
+            if (items == null || items.Count == 0)
             {
-                if (employeeManager != null && employeeManager.TryFireEmployee(employee))
-                {
-                    ShowEmployeesForRole(selectedRole);
-                }
-            });
+                CreateInfoCard(emptyMessage, 58f);
+                return;
+            }
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+                var detail = string.IsNullOrWhiteSpace(item.Detail) ? string.Empty : "\n" + item.Detail;
+                CreateInfoCard($"{item.Title}\nTutar: {item.Amount.Amount:N0}{detail}", 90f);
+            }
         }
 
         private void EnsureCanvas()
@@ -275,19 +251,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateButton(rootCanvas.transform, "EmployeesOpenButton", "Çalışanlar");
+            var button = CreateButton(rootCanvas.transform, "FinanceOverviewOpenButton", "Finans Takibi");
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(220f, -80f);
-            buttonRect.sizeDelta = new Vector2(180f, 44f);
+            buttonRect.anchoredPosition = new Vector2(820f, -80f);
+            buttonRect.sizeDelta = new Vector2(220f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("EmployeePanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("FinanceOverviewPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -295,8 +271,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             panelRect.anchoredPosition = new Vector2(0f, -10f);
             panelRect.sizeDelta = panelSize;
 
-            var background = panelRoot.AddComponent<Image>();
-            background.color = new Color(0.1f, 0.12f, 0.16f, 0.98f);
+            panelRoot.AddComponent<Image>().color = new Color(0.1f, 0.12f, 0.16f, 0.98f);
 
             var headerRoot = CreateUiObject("Header", panelRoot.transform);
             var headerRect = headerRoot.GetComponent<RectTransform>();
@@ -307,17 +282,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             headerRect.sizeDelta = new Vector2(0f, 70f);
             headerRoot.AddComponent<Image>().color = new Color(0.17f, 0.21f, 0.29f, 1f);
 
-            pageTitleText = CreateText(headerRoot.transform, "Çalışanlar", 28, TextAnchor.MiddleLeft);
-            StretchToParent(pageTitleText.rectTransform, 18f, 8f, 140f, 8f);
-
-            backButton = CreateButton(headerRoot.transform, "BackButton", "←");
-            var backRect = backButton.GetComponent<RectTransform>();
-            backRect.anchorMin = new Vector2(1f, 0.5f);
-            backRect.anchorMax = new Vector2(1f, 0.5f);
-            backRect.pivot = new Vector2(1f, 0.5f);
-            backRect.anchoredPosition = new Vector2(-72f, 0f);
-            backRect.sizeDelta = new Vector2(50f, 40f);
-            backButton.onClick.AddListener(GoBack);
+            pageTitleText = CreateText(headerRoot.transform, "Finans Takibi", 28, TextAnchor.MiddleLeft);
+            RuntimePanelUiUtility.StretchToParent(pageTitleText.rectTransform, 18f, 8f, 140f, 8f);
 
             var closeButton = CreateButton(headerRoot.transform, "CloseButton", "×");
             var closeRect = closeButton.GetComponent<RectTransform>();
@@ -372,8 +338,13 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             scrollRect.viewport = viewportRect;
             scrollRect.content = contentRoot;
+        }
 
-            UpdateHeaderButtons();
+        private void CreateSectionTitle(string title)
+        {
+            var titleText = CreateText(contentRoot, title, 24, TextAnchor.MiddleLeft);
+            titleText.rectTransform.sizeDelta = new Vector2(0f, 36f);
+            titleText.color = new Color(0.94f, 0.94f, 0.98f, 1f);
         }
 
         private Text CreateInfoCard(string message, float height = 58f)
@@ -402,29 +373,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
 
-        private void StretchToParent(RectTransform rectTransform, float left, float bottom, float right, float top)
+        private enum FinanceOverviewTab
         {
-            RuntimePanelUiUtility.StretchToParent(rectTransform, left, bottom, right, top);
-        }
-
-        private void UpdateHeaderButtons()
-        {
-            if (backButton != null)
-            {
-                backButton.gameObject.SetActive(currentPage != EmployeePageState.RoleList);
-            }
-        }
-
-        private void ClearChildren()
-        {
-            RuntimePanelUiUtility.ClearChildren(contentRoot);
-        }
-
-        private enum EmployeePageState
-        {
-            RoleList = 0,
-            RoleEmployees = 1,
-            Applications = 2
+            PreviousDay = 0,
+            CurrentDay = 1,
+            NextDay = 2,
+            ExpectedIncome = 3
         }
     }
 }

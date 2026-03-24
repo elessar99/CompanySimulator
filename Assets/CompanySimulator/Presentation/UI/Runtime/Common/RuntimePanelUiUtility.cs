@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace CompanySimulator.Presentation.UI.Runtime.Common
 {
-    internal static class RuntimePanelUiUtility
+    public static class RuntimePanelUiUtility
     {
         public static GameObject CreateUiObject(string objectName, Transform parent)
         {

@@ -103,7 +103,6 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
 
             var templates = setup.SpecialOfferTemplates;
             var monthlyRevenue = GetMonthlyActiveProjectRevenue();
-            var interestRate = ResolveSpecialInterestRate(monthlyRevenue);
             for (var i = 0; i < templates.Count; i++)
             {
                 var template = templates[i];
@@ -113,6 +112,8 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
                 }
 
                 var principalAmount = BuildSpecialOfferAmount(monthlyRevenue, template.MonthlyRevenueMultiplier);
+                var interestRate = ResolveSpecialInterestRate(template, principalAmount);
+                var canAccept = principalAmount > Money.Zero;
                 result.Add(new LoanOfferSnapshot(
                     template.Id,
                     template.DisplayName,
@@ -121,8 +122,8 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
                     interestRate,
                     template.InstallmentIntervalDays,
                     template.TotalTermDays,
-                    principalAmount > Money.Zero,
-                    principalAmount > Money.Zero ? string.Empty : "Özel kredi için aktif iş geliri bulunmuyor."));
+                    canAccept,
+                    canAccept ? string.Empty : "Özel kredi için aktif iş geliri bulunmuyor."));
             }
 
             return result;
@@ -168,6 +169,70 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
             lastBankSummary = $"{offer.DisplayName} kredisi alındı: {offer.PrincipalAmount.Amount:N0}";
             DataChanged?.Invoke();
             return true;
+        }
+
+        public bool TryCloseLoan(ActiveLoanRuntimeData loan, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (!EnsureInitialized())
+            {
+                validationMessage = "Banka sistemi hazır değil.";
+                return false;
+            }
+
+            if (loan == null || !activeLoans.Contains(loan) || loan.IsClosed)
+            {
+                validationMessage = "Kapatılacak aktif kredi bulunamadı.";
+                return false;
+            }
+
+            if (economyManager == null)
+            {
+                validationMessage = "Ekonomi sistemi bulunamadı.";
+                return false;
+            }
+
+            var closureAmount = loan.GetEarlyClosureAmount();
+            if (closureAmount <= Money.Zero)
+            {
+                validationMessage = "Bu kredi zaten kapalı.";
+                return false;
+            }
+
+            if (!economyManager.TryRecordExpense(closureAmount, LedgerEntryType.LoanRepaymentExpense, $"{loan.DisplayName} erken kapatma ödemesi"))
+            {
+                validationMessage = $"Krediyi kapatmak için {closureAmount.Amount:N0} bakiye gerekiyor.";
+                return false;
+            }
+
+            loan.RegisterEarlyClosure();
+            activeLoans.Remove(loan);
+            lastBankSummary = $"{loan.DisplayName} kredisi erken kapatıldı: {closureAmount.Amount:N0}";
+            DataChanged?.Invoke();
+            return true;
+        }
+
+        public Money GetAdjustedBalanceForSpecialOfferCalculation()
+        {
+            if (economyManager == null)
+            {
+                return Money.Zero;
+            }
+
+            var adjustedBalance = economyManager.Balance;
+            var totalOutstandingDebt = GetTotalOutstandingDebt();
+            return adjustedBalance > totalOutstandingDebt ? adjustedBalance - totalOutstandingDebt : Money.Zero;
+        }
+
+        public Money GetTotalOutstandingDebt()
+        {
+            var result = Money.Zero;
+            for (var i = 0; i < activeLoans.Count; i++)
+            {
+                result += activeLoans[i].RemainingDebt;
+            }
+
+            return result;
         }
 
         public Money GetMonthlyActiveProjectRevenue()
@@ -259,7 +324,7 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
                         break;
                     }
 
-                    loan.RegisterInstallmentPayment(installmentAmount);
+                    loan.RegisterInstallmentPayment();
                     lastBankSummary = $"{loan.DisplayName} taksiti ödendi: {installmentAmount.Amount:N0}";
                 }
 
@@ -291,66 +356,49 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
                 return Money.Zero;
             }
 
-            var calculatedAmount = Money.From(monthlyRevenue.Amount * multiplier);
-            return calculatedAmount > Money.Zero
-                ? calculatedAmount
-                : Money.From(setup != null ? setup.MinimumSpecialOfferAmount : 0);
+            return Money.From(monthlyRevenue.Amount * multiplier);
         }
 
-        private float ResolveSpecialInterestRate(Money monthlyRevenue)
+        private float ResolveSpecialInterestRate(DynamicLoanOfferTemplateDefinition template, Money principalAmount)
         {
-            if (setup == null)
+            if (template == null)
             {
                 return 0f;
             }
 
-            if (economyManager == null)
+            if (principalAmount <= Money.Zero)
             {
-                return setup.BaseSpecialInterestRate;
+                return template.MaximumInterestRate;
             }
 
-            var monthlyRevenueAmount = Math.Max(1d, monthlyRevenue.Amount);
-            var balanceRatio = economyManager.Balance.Amount / monthlyRevenueAmount;
-            var interestRate = ResolveReferenceStandardInterestRate();
-            if (balanceRatio <= setup.LowBalanceToRevenueRatio)
+            var adjustedBalance = GetAdjustedBalanceForSpecialOfferCalculation();
+            if (adjustedBalance <= Money.Zero)
             {
-                interestRate += setup.PoorCompanyInterestOffset;
-            }
-            else if (balanceRatio >= setup.HighBalanceToRevenueRatio)
-            {
-                interestRate += setup.WealthyCompanyInterestOffset;
+                return template.MaximumInterestRate;
             }
 
-            return Mathf.Max(0f, interestRate);
-        }
+            var affordabilityRatio = adjustedBalance.Amount / (double)Math.Max(1L, principalAmount.Amount);
+            var minimumInterestAffordability = template.BalanceToLoanRatioForMinimumInterest;
+            var maximumInterestAffordability = 1d / template.LoanToBalanceRatioForMaximumInterest;
 
-        private float ResolveReferenceStandardInterestRate()
-        {
-            if (setup == null)
+            if (affordabilityRatio >= minimumInterestAffordability)
             {
-                return 0f;
+                return template.MinimumInterestRate;
             }
 
-            var offers = setup.StandardOffers;
-            if (offers.Count <= 0)
+            if (affordabilityRatio <= maximumInterestAffordability)
             {
-                return setup.BaseSpecialInterestRate;
+                return template.MaximumInterestRate;
             }
 
-            var totalInterest = 0f;
-            var count = 0;
-            for (var i = 0; i < offers.Count; i++)
+            var denominator = minimumInterestAffordability - maximumInterestAffordability;
+            if (denominator <= 0d)
             {
-                if (offers[i] == null)
-                {
-                    continue;
-                }
-
-                totalInterest += offers[i].InterestRate;
-                count++;
+                return template.MaximumInterestRate;
             }
 
-            return count > 0 ? totalInterest / count : setup.BaseSpecialInterestRate;
+            var t = (float)((affordabilityRatio - maximumInterestAffordability) / denominator);
+            return Mathf.Lerp(template.MaximumInterestRate, template.MinimumInterestRate, Mathf.Clamp01(t));
         }
     }
 }

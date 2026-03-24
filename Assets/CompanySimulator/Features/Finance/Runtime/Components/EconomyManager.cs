@@ -435,13 +435,15 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                     ApplyExpense(activeProject.CyclePayrollCost, LedgerEntryType.PayrollExpense, $"{activeProject.DisplayName} dönemsel personel gideri");
                     ApplyExpense(activeProject.CycleRecurringInvestmentCost, LedgerEntryType.InvestmentExpense, $"{activeProject.DisplayName} dönemsel yatırım gideri");
 
-                    if (activeProject.CycleRevenue > Money.Zero)
+                    var realizedRevenue = activeProject.RollCycleRevenue();
+                    if (realizedRevenue > Money.Zero)
                     {
-                        RecordIncomeInternal(activeProject.CycleRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
+                        RecordIncomeInternal(realizedRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");
                     }
 
                     executionHistory.Add(new ProjectExecutionHistoryEntry(activeProject.SourceDefinition, activeProject.DisplayName, activeProject.ProjectType, activeProject.CurrentResult));
-                    lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde dönemsel kâr {activeProject.CycleProfit.Amount:N0}.";
+                    var realizedProfit = realizedRevenue - cycleCosts;
+                    lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde dönemsel kâr {realizedProfit.Amount:N0}.";
                     activeProject.RegisterPayout();
                 }
             }

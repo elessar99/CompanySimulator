@@ -14,6 +14,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
+        [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(720f, 700f);
 
@@ -35,6 +36,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
+            financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -77,6 +79,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 accountingPanelUI.ClosePanel();
             }
 
+            if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen)
+            {
+                financeOverviewPanelUI.ClosePanel();
+            }
+
             panelRoot.SetActive(true);
             RefreshPage();
         }
@@ -102,6 +109,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             RuntimePanelUiUtility.ClearChildren(contentRoot);
 
             CreateInfoCard($"30 Günlük Aktif İş Geliri: {companyBankManager.GetMonthlyActiveProjectRevenue().Amount:N0}", 62f);
+            CreateInfoCard($"Özel Teklif Hesap Bakiyesi: {companyBankManager.GetAdjustedBalanceForSpecialOfferCalculation().Amount:N0}\nToplam Kalan Kredi Borcu: {companyBankManager.GetTotalOutstandingDebt().Amount:N0}", 82f);
             if (!string.IsNullOrWhiteSpace(companyBankManager.LastBankSummary))
             {
                 CreateInfoCard(companyBankManager.LastBankSummary, 72f);
@@ -143,7 +151,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             for (var i = 0; i < activeLoans.Count; i++)
             {
                 var loan = activeLoans[i];
-                CreateInfoCard($"{loan.DisplayName}\nKalan Borç: {loan.RemainingDebt.Amount:N0}\nTaksit: {loan.BuildCurrentInstallmentAmount().Amount:N0} | Kalan Taksit: {loan.RemainingInstallmentCount}\nSonraki Ödeme Günü: {loan.NextDueDay}", 108f);
+                var closureAmount = loan.GetEarlyClosureAmount();
+                CreateInfoCard($"{loan.DisplayName}\nKalan Borç: {loan.RemainingDebt.Amount:N0}\nKalan Anapara: {loan.RemainingPrincipalAmount.Amount:N0}\nTaksit: {loan.BuildCurrentInstallmentAmount().Amount:N0} | Kalan Taksit: {loan.RemainingInstallmentCount}\nSonraki Ödeme Günü: {loan.NextDueDay}\nErken Kapatma: {closureAmount.Amount:N0}", 136f);
+
+                var closeButton = CreateButton(contentRoot, $"CloseLoan_{loan.OfferId}_{i}", $"Krediyi Kapat ({closureAmount.Amount:N0})");
+                closeButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 54f);
+                closeButton.onClick.AddListener(() =>
+                {
+                    if (companyBankManager.TryCloseLoan(loan, out _))
+                    {
+                        RefreshPage();
+                    }
+                });
             }
         }
 

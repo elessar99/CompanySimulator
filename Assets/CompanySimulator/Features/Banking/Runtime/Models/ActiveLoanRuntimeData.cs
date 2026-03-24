@@ -5,7 +5,8 @@ namespace CompanySimulator.Features.Banking.Runtime.Models
 {
     public sealed class ActiveLoanRuntimeData
     {
-        private readonly Money installmentAmount;
+        private readonly int initialInstallmentCount;
+        private readonly Money scheduledPrincipalInstallmentAmount;
         private int remainingInstallmentCount;
 
         public ActiveLoanRuntimeData(
@@ -27,9 +28,11 @@ namespace CompanySimulator.Features.Banking.Runtime.Models
             TotalTermDays = Mathf.Max(1, totalTermDays);
             StartedDay = startedDay;
 
-            remainingInstallmentCount = Mathf.Max(1, Mathf.CeilToInt(TotalTermDays / (float)InstallmentIntervalDays));
+            initialInstallmentCount = Mathf.Max(1, Mathf.CeilToInt(TotalTermDays / (float)InstallmentIntervalDays));
+            remainingInstallmentCount = initialInstallmentCount;
+            scheduledPrincipalInstallmentAmount = Money.From(PrincipalAmount.Amount / (double)initialInstallmentCount);
+            RemainingPrincipalAmount = PrincipalAmount;
             var totalRepayment = Money.From(PrincipalAmount.Amount * (1d + InterestRate));
-            installmentAmount = Money.From(totalRepayment.Amount / (double)remainingInstallmentCount);
             RemainingDebt = totalRepayment;
             NextDueDay = startedDay + InstallmentIntervalDays;
         }
@@ -44,20 +47,68 @@ namespace CompanySimulator.Features.Banking.Runtime.Models
         public int StartedDay { get; }
         public int NextDueDay { get; private set; }
         public int RemainingInstallmentCount => remainingInstallmentCount;
-        public Money InstallmentAmount => installmentAmount;
+        public Money RemainingPrincipalAmount { get; private set; }
         public Money RemainingDebt { get; private set; }
         public bool IsClosed => remainingInstallmentCount <= 0 || RemainingDebt <= Money.Zero;
 
         public Money BuildCurrentInstallmentAmount()
         {
-            return remainingInstallmentCount <= 1 ? RemainingDebt : installmentAmount;
+            if (IsClosed)
+            {
+                return Money.Zero;
+            }
+
+            var principalInstallment = BuildCurrentPrincipalInstallment();
+            var interestAmount = Money.From(RemainingPrincipalAmount.Amount * GetSinglePeriodInterestRate());
+            return principalInstallment + interestAmount;
         }
 
-        public void RegisterInstallmentPayment(Money paidAmount)
+        public Money GetEarlyClosureAmount()
         {
+            if (IsClosed)
+            {
+                return Money.Zero;
+            }
+
+            var singlePeriodInterest = Money.From(RemainingPrincipalAmount.Amount * GetSinglePeriodInterestRate());
+            return RemainingPrincipalAmount + singlePeriodInterest;
+        }
+
+        public void RegisterInstallmentPayment()
+        {
+            if (IsClosed)
+            {
+                return;
+            }
+
+            var paidAmount = BuildCurrentInstallmentAmount();
+            var principalInstallment = BuildCurrentPrincipalInstallment();
+            RemainingPrincipalAmount = RemainingPrincipalAmount - principalInstallment;
             RemainingDebt = RemainingDebt - paidAmount;
+            if (RemainingDebt < Money.Zero)
+            {
+                RemainingDebt = Money.Zero;
+            }
+
             remainingInstallmentCount = Mathf.Max(0, remainingInstallmentCount - 1);
             NextDueDay += InstallmentIntervalDays;
+        }
+
+        public void RegisterEarlyClosure()
+        {
+            RemainingPrincipalAmount = Money.Zero;
+            RemainingDebt = Money.Zero;
+            remainingInstallmentCount = 0;
+        }
+
+        private Money BuildCurrentPrincipalInstallment()
+        {
+            return remainingInstallmentCount <= 1 ? RemainingPrincipalAmount : scheduledPrincipalInstallmentAmount;
+        }
+
+        private float GetSinglePeriodInterestRate()
+        {
+            return initialInstallmentCount > 0 ? InterestRate / initialInstallmentCount : InterestRate;
         }
     }
 }

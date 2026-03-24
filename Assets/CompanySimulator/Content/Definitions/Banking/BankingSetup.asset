@@ -16,11 +16,8 @@ MonoBehaviour:
   displayName: BankingSetup
   standardOffers:
   - {fileID: 11400000, guid: 854a9fe4cae99e0468e72c3e35fd485c, type: 2}
+  - {fileID: 11400000, guid: 05147c7475455624ba50a5094b2f4c89, type: 2}
+  - {fileID: 11400000, guid: 8c3759003fbc0e84fb75920c8d779dd9, type: 2}
   specialOfferTemplates:
   - {fileID: 11400000, guid: 01dd191d042d18a46abbed74d3fb210f, type: 2}
-  baseSpecialInterestRate: 0.2
-  wealthyCompanyInterestOffset: -0.03
-  poorCompanyInterestOffset: 0.05
-  lowBalanceToRevenueRatio: 0.25
-  highBalanceToRevenueRatio: 1.5
-  minimumSpecialOfferAmount: 100000
+  - {fileID: 11400000, guid: c4d0562e7e0c2d4448397d63f49c7a0c, type: 2}

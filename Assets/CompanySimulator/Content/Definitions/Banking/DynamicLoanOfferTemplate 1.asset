@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04965b97c77000040937c94d44aec224, type: 3}
-  m_Name: DynamicLoanOfferTemplate
+  m_Name: DynamicLoanOfferTemplate 1
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Banking.Runtime.Definitions.DynamicLoanOfferTemplateDefinition
-  id: DynamicLoanOfferTemplate
-  displayName: DynamicLoanOfferTemplate
-  monthlyRevenueMultiplier: 1
+  id: DynamicLoanOfferTemplate1
+  displayName: DynamicLoanOfferTemplate1
+  monthlyRevenueMultiplier: 5
   minimumInterestRate: 0.2
   maximumInterestRate: 0.3
   balanceToLoanRatioForMinimumInterest: 2
   loanToBalanceRatioForMaximumInterest: 2
   installmentIntervalDays: 5
-  totalTermDays: 60
+  totalTermDays: 90
