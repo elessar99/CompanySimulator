@@ -1,5 +1,6 @@
-using CompanySimulator.Features.FinanceOverview.Runtime.Components;
-using CompanySimulator.Features.FinanceOverview.Runtime.Models;
+using System.Text;
+using CompanySimulator.Features.Rivals.Runtime.Components;
+using CompanySimulator.Features.Rivals.Runtime.Models;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,14 +9,14 @@ using UnityEngine.UI;
 namespace CompanySimulator.Presentation.UI.Runtime.Components
 {
     [DisallowMultipleComponent]
-    public sealed class FinanceOverviewPanelUI : MonoBehaviour
+    public sealed class RivalCompanyPanelUI : MonoBehaviour
     {
-        [SerializeField] private CompanyFinanceOverviewManager companyFinanceOverviewManager;
+        [SerializeField] private RivalCompanyManager rivalCompanyManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
         [SerializeField] private BankPanelUI bankPanelUI;
-        [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
+        [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
@@ -23,23 +24,25 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private GameObject panelRoot;
         private RectTransform contentRoot;
         private Text pageTitleText;
-        private FinanceOverviewTab currentTab;
+
+        private static readonly StringBuilder SharedBuilder = new StringBuilder(256);
 
         public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
         private void Awake()
         {
-            companyFinanceOverviewManager ??= FindObjectOfType<CompanyFinanceOverviewManager>();
-            if (companyFinanceOverviewManager == null)
+            rivalCompanyManager ??= FindObjectOfType<RivalCompanyManager>();
+            if (rivalCompanyManager == null)
             {
-                companyFinanceOverviewManager = new GameObject("CompanyFinanceOverviewManager", typeof(CompanyFinanceOverviewManager)).GetComponent<CompanyFinanceOverviewManager>();
+                rivalCompanyManager = new GameObject("RivalCompanyManager", typeof(RivalCompanyManager))
+                    .GetComponent<RivalCompanyManager>();
             }
 
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
             bankPanelUI ??= FindObjectOfType<BankPanelUI>();
-            rivalCompanyPanelUI ??= FindObjectOfType<RivalCompanyPanelUI>();
+            financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -48,10 +51,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnEnable()
         {
-            if (companyFinanceOverviewManager != null)
+            if (rivalCompanyManager != null)
             {
-                companyFinanceOverviewManager.DataChanged -= RefreshPage;
-                companyFinanceOverviewManager.DataChanged += RefreshPage;
+                rivalCompanyManager.DataChanged -= RefreshPage;
+                rivalCompanyManager.DataChanged += RefreshPage;
             }
 
             RefreshPage();
@@ -59,38 +62,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnDisable()
         {
-            if (companyFinanceOverviewManager != null)
+            if (rivalCompanyManager != null)
             {
-                companyFinanceOverviewManager.DataChanged -= RefreshPage;
+                rivalCompanyManager.DataChanged -= RefreshPage;
             }
         }
 
         public void OpenPanel()
         {
-            if (sectorPanelUI != null && sectorPanelUI.IsOpen)
-            {
-                sectorPanelUI.ClosePanel();
-            }
-
-            if (employeePanelUI != null && employeePanelUI.IsOpen)
-            {
-                employeePanelUI.ClosePanel();
-            }
-
-            if (accountingPanelUI != null && accountingPanelUI.IsOpen)
-            {
-                accountingPanelUI.ClosePanel();
-            }
-
-            if (bankPanelUI != null && bankPanelUI.IsOpen)
-            {
-                bankPanelUI.ClosePanel();
-            }
-
-            if (rivalCompanyPanelUI != null && rivalCompanyPanelUI.IsOpen)
-            {
-                rivalCompanyPanelUI.ClosePanel();
-            }
+            if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
+            if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
+            if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
+            if (bankPanelUI != null && bankPanelUI.IsOpen) bankPanelUI.ClosePanel();
+            if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen) financeOverviewPanelUI.ClosePanel();
 
             panelRoot.SetActive(true);
             RefreshPage();
@@ -103,119 +87,81 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void RefreshPage()
         {
-            if (contentRoot == null || companyFinanceOverviewManager == null)
+            if (contentRoot == null || rivalCompanyManager == null)
             {
                 return;
             }
 
-            if (!companyFinanceOverviewManager.IsInitialized)
+            if (!rivalCompanyManager.IsInitialized)
             {
-                companyFinanceOverviewManager.Initialize();
+                rivalCompanyManager.Initialize();
             }
 
-            pageTitleText.text = "Finans Takibi";
+            pageTitleText.text = "Rakip Şirketler";
             RuntimePanelUiUtility.ClearChildren(contentRoot);
-            CreateTabRow();
 
-            switch (currentTab)
+            var rivals = rivalCompanyManager.Rivals;
+            if (rivals.Count == 0)
             {
-                case FinanceOverviewTab.CurrentDay:
-                    RenderCurrentDayTab();
-                    break;
-                case FinanceOverviewTab.NextDay:
-                    RenderNextDayTab();
-                    break;
-                case FinanceOverviewTab.ExpectedIncome:
-                    RenderExpectedIncomeTab();
-                    break;
-                default:
-                    RenderPreviousDayTab();
-                    break;
-            }
-        }
-
-        private void RenderPreviousDayTab()
-        {
-            var snapshot = companyFinanceOverviewManager.GetPreviousDaySnapshot();
-            CreateInfoCard($"Dün (Gün {snapshot.Day})\nToplam Gelir: {snapshot.TotalIncome.Amount:N0}\nToplam Gider: {snapshot.TotalExpense.Amount:N0}\nNet: {snapshot.NetAmount.Amount:N0}", 116f);
-            RenderLineItems("Gelen Gelirler", snapshot.Incomes, "Dün gelir kaydı yok.");
-            RenderLineItems("Yapılan Harcamalar", snapshot.Expenses, "Dün gider kaydı yok.");
-        }
-
-        private void RenderCurrentDayTab()
-        {
-            var daySnapshot = companyFinanceOverviewManager.GetCurrentDaySnapshot();
-            CreateInfoCard($"Bugün (Gün {daySnapshot.Day})\nToplam Gelir: {daySnapshot.TotalIncome.Amount:N0}\nToplam Gider: {daySnapshot.TotalExpense.Amount:N0}\nNet: {daySnapshot.NetAmount.Amount:N0}", 116f);
-            RenderLineItems("Bugünkü Harcamalar", daySnapshot.Expenses, "Bugün harcama kaydı yok.");
-            RenderLineItems("Bugünkü Gelirler", daySnapshot.Incomes, "Bugün gelir kaydı yok.");
-        }
-
-        private void RenderNextDayTab()
-        {
-            var paymentForecast = companyFinanceOverviewManager.GetNextDayPaymentSnapshot();
-            var incomeForecast = companyFinanceOverviewManager.GetNextDayIncomeSnapshot();
-            CreateInfoCard($"Yarın (Gün {paymentForecast.ReferenceDay})\nToplam Beklenen Ödeme: {paymentForecast.TotalAmount.Amount:N0}\nToplam Beklenen Gelir: {incomeForecast.TotalAmount.Amount:N0}", 108f);
-            RenderLineItems("Yarının Ödemeleri", paymentForecast.Items, "Yarın için planlı ödeme görünmüyor.");
-            RenderLineItems("Yarının Beklenen Gelirleri", incomeForecast.Items, "Yarın için beklenen gelir görünmüyor.");
-        }
-
-        private void RenderExpectedIncomeTab()
-        {
-            var upcomingIncomeSnapshot = companyFinanceOverviewManager.GetUpcomingIncomeSnapshot();
-            CreateInfoCard($"Beklenen Gelirler\nToplam Beklenen Gelir: {upcomingIncomeSnapshot.TotalAmount.Amount:N0}", 78f);
-            RenderPlainLineItems(upcomingIncomeSnapshot.Items, "Planlanmış gelecek gelir yok.");
-        }
-
-        private void CreateTabRow()
-        {
-            var row = CreateUiObject("TabRow", contentRoot);
-            var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 10f;
-            rowLayout.childControlWidth = true;
-            rowLayout.childControlHeight = true;
-            rowLayout.childForceExpandWidth = true;
-            rowLayout.childForceExpandHeight = false;
-            row.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            row.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 56f);
-
-            CreateTabButton(row.transform, FinanceOverviewTab.PreviousDay, "Dün");
-            CreateTabButton(row.transform, FinanceOverviewTab.CurrentDay, "Bugün");
-            CreateTabButton(row.transform, FinanceOverviewTab.NextDay, "Yarın");
-            CreateTabButton(row.transform, FinanceOverviewTab.ExpectedIncome, "Beklenen Gelirler");
-        }
-
-        private void CreateTabButton(Transform parent, FinanceOverviewTab tab, string label)
-        {
-            var button = CreateButton(parent, "Tab_" + tab, currentTab == tab ? label + " (Seçili)" : label);
-            var layoutElement = button.gameObject.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 56f;
-            button.onClick.AddListener(() =>
-            {
-                currentTab = tab;
-                RefreshPage();
-            });
-        }
-
-        private void RenderLineItems(string sectionTitle, System.Collections.Generic.IReadOnlyList<FinanceLineItemSnapshot> items, string emptyMessage)
-        {
-            CreateSectionTitle(sectionTitle);
-            RenderPlainLineItems(items, emptyMessage);
-        }
-
-        private void RenderPlainLineItems(System.Collections.Generic.IReadOnlyList<FinanceLineItemSnapshot> items, string emptyMessage)
-        {
-            if (items == null || items.Count == 0)
-            {
-                CreateInfoCard(emptyMessage, 58f);
+                CreateInfoCard("Henüz tanımlı rakip şirket bulunmuyor.", 58f);
                 return;
             }
 
-            for (var i = 0; i < items.Count; i++)
+            for (var i = 0; i < rivals.Count; i++)
             {
-                var item = items[i];
-                var detail = string.IsNullOrWhiteSpace(item.Detail) ? string.Empty : "\n" + item.Detail;
-                CreateInfoCard($"{item.Title}\nTutar: {item.Amount.Amount:N0}{detail}", 90f);
+                RenderRivalCard(rivals[i]);
             }
+        }
+
+        private void RenderRivalCard(RivalCompanyRuntimeData rival)
+        {
+            SharedBuilder.Clear();
+            SharedBuilder.Append(rival.Definition.DisplayName);
+            SharedBuilder.Append("\nŞirket Değeri: ");
+            SharedBuilder.Append(rival.CompanyValue.Amount.ToString("N0"));
+            SharedBuilder.Append("\nAktif İş Sayısı: ");
+            SharedBuilder.Append(rival.ActiveJobCount);
+
+            SharedBuilder.Append("\nSektörler: ");
+            var sectors = rival.OperatingSectors;
+            if (sectors.Count == 0)
+            {
+                SharedBuilder.Append("Belirtilmemiş");
+            }
+            else
+            {
+                for (var i = 0; i < sectors.Count; i++)
+                {
+                    if (i > 0) SharedBuilder.Append(", ");
+                    SharedBuilder.Append(sectors[i].DisplayName);
+                }
+            }
+
+            var activeJobs = rival.ActiveJobs;
+            if (activeJobs.Count > 0)
+            {
+                SharedBuilder.Append("\nSektör Bazlı İşler: ");
+                var sectorJobCounts = new System.Collections.Generic.Dictionary<string, int>(4);
+                for (var i = 0; i < activeJobs.Count; i++)
+                {
+                    var sectorName = activeJobs[i].Sector != null ? activeJobs[i].Sector.DisplayName : "Bilinmeyen";
+                    sectorJobCounts.TryGetValue(sectorName, out var count);
+                    sectorJobCounts[sectorName] = count + 1;
+                }
+
+                var first = true;
+                foreach (var pair in sectorJobCounts)
+                {
+                    if (!first) SharedBuilder.Append(", ");
+                    SharedBuilder.Append(pair.Key);
+                    SharedBuilder.Append(" (");
+                    SharedBuilder.Append(pair.Value);
+                    SharedBuilder.Append(")");
+                    first = false;
+                }
+            }
+
+            CreateInfoCard(SharedBuilder.ToString(), 150f);
         }
 
         private void EnsureCanvas()
@@ -258,19 +204,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateButton(rootCanvas.transform, "FinanceOverviewOpenButton", "Finans Takibi");
+            var button = CreateButton(rootCanvas.transform, "RivalCompanyOpenButton", "Rakip Şirketler");
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(820f, -80f);
+            buttonRect.anchoredPosition = new Vector2(1050f, -80f);
             buttonRect.sizeDelta = new Vector2(220f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("FinanceOverviewPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("RivalCompanyPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -289,7 +235,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             headerRect.sizeDelta = new Vector2(0f, 70f);
             headerRoot.AddComponent<Image>().color = new Color(0.17f, 0.21f, 0.29f, 1f);
 
-            pageTitleText = CreateText(headerRoot.transform, "Finans Takibi", 28, TextAnchor.MiddleLeft);
+            pageTitleText = CreateText(headerRoot.transform, "Rakip Şirketler", 28, TextAnchor.MiddleLeft);
             RuntimePanelUiUtility.StretchToParent(pageTitleText.rectTransform, 18f, 8f, 140f, 8f);
 
             var closeButton = CreateButton(headerRoot.transform, "CloseButton", "×");
@@ -347,13 +293,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             scrollRect.content = contentRoot;
         }
 
-        private void CreateSectionTitle(string title)
-        {
-            var titleText = CreateText(contentRoot, title, 24, TextAnchor.MiddleLeft);
-            titleText.rectTransform.sizeDelta = new Vector2(0f, 36f);
-            titleText.color = new Color(0.94f, 0.94f, 0.98f, 1f);
-        }
-
         private Text CreateInfoCard(string message, float height = 58f)
         {
             return RuntimePanelUiUtility.CreateInfoCard(contentRoot, defaultFont, message, height);
@@ -378,14 +317,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        private enum FinanceOverviewTab
-        {
-            PreviousDay = 0,
-            CurrentDay = 1,
-            NextDay = 2,
-            ExpectedIncome = 3
         }
     }
 }

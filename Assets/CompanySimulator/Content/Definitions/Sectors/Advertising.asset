@@ -22,6 +22,48 @@ MonoBehaviour:
   profitPayoutIntervalDays: 7
   riskLevel: 0
   revenueRiskRatio: 0.2
+  competitionRevenueCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 5
+      value: 0.7
+      inSlope: -0.06406822
+      outSlope: -0.06406822
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 10.022034
+      value: 0.49924928
+      inSlope: -0.07
+      outSlope: -0.07
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   supportedRoles:
   - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
   - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}

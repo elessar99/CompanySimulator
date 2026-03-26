@@ -5,6 +5,7 @@ using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Services;
+using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -436,6 +437,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                     ApplyExpense(activeProject.CycleRecurringInvestmentCost, LedgerEntryType.InvestmentExpense, $"{activeProject.DisplayName} dönemsel yatırım gideri");
 
                     var realizedRevenue = activeProject.RollCycleRevenue();
+                    var competitionMultiplier = SectorCompetitionService.GetCachedRevenueMultiplier(activeProject.Sector);
+                    realizedRevenue = Money.From(realizedRevenue.Amount * competitionMultiplier);
                     if (realizedRevenue > Money.Zero)
                     {
                         RecordIncomeInternal(realizedRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");

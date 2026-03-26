@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d10001cc429294a4680df33d0a8e593e, type: 3}
+  m_Name: RivalCompanyDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Rivals.Runtime.Definitions.RivalCompanyDefinition
+  id: RivalCompanyDefinition
+  displayName: RivalCompanyDefinition
+  startingBalance: 1000
+  jobCheckIntervalDays: 1
+  jobStartChance: 0.5
+  maxJobsPerCheck: 3
+  availableJobs:
+  - {fileID: 11400000, guid: f6f031a188b707c4291b1eea131b6053, type: 2}
