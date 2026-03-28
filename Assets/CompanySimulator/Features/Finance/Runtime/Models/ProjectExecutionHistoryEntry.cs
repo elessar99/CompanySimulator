@@ -4,6 +4,7 @@ using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
 using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
+using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -82,6 +83,15 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         public Money CyclePayrollCost => currentResult.PayrollCost;
         public Money CycleRecurringInvestmentCost => currentResult.RecurringInvestmentCost;
         public Money CycleRevenue => currentResult.Revenue;
+        public Money CompetitionAdjustedCycleRevenue
+        {
+            get
+            {
+                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(Sector);
+                return Money.From(currentResult.Revenue.Amount * multiplier);
+            }
+        }
+        public Money CompetitionAdjustedCycleProfit => CompetitionAdjustedCycleRevenue - CyclePayrollCost - CycleRecurringInvestmentCost;
         public Money CycleProfit => CycleRevenue - CyclePayrollCost - CycleRecurringInvestmentCost;
         public int DaysUntilNextPayout(int currentDay) => Mathf.Max(0, NextPayoutDay - currentDay);
 

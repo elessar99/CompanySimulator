@@ -14,6 +14,7 @@ using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Components;
 using CompanySimulator.Features.Sectors.Runtime.Models;
+using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
@@ -34,6 +35,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private BankPanelUI bankPanelUI;
         [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
+        [SerializeField] private DebugPanelUI debugPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
@@ -86,6 +88,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             rivalCompanyPanelUI ??= FindObjectOfType<RivalCompanyPanelUI>();
+            debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
 
             EnsureCanvas();
             EnsureEventSystem();
@@ -136,6 +139,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (rivalCompanyPanelUI != null && rivalCompanyPanelUI.IsOpen)
             {
                 rivalCompanyPanelUI.ClosePanel();
+            }
+
+            if (debugPanelUI != null && debugPanelUI.IsOpen)
+            {
+                debugPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -661,12 +669,29 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 ? string.Join(", ", activeProject.AssignedEmployeeNames)
                 : "Atama bilgisi yok";
             var remainingDays = economyManager != null ? activeProject.DaysUntilNextPayout(economyManager.CurrentDay) : 0;
+            var adjustedRevenue = activeProject.CompetitionAdjustedCycleRevenue;
+            var adjustedProfit = activeProject.CompetitionAdjustedCycleProfit;
             var button = CreateButton(
                 contentRoot,
                 $"ActiveProject_{activeProject.DisplayName}",
-                $"{activeProject.DisplayName}\nSonraki Gelir: {remainingDays} gün sonra\nDöngü Geliri: {activeProject.CycleRevenue.Amount:N0} | Döngü Kârý: {activeProject.CycleProfit.Amount:N0}\nÇalýþanlar: {employeeNames}");
+                $"{activeProject.DisplayName}\nSonraki Gelir: {remainingDays} gün sonra\nTahmini Gelir: {adjustedRevenue.Amount:N0} | Tahmini Kâr: {adjustedProfit.Amount:N0}\nÇalýþanlar: {employeeNames}");
             button.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 112f);
             button.onClick.AddListener(() => ShowActiveProjectEditor(selectedSector, activeProject));
+
+            var saleMultiplier = activeProject.Sector != null ? activeProject.Sector.SaleRevenueMultiplier : 1f;
+            var saleValue = Money.From(adjustedRevenue.Amount * saleMultiplier);
+            var sellButton = CreateButton(
+                contentRoot,
+                $"SellProject_{activeProject.DisplayName}",
+                $"Ýþi Sat (Tahmini Deðer: {saleValue.Amount:N0})");
+            sellButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 52f);
+            sellButton.onClick.AddListener(() =>
+            {
+                if (economyManager != null && economyManager.TrySellProject(activeProject, out _))
+                {
+                    ShowSectorDetails(selectedSector);
+                }
+            });
         }
 
         private bool ContainsProject(SectorRuntimeData sectorData, ProjectExecutionDefinition project)
@@ -1536,9 +1561,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return result;
         }
 
-        private string BuildResultSummary(ProjectEconomyResult result)
+        private string BuildResultSummary(ProjectEconomyResult result, SectorDefinition sector = null)
         {
-            return $"Tahmini Gelir: {result.Revenue.Amount:N0}";
+            var baseRevenue = result.Revenue;
+            if (sector == null && selectedSector != null)
+            {
+                sector = selectedSector.Sector;
+            }
+
+            var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(sector);
+            var adjustedRevenue = Money.From(baseRevenue.Amount * multiplier);
+            var adjustedProfit = adjustedRevenue - result.PayrollCost - result.RecurringInvestmentCost;
+            return $"Tahmini Gelir: {adjustedRevenue.Amount:N0} | Tahmini Kâr: {adjustedProfit.Amount:N0}\n(Rekabet Çarpaný: {multiplier:P0})";
         }
 
         private Money GetCycleProfit(ProjectEconomyResult result)

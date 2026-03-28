@@ -19,6 +19,8 @@ namespace CompanySimulator.Features.Sectors.Runtime.Definitions
         [SerializeField] private SectorRiskLevel riskLevel = SectorRiskLevel.Dusuk;
         [SerializeField, Range(0f, 1f)] private float revenueRiskRatio = 0.1f;
         [SerializeField] private AnimationCurve competitionRevenueCurve = AnimationCurve.Linear(0f, 1f, 10f, 0.3f);
+        [SerializeField, Min(0.1f)] private float saleRevenueMultiplier = 3f;
+        [SerializeField, Min(0)] private int competitionLingerDays = 30;
         [SerializeField] private EmployeeRoleDefinition[] supportedRoles = Array.Empty<EmployeeRoleDefinition>();
         [SerializeField] private InvestmentTypeDefinition[] availableInvestments = Array.Empty<InvestmentTypeDefinition>();
 
@@ -31,6 +33,8 @@ namespace CompanySimulator.Features.Sectors.Runtime.Definitions
         public SectorRiskLevel RiskLevel => riskLevel;
         public float RevenueRiskRatio => Mathf.Clamp01(revenueRiskRatio);
         public AnimationCurve CompetitionRevenueCurve => competitionRevenueCurve;
+        public float SaleRevenueMultiplier => Mathf.Max(0.1f, saleRevenueMultiplier);
+        public int CompetitionLingerDays => Mathf.Max(0, competitionLingerDays);
         public IReadOnlyList<EmployeeRoleDefinition> SupportedRoles => supportedRoles;
         public IReadOnlyList<InvestmentTypeDefinition> AvailableInvestments => availableInvestments;
     }

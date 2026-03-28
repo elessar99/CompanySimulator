@@ -13,6 +13,8 @@ namespace CompanySimulator.Features.Rivals.Runtime.Definitions
         [SerializeField, Min(0)] private long minimumIncomePerCycle = 500;
         [SerializeField, Min(0)] private long maximumIncomePerCycle = 2000;
         [SerializeField, Min(1)] private int selectionWeight = 1;
+        [SerializeField, Range(0f, 1f)] private float abandonChance = 0.1f;
+        [SerializeField, Min(0.1f)] private float abandonRevenueMultiplier = 3f;
 
         public SectorDefinition Sector => sector;
         public long JobCost => jobCost;
@@ -20,5 +22,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Definitions
         public long MinimumIncomePerCycle => minimumIncomePerCycle;
         public long MaximumIncomePerCycle => maximumIncomePerCycle >= minimumIncomePerCycle ? maximumIncomePerCycle : minimumIncomePerCycle;
         public int SelectionWeight => Mathf.Max(1, selectionWeight);
+        public float AbandonChance => Mathf.Clamp01(abandonChance);
+        public float AbandonRevenueMultiplier => Mathf.Max(0.1f, abandonRevenueMultiplier);
     }
 }

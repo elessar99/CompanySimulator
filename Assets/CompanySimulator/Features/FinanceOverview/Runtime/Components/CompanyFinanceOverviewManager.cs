@@ -113,7 +113,7 @@ namespace CompanySimulator.Features.FinanceOverview.Runtime.Components
                 }
 
                 var detail = $"Beklenen Gün: {activeProject.NextPayoutDay}";
-                var amount = activeProject.CycleRevenue;
+                var amount = activeProject.CompetitionAdjustedCycleRevenue;
                 items.Add(new FinanceLineItemSnapshot(activeProject.DisplayName, amount, detail));
                 total += amount;
             }
@@ -141,8 +141,8 @@ namespace CompanySimulator.Features.FinanceOverview.Runtime.Components
                     continue;
                 }
 
-                items.Add(new FinanceLineItemSnapshot(activeProject.DisplayName, activeProject.CycleRevenue, $"{nextDay}. gün beklenen gelir"));
-                total += activeProject.CycleRevenue;
+                items.Add(new FinanceLineItemSnapshot(activeProject.DisplayName, activeProject.CompetitionAdjustedCycleRevenue, $"{nextDay}. gün beklenen gelir"));
+                total += activeProject.CompetitionAdjustedCycleRevenue;
             }
 
             return new FinanceForecastSnapshot(nextDay, items, total);
@@ -287,6 +287,8 @@ namespace CompanySimulator.Features.FinanceOverview.Runtime.Components
                     return "Kredi Ödemesi";
                 case LedgerEntryType.InitialCapital:
                     return "Başlangıç Sermayesi";
+                case LedgerEntryType.ProjectSaleIncome:
+                    return "İş Satış Geliri";
                 default:
                     return type.ToString();
             }

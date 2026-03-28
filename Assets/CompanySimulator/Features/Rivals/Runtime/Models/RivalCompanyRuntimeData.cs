@@ -13,12 +13,14 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
         private readonly List<SectorDefinition> cachedSectors = new List<SectorDefinition>(4);
         private Money balance;
         private int daysSinceLastJobCheck;
+        private int daysSinceLastSellCheck;
 
         public RivalCompanyRuntimeData(RivalCompanyDefinition definition)
         {
             Definition = definition;
             balance = Money.From(definition.StartingBalance);
             daysSinceLastJobCheck = 0;
+            daysSinceLastSellCheck = 0;
             RebuildSectorCache();
         }
 
@@ -32,7 +34,15 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
         public void AdvanceDay(int currentDay)
         {
             ProcessJobPayouts();
+            TryAbandonJobs();
             daysSinceLastJobCheck++;
+            daysSinceLastSellCheck++;
+
+            if (daysSinceLastSellCheck >= Definition.SellCheckIntervalDays)
+            {
+                daysSinceLastSellCheck = 0;
+                TrySellJobs();
+            }
 
             if (daysSinceLastJobCheck >= Definition.JobCheckIntervalDays)
             {
@@ -91,6 +101,90 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             }
         }
 
+        private void TryAbandonJobs()
+        {
+            var abandoned = false;
+            for (var i = activeJobs.Count - 1; i >= 0; i--)
+            {
+                var job = activeJobs[i];
+                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(job.Sector);
+                var safeMultiplier = multiplier > 0f ? multiplier : 0.01f;
+
+                var effectiveAbandonChance = job.Definition.AbandonChance / safeMultiplier / safeMultiplier;
+                var roll = UnityEngine.Random.value;
+                if (roll > effectiveAbandonChance)
+                {
+                    continue;
+                }
+
+                var avgIncome = (job.Definition.MinimumIncomePerCycle + job.Definition.MaximumIncomePerCycle) / 2;
+                var adjustedAvgIncome = avgIncome * multiplier;
+                var abandonPayout = Money.From(adjustedAvgIncome * job.Definition.AbandonRevenueMultiplier);
+                balance = balance + abandonPayout;
+
+                var sector = job.Sector;
+                if (sector != null && sector.CompetitionLingerDays > 0)
+                {
+                    SectorCompetitionService.RegisterLingeringProject(sector, sector.CompetitionLingerDays);
+                }
+
+                activeJobs.RemoveAt(i);
+                abandoned = true;
+            }
+
+            if (abandoned)
+            {
+                RebuildSectorCache();
+            }
+        }
+
+        private void TrySellJobs()
+        {
+            if (activeJobs.Count == 0 || Definition.SellDesireMultiplier <= 0f)
+            {
+                return;
+            }
+
+            var sold = 0;
+            var maxSells = Definition.MaxSellsPerCheck;
+
+            for (var i = activeJobs.Count - 1; i >= 0 && sold < maxSells; i--)
+            {
+                var job = activeJobs[i];
+                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(job.Sector);
+                var safeMultiplier = multiplier > 0f ? multiplier : 0.01f;
+
+                var baseSellChance = job.Definition.AbandonChance * Definition.SellDesireMultiplier;
+                var effectiveSellChance = baseSellChance / safeMultiplier / safeMultiplier;
+
+                var roll = UnityEngine.Random.value;
+                if (roll > effectiveSellChance)
+                {
+                    continue;
+                }
+
+                var avgIncome = (job.Definition.MinimumIncomePerCycle + job.Definition.MaximumIncomePerCycle) / 2;
+                var adjustedAvgIncome = avgIncome * multiplier;
+                var sector = job.Sector;
+                var saleMultiplier = sector != null ? sector.SaleRevenueMultiplier : 1f;
+                var sellPayout = Money.From(adjustedAvgIncome * saleMultiplier);
+                balance = balance + sellPayout;
+
+                if (sector != null && sector.CompetitionLingerDays > 0)
+                {
+                    SectorCompetitionService.RegisterLingeringProject(sector, sector.CompetitionLingerDays);
+                }
+
+                activeJobs.RemoveAt(i);
+                sold++;
+            }
+
+            if (sold > 0)
+            {
+                RebuildSectorCache();
+            }
+        }
+
         private RivalCompanyJobDefinition SelectAffordableJobByWeight(IReadOnlyList<RivalCompanyJobDefinition> jobs)
         {
             var totalWeight = 0;
@@ -99,7 +193,10 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
                 var job = jobs[i];
                 if (job.Sector == null) continue;
                 if (balance < Money.From(job.JobCost)) continue;
-                totalWeight += job.SelectionWeight;
+                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(job.Sector);
+                var effectiveWeight = (int)System.Math.Ceiling(job.SelectionWeight * multiplier * multiplier);
+                if (effectiveWeight < 1) effectiveWeight = 1;
+                totalWeight += effectiveWeight;
             }
 
             if (totalWeight <= 0)
@@ -114,7 +211,10 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
                 var job = jobs[i];
                 if (job.Sector == null) continue;
                 if (balance < Money.From(job.JobCost)) continue;
-                cumulative += job.SelectionWeight;
+                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(job.Sector);
+                var effectiveWeight = (int)System.Math.Ceiling(job.SelectionWeight * multiplier * multiplier);
+                if (effectiveWeight < 1) effectiveWeight = 1;
+                cumulative += effectiveWeight;
                 if (pick < cumulative)
                 {
                     return job;

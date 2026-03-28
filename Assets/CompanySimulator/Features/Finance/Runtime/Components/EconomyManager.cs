@@ -34,6 +34,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
         public event Action<LedgerEntry> LedgerEntryRecorded;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecuted;
         public event Action<ProjectExecutionDefinition, ProjectEconomyResult> ProjectExecutionRejected;
+        public event Action<ActiveProjectRuntimeEntry> ProjectSold;
 
         public bool IsInitialized => isInitialized;
         public int CurrentDay => currentDay;
@@ -311,6 +312,53 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             lastExecutionSummary = $"{activeProject.DisplayName}: aktif iş güncellendi, gelir döngüsü sıfırlandı.";
             UpdateSnapshot();
             BalanceChanged?.Invoke(Balance);
+            return true;
+        }
+
+        public bool TrySellProject(ActiveProjectRuntimeEntry activeProject, out Money saleValue)
+        {
+            saleValue = Money.Zero;
+
+            if (!EnsureInitialized() || activeProject == null || !activeProjects.Contains(activeProject))
+            {
+                return false;
+            }
+
+            var sector = activeProject.Sector;
+            var competitionMultiplier = SectorCompetitionService.GetCachedRevenueMultiplier(sector);
+            var adjustedRevenue = Money.From(activeProject.CycleRevenue.Amount * competitionMultiplier);
+            var saleMultiplier = sector != null ? sector.SaleRevenueMultiplier : 1f;
+            saleValue = Money.From(adjustedRevenue.Amount * saleMultiplier);
+
+            activeProjects.Remove(activeProject);
+
+            if (saleValue > Money.Zero)
+            {
+                RecordIncomeInternal(saleValue, LedgerEntryType.ProjectSaleIncome, $"{activeProject.DisplayName} iş satışı");
+            }
+
+            if (sector != null && sector.CompetitionLingerDays > 0)
+            {
+                SectorCompetitionService.RegisterLingeringProject(sector, sector.CompetitionLingerDays);
+            }
+
+            if (employeeManager != null)
+            {
+                var assignedEmployees = activeProject.AssignedEmployees;
+                for (var i = 0; i < assignedEmployees.Count; i++)
+                {
+                    var employee = assignedEmployees[i];
+                    if (employee != null)
+                    {
+                        employeeManager.ForceRemoveEmployee(employee);
+                    }
+                }
+            }
+
+            lastExecutionSummary = $"{activeProject.DisplayName}: iş satıldı. Satış tutarı: {saleValue.Amount:N0}";
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            ProjectSold?.Invoke(activeProject);
             return true;
         }
 

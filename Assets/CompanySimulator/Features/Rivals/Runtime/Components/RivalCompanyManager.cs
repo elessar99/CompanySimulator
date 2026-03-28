@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using CompanySimulator.Features.Finance.Runtime.Components;
+using CompanySimulator.Features.Finance.Runtime.Definitions;
+using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Rivals.Runtime.Definitions;
 using CompanySimulator.Features.Rivals.Runtime.Models;
 using CompanySimulator.Features.Sectors.Runtime.Services;
@@ -33,6 +35,10 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             {
                 economyManager.DayAdvanced -= OnDayAdvanced;
                 economyManager.DayAdvanced += OnDayAdvanced;
+                economyManager.ProjectExecuted -= OnProjectChanged;
+                economyManager.ProjectExecuted += OnProjectChanged;
+                economyManager.ProjectSold -= OnProjectSold;
+                economyManager.ProjectSold += OnProjectSold;
             }
         }
 
@@ -41,6 +47,8 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             if (economyManager != null)
             {
                 economyManager.DayAdvanced -= OnDayAdvanced;
+                economyManager.ProjectExecuted -= OnProjectChanged;
+                economyManager.ProjectSold -= OnProjectSold;
             }
         }
 
@@ -70,13 +78,18 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             DataChanged?.Invoke();
         }
 
-        private void OnDayAdvanced(int currentDay)
+        private void OnProjectChanged(ProjectExecutionDefinition executionDefinition, ProjectEconomyResult result)
         {
-            if (!isInitialized)
-            {
-                Initialize();
-            }
+            RebuildCompetitionCache();
+        }
 
+        private void OnProjectSold(ActiveProjectRuntimeEntry activeProject)
+        {
+            RebuildCompetitionCache();
+        }
+
+        private void RebuildCompetitionCache()
+        {
             if (economyManager != null)
             {
                 SectorCompetitionService.BuildProjectCountCache(economyManager.ActiveProjects, rivals);
@@ -85,6 +98,17 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             {
                 SectorCompetitionService.BuildProjectCountCache(null, rivals);
             }
+        }
+
+        private void OnDayAdvanced(int currentDay)
+        {
+            if (!isInitialized)
+            {
+                Initialize();
+            }
+
+            SectorCompetitionService.AdvanceLingeringDay();
+            RebuildCompetitionCache();
 
             for (var i = 0; i < rivals.Count; i++)
             {

@@ -158,6 +158,8 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             {
                 economyManager.ProjectExecuted -= HandleProjectExecuted;
                 economyManager.ProjectExecuted += HandleProjectExecuted;
+                economyManager.ProjectSold -= HandleProjectSold;
+                economyManager.ProjectSold += HandleProjectSold;
             }
         }
 
@@ -166,10 +168,17 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             if (economyManager != null)
             {
                 economyManager.ProjectExecuted -= HandleProjectExecuted;
+                economyManager.ProjectSold -= HandleProjectSold;
             }
         }
 
         private void HandleProjectExecuted(ProjectExecutionDefinition executionDefinition, ProjectEconomyResult result)
+        {
+            RefreshActiveProjectCounts();
+            DataChanged?.Invoke();
+        }
+
+        private void HandleProjectSold(ActiveProjectRuntimeEntry activeProject)
         {
             RefreshActiveProjectCounts();
             DataChanged?.Invoke();

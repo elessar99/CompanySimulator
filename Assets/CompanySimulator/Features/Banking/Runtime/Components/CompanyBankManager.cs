@@ -252,7 +252,7 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
                     continue;
                 }
 
-                total += activeProject.CycleRevenue.Amount * (30d / activeProject.PayoutIntervalDays);
+                total += activeProject.CompetitionAdjustedCycleRevenue.Amount * (30d / activeProject.PayoutIntervalDays);
             }
 
             return Money.From(total);

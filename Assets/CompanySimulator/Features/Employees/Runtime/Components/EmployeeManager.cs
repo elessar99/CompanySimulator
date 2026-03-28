@@ -183,6 +183,28 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public bool ForceRemoveEmployee(EmployeeRuntimeData employee)
+        {
+            if (!EnsureInitialized() || employee == null)
+            {
+                return false;
+            }
+
+            if (!employees.Remove(employee))
+            {
+                return false;
+            }
+
+            if (employee.IsAssigned)
+            {
+                employee.ClearAssignment();
+            }
+
+            UpdateSnapshot();
+            DataChanged?.Invoke();
+            return true;
+        }
+
         public bool CanReassignEmployees(IReadOnlyList<EmployeeRuntimeData> currentEmployees, IReadOnlyList<EmployeeRuntimeData> newEmployees)
         {
             if (!EnsureInitialized() || newEmployees == null)
