@@ -1265,7 +1265,7 @@ MonoBehaviour:
   securityPanelUI: {fileID: 247165542}
   agentManager: {fileID: 1020124916}
   rootCanvas: {fileID: 1362092756}
-  panelSize: {x: 1800, y: 1200}
+  panelSize: {x: 2200, y: 1200}
 --- !u!114 &1052629709
 MonoBehaviour:
   m_ObjectHideFlags: 0

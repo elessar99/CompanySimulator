@@ -16,37 +16,39 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             Action<ProjectExecutionDefinition> createEmployeeRequirementCards,
             Action<ProjectExecutionDefinition> createInvestmentEditors)
         {
-            if (!string.IsNullOrWhiteSpace(sectorData.Sector.Description))
-            {
-                createSizedInfoCard(sectorData.Sector.Description, 72f);
-            }
-
             if (selectedProjectTemplate == null)
             {
                 createInfoCard("Bu sektörde kullanılabilecek hazır iş şablonu bulunmuyor.");
                 return;
             }
 
-            createSizedInfoCard($"Bu sektörde iş gelirleri {sectorData.Sector.ProfitPayoutIntervalDays} günde bir döngüsel olarak gelir.", 64f);
+            var summary =
+                $"Aktif iş sayısı: {sectorData.ActiveProjectCount}" +
+                "\n" +
+                $"Gelir döngüsü: {sectorData.Sector.ProfitPayoutIntervalDays} günde bir" +
+                "\n" +
+                $"Risk seviyesi: {GetRiskLabel(sectorData)}";
 
-            if (sectorData.AvailableProjects.Count > 0)
-            {
-                createSectionTitle("İş Şablonları");
-                for (var i = 0; i < sectorData.AvailableProjects.Count; i++)
-                {
-                    createProjectTemplateSelector(sectorData.AvailableProjects[i]);
-                }
-            }
-            else
-            {
-                createSizedInfoCard("Bu sektörde kayıtlı hazır iş şablonu yok. Yeni iş ekranı sektör verilerinden geçici bir taslak kullanıyor.", 72f);
-            }
+            createSizedInfoCard(summary, 108f);
 
             createSectionTitle("Çalışan Atamaları");
             createEmployeeRequirementCards(selectedProjectTemplate);
 
             createSectionTitle("Yatırımlar");
             createInvestmentEditors(selectedProjectTemplate);
+        }
+
+        private static string GetRiskLabel(SectorRuntimeData sectorData)
+        {
+            switch (sectorData.Sector.RiskLevel)
+            {
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Orta:
+                    return "Orta";
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Yuksek:
+                    return "Yüksek";
+                default:
+                    return "Düşük";
+            }
         }
     }
 }

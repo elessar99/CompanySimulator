@@ -15,15 +15,20 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             Action<string> createSectionTitle,
             Action<SectorRuntimeData> createActiveProjectCards)
         {
-            if (!string.IsNullOrWhiteSpace(sectorData.Sector.Description))
-            {
-                createSizedInfoCard(sectorData.Sector.Description, 72f);
-            }
+            var description = string.IsNullOrWhiteSpace(sectorData.Sector.Description)
+                ? "Bu sektör için açıklama bulunmuyor."
+                : sectorData.Sector.Description;
 
-            createInfoCard($"Aktif iş sayısı: {sectorData.ActiveProjectCount}");
-            createInfoCard($"Bu sektörde gelir döngüsü: {sectorData.Sector.ProfitPayoutIntervalDays} günde bir");
-            createInfoCard($"Risk Seviyesi: {GetRiskLabel(sectorData)}");
-            createInfoCard($"Sektörde çalışabilecek meslek sayısı: {sectorData.Sector.SupportedRoles.Count}");
+            var summary =
+                description +
+                "\n\n" +
+                $"Aktif iş sayısı: {sectorData.ActiveProjectCount}" +
+                "\n" +
+                $"Gelir döngüsü: {sectorData.Sector.ProfitPayoutIntervalDays} günde bir" +
+                "\n" +
+                $"Risk seviyesi: {GetRiskLabel(sectorData)}";
+
+            createSizedInfoCard(summary, 132f);
             createSectionTitle("Aktif İşler");
             createActiveProjectCards(sectorData);
         }
