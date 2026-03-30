@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Banking.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
@@ -16,6 +17,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
     {
         [SerializeField] private EconomySetupDefinition setup;
         [SerializeField] private EmployeeManager employeeManager;
+        [SerializeField] private CompanyBankManager companyBankManager;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private bool runStartupProjectsOnStart = true;
         [SerializeField] private int currentDay = 1;
@@ -461,8 +463,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
             if (Balance < totalDailyPayroll)
             {
-                lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için bakiye yetersiz.";
-                return;
+                var deficit = totalDailyPayroll - Balance;
+                if (companyBankManager == null || !companyBankManager.TryAutoLoan(deficit))
+                {
+                    lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için bakiye yetersiz.";
+                    return;
+                }
             }
 
             ApplyExpense(totalDailyPayroll, LedgerEntryType.PayrollExpense, $"{currentDay}. gün tüm çalışan maaşları");
@@ -478,8 +484,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                     var cycleCosts = activeProject.CyclePayrollCost + activeProject.CycleRecurringInvestmentCost;
                     if (Balance < cycleCosts)
                     {
-                        lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde döngü gideri için bakiye yetersiz.";
-                        break;
+                        var deficit = cycleCosts - Balance;
+                        if (companyBankManager == null || !companyBankManager.TryAutoLoan(deficit))
+                        {
+                            lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde döngü gideri için bakiye yetersiz.";
+                            break;
+                        }
                     }
 
                     ApplyExpense(activeProject.CyclePayrollCost, LedgerEntryType.PayrollExpense, $"{activeProject.DisplayName} dönemsel personel gideri");

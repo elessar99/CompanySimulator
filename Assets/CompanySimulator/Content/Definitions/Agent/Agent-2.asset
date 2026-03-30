@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec6c0bc7b0ca57e4a8d0aa989424623a, type: 3}
   m_Name: Agent-2
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Agents.Runtime.Definitions.AgentDefinition
-  id: 
-  displayName: 
-  detectionDurationDays: 14
-  maxSimultaneousSabotage: 2
-  successChance: 0.6
+  id: Agent-2
+  displayName: Agent-2
+  detectionDurationDays: 5
+  maxSimultaneousSabotage: 5
+  successChance: 0.4
   minimumCost: 5000
   maximumCost: 15000
   revenueReductionMultiplier: 0.5
+  selectionWeight: 200

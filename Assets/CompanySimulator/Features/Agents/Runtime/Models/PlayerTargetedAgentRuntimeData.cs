@@ -36,6 +36,8 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
         public int RemainingDays { get; private set; }
         public bool IsActive { get; private set; }
         public bool HasFailed { get; private set; }
+        public bool IsDetected { get; private set; }
+        public bool IsExpired { get; private set; }
         public IReadOnlyList<ActiveProjectRuntimeEntry> AffectedProjects => affectedProjects;
 
         public void ApplySabotage(IReadOnlyList<ActiveProjectRuntimeEntry> playerProjects)
@@ -76,19 +78,33 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
                 return false;
             }
 
+            if (IsExpired)
+            {
+                return true;
+            }
+
             RemainingDays--;
             if (RemainingDays > 0)
             {
                 return true;
             }
 
-            Expire();
-            return false;
+            IsExpired = true;
+            IsDetected = true;
+            RemainingDays = 0;
+            return true;
         }
 
-        public void Expire()
+        public void Detect()
+        {
+            IsDetected = true;
+        }
+
+        public void Dismiss()
         {
             IsActive = false;
+            IsDetected = true;
+            IsExpired = true;
             RemainingDays = 0;
 
             for (var i = 0; i < affectedProjects.Count; i++)

@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46034a52224a0e5488a5529f026ea47d, type: 3}
   m_Name: AgentSetupDefinition
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Agents.Runtime.Definitions.AgentSetupDefinition
-  id: 
-  displayName: 
-  availableAgents: []
+  id: AgentSetupDefinition
+  displayName: AgentSetupDefinition
+  availableAgents:
+  - {fileID: 11400000, guid: 257f021cea9062b43ab60dabf3e889ba, type: 2}
+  - {fileID: 11400000, guid: f3c5c2e93c5050e4292d431144c71adc, type: 2}
+  refreshIntervalDays: 5
+  minAgentsPerRefresh: 5
+  maxAgentsPerRefresh: 8

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using CompanySimulator.Features.Accounting.Runtime.Components;
+using CompanySimulator.Features.Agents.Runtime.Components;
 using CompanySimulator.Features.Banking.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Models;
@@ -36,6 +37,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
         [SerializeField] private DebugPanelUI debugPanelUI;
+        [SerializeField] private SecurityPanelUI securityPanelUI;
+        [SerializeField] private AgentManager agentManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(760f, 720f);
 
@@ -50,6 +53,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private Text pageTitleText;
         private Text draftResultText;
         private Button backButton;
+        private Button agentDismissButton;
         private SectorRuntimeData selectedSector;
         private ProjectExecutionDefinition selectedProjectTemplate;
         private ActiveProjectRuntimeEntry selectedActiveProject;
@@ -89,6 +93,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             rivalCompanyPanelUI ??= FindObjectOfType<RivalCompanyPanelUI>();
             debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
+            securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
+            agentManager ??= FindObjectOfType<AgentManager>();
 
             EnsureCanvas();
             EnsureEventSystem();
@@ -144,6 +150,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (debugPanelUI != null && debugPanelUI.IsOpen)
             {
                 debugPanelUI.ClosePanel();
+            }
+
+            if (securityPanelUI != null && securityPanelUI.IsOpen)
+            {
+                securityPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -245,6 +256,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 employeeManager.DataChanged -= HandleEmployeeDataChanged;
                 employeeManager.DataChanged += HandleEmployeeDataChanged;
             }
+
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= HandleAgentDataChanged;
+                agentManager.DataChanged += HandleAgentDataChanged;
+            }
         }
 
         private void UnsubscribeEvents()
@@ -264,6 +281,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 employeeManager.DataChanged -= HandleEmployeeDataChanged;
             }
+
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= HandleAgentDataChanged;
+            }
         }
 
         private void HandleBalanceChanged(Money _)
@@ -274,6 +296,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void HandleDayAdvanced(int _)
         {
             RefreshDayText();
+            RefreshAgentButtons();
             if (currentPage == PageState.NewJob || currentPage == PageState.SectorDetails)
             {
                 RefreshAll();
@@ -291,6 +314,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 RefreshAll();
             }
+        }
+
+        private void HandleAgentDataChanged()
+        {
+            RefreshAgentButtons();
         }
 
         private void EnsureCanvas()
@@ -387,6 +415,23 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 }
             });
 
+            agentDismissButton = CreateButton(rootCanvas.transform, "AgentDismissButton", "Ajanlarý Kov");
+            var dismissRect = agentDismissButton.GetComponent<RectTransform>();
+            dismissRect.anchorMin = new Vector2(1f, 1f);
+            dismissRect.anchorMax = new Vector2(1f, 1f);
+            dismissRect.pivot = new Vector2(1f, 1f);
+            dismissRect.anchoredPosition = new Vector2(-20f, -70f);
+            dismissRect.sizeDelta = new Vector2(180f, 44f);
+            agentDismissButton.onClick.AddListener(() =>
+            {
+                if (agentManager != null)
+                {
+                    agentManager.DismissDetectedAgents();
+                    RefreshAgentButtons();
+                }
+            });
+
+            RefreshAgentButtons();
             RefreshDayText();
         }
 
@@ -1642,6 +1687,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private Text CreateText(Transform parent, string value, int fontSize, TextAnchor anchor)
         {
             return RuntimePanelUiUtility.CreateText(parent, defaultFont, value, fontSize, anchor);
+        }
+
+        private void RefreshAgentButtons()
+        {
+            if (agentDismissButton != null && agentManager != null)
+            {
+                var detectedCount = agentManager.GetDetectedAgentCount();
+                agentDismissButton.gameObject.SetActive(detectedCount > 0);
+            }
+            else if (agentDismissButton != null)
+            {
+                agentDismissButton.gameObject.SetActive(false);
+            }
         }
 
         private void RefreshBalanceText()

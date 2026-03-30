@@ -258,6 +258,55 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
             return Money.From(total);
         }
 
+        public bool TryAutoLoan(Money deficit)
+        {
+            if (!EnsureInitialized() || economyManager == null || deficit <= Money.Zero)
+            {
+                return false;
+            }
+
+            var candidates = new List<LoanOfferSnapshot>(16);
+            var standardOffers = GetStandardOffers();
+            for (var i = 0; i < standardOffers.Count; i++)
+            {
+                if (standardOffers[i].CanAccept)
+                {
+                    candidates.Add(standardOffers[i]);
+                }
+            }
+
+            var specialOffers = GetSpecialOffers();
+            for (var i = 0; i < specialOffers.Count; i++)
+            {
+                if (specialOffers[i].CanAccept)
+                {
+                    candidates.Add(specialOffers[i]);
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return false;
+            }
+
+            candidates.Sort((a, b) => a.PrincipalAmount.Amount.CompareTo(b.PrincipalAmount.Amount));
+
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                if (candidates[i].PrincipalAmount >= deficit)
+                {
+                    return TryAcceptOffer(candidates[i], out _);
+                }
+            }
+
+            if (candidates.Count > 0)
+            {
+                return TryAcceptOffer(candidates[candidates.Count - 1], out _);
+            }
+
+            return false;
+        }
+
         private bool EnsureInitialized()
         {
             if (isInitialized)

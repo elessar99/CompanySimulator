@@ -18,7 +18,7 @@ MonoBehaviour:
   jobCost: 1000
   payoutIntervalDays: 5
   minimumIncomePerCycle: 2000
-  maximumIncomePerCycle: 4000
+  maximumIncomePerCycle: 2000
   selectionWeight: 1000
   abandonChance: 0.1
   abandonRevenueMultiplier: 1

@@ -89,8 +89,9 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         {
             get
             {
-                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(Sector);
-                return Money.From(currentResult.Revenue.Amount * multiplier);
+                var competitionMultiplier = SectorCompetitionService.GetCachedRevenueMultiplier(Sector);
+                var agentMultiplier = IsAgentAffected ? AgentRevenueReductionMultiplier : 1f;
+                return Money.From(currentResult.Revenue.Amount * competitionMultiplier * agentMultiplier);
             }
         }
         public Money CompetitionAdjustedCycleProfit => CompetitionAdjustedCycleRevenue - CyclePayrollCost - CycleRecurringInvestmentCost;

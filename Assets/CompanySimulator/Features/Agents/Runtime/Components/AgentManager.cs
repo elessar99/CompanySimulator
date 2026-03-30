@@ -18,12 +18,15 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
         [SerializeField] private AgentSetupDefinition setup;
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private RivalCompanyManager rivalCompanyManager;
+        [SerializeField, Min(500)] private long baseAgentSearchCost = 2000;
+        [SerializeField, Min(500)] private long searchCostPerActiveProject = 1000;
 
         private readonly List<DeployedAgentRuntimeData> deployedAgents = new List<DeployedAgentRuntimeData>(8);
         private readonly List<AgentDefinition> availablePool = new List<AgentDefinition>(8);
         private readonly List<DeployedAgentRuntimeData> failedAgents = new List<DeployedAgentRuntimeData>(4);
         private readonly List<PlayerTargetedAgentRuntimeData> playerTargetedAgents = new List<PlayerTargetedAgentRuntimeData>(8);
         private readonly List<PlayerTargetedAgentRuntimeData> failedPlayerTargetedAgents = new List<PlayerTargetedAgentRuntimeData>(4);
+        private readonly List<PlayerTargetedAgentRuntimeData> dismissedPlayerAgents = new List<PlayerTargetedAgentRuntimeData>(4);
         private int daysSinceLastRefresh;
 
         public event Action DataChanged;
@@ -33,6 +36,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
         public IReadOnlyList<DeployedAgentRuntimeData> FailedAgents => failedAgents;
         public IReadOnlyList<PlayerTargetedAgentRuntimeData> PlayerTargetedAgents => playerTargetedAgents;
         public IReadOnlyList<PlayerTargetedAgentRuntimeData> FailedPlayerTargetedAgents => failedPlayerTargetedAgents;
+        public IReadOnlyList<PlayerTargetedAgentRuntimeData> DismissedPlayerAgents => dismissedPlayerAgents;
         public AgentSetupDefinition Setup => setup;
         public int DaysUntilNextRefresh => setup != null ? Mathf.Max(0, setup.RefreshIntervalDays - daysSinceLastRefresh) : 0;
 
@@ -205,6 +209,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             }
 
             failedPlayerTargetedAgents.Clear();
+            dismissedPlayerAgents.Clear();
 
             for (var i = playerTargetedAgents.Count - 1; i >= 0; i--)
             {
@@ -216,12 +221,8 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
                     continue;
                 }
 
-                var stillActive = agent.AdvanceDay();
-                if (!stillActive)
-                {
-                    playerTargetedAgents.RemoveAt(i);
-                    changed = true;
-                }
+                agent.AdvanceDay();
+                changed = true;
             }
 
             daysSinceLastRefresh++;
@@ -241,6 +242,91 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
 
                 DataChanged?.Invoke();
             }
+        }
+
+        public Money GetAgentSearchCost()
+        {
+            var projectCount = economyManager != null ? economyManager.ActiveProjects.Count : 0;
+            var cost = baseAgentSearchCost + searchCostPerActiveProject * projectCount;
+            return Money.From(cost);
+        }
+
+        public int GetDetectedAgentCount()
+        {
+            var count = 0;
+            for (var i = 0; i < playerTargetedAgents.Count; i++)
+            {
+                if (playerTargetedAgents[i].IsDetected && playerTargetedAgents[i].IsActive)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        public string SearchForAgents()
+        {
+            if (economyManager == null)
+            {
+                return "Ekonomi sistemi bulunamadı.";
+            }
+
+            var cost = GetAgentSearchCost();
+            if (!economyManager.TryRecordExpense(cost, LedgerEntryType.AgentExpense, "Ajan arama operasyonu"))
+            {
+                return $"Ajan arama maliyeti ({cost.Amount:N0}) için bakiye yetersiz.";
+            }
+
+            var detectedCount = 0;
+            for (var i = 0; i < playerTargetedAgents.Count; i++)
+            {
+                var agent = playerTargetedAgents[i];
+                if (agent.IsActive && !agent.IsDetected)
+                {
+                    agent.Detect();
+                    detectedCount++;
+                }
+            }
+
+            DataChanged?.Invoke();
+
+            if (detectedCount > 0)
+            {
+                return $"{detectedCount} ajan tespit edildi! Ajanları kovabilirsiniz.";
+            }
+
+            return "Şirkette ajan bulunamadı.";
+        }
+
+        public string DismissDetectedAgents()
+        {
+            var dismissedCount = 0;
+            for (var i = playerTargetedAgents.Count - 1; i >= 0; i--)
+            {
+                var agent = playerTargetedAgents[i];
+                if (agent.IsDetected && agent.IsActive)
+                {
+                    agent.Dismiss();
+                    dismissedPlayerAgents.Add(agent);
+                    playerTargetedAgents.RemoveAt(i);
+                    dismissedCount++;
+                }
+            }
+
+            if (rivalCompanyManager != null)
+            {
+                rivalCompanyManager.ForceRebuildCompetitionCache();
+            }
+
+            DataChanged?.Invoke();
+
+            if (dismissedCount > 0)
+            {
+                return $"{dismissedCount} ajan kovuldu. Gelir etkileri temizlendi.";
+            }
+
+            return "Kovulacak tespit edilmiş ajan bulunamadı.";
         }
 
         public string ForceRivalSendAgent(RivalCompanyRuntimeData rival)

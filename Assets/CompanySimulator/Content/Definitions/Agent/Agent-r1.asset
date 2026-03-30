@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec6c0bc7b0ca57e4a8d0aa989424623a, type: 3}
-  m_Name: Agent-1
+  m_Name: Agent-r1
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Agents.Runtime.Definitions.AgentDefinition
   id: Agent-1
   displayName: Agent-1
   detectionDurationDays: 10
-  maxSimultaneousSabotage: 5
+  maxSimultaneousSabotage: 3
   successChance: 1
-  minimumCost: 50000
-  maximumCost: 150000
+  minimumCost: 0
+  maximumCost: 0
   revenueReductionMultiplier: 0.1
   selectionWeight: 100
