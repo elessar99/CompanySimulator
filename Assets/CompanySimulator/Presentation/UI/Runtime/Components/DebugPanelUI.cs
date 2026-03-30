@@ -449,7 +449,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 if (definition.RivalAgentSetup != null)
                 {
                     SharedBuilder.Append(" | Katalog: ");
-                    SharedBuilder.Append(definition.RivalAgentSetup.AvailableAgents.Length);
+                    SharedBuilder.Append(definition.RivalAgentSetup.AvailableAgents.Count);
                     SharedBuilder.Append(" ajan");
                 }
                 else

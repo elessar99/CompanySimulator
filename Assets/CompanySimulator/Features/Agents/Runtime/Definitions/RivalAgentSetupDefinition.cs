@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CompanySimulator.Shared.Runtime.Definitions;
 using UnityEngine;
 
@@ -9,6 +10,6 @@ namespace CompanySimulator.Features.Agents.Runtime.Definitions
     {
         [SerializeField] private AgentDefinition[] availableAgents = Array.Empty<AgentDefinition>();
 
-        public AgentDefinition[] AvailableAgents => availableAgents;
+        public IReadOnlyList<AgentDefinition> AvailableAgents => availableAgents;
     }
 }

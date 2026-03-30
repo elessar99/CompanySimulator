@@ -541,17 +541,6 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             currentBalance = Balance.Amount;
         }
 
-        private string[] ToArray(IReadOnlyList<string> source)
-        {
-            var result = new string[source.Count];
-            for (var i = 0; i < source.Count; i++)
-            {
-                result[i] = source[i];
-            }
-
-            return result;
-        }
-
         private T[] ToArray<T>(IReadOnlyList<T> source)
         {
             var result = new T[source.Count];

@@ -96,7 +96,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
                 return false;
             }
 
-            var cost = Money.From(UnityEngine.Random.Range(agentDef.MinimumCost, agentDef.MaximumCost + 1));
+            var cost = Money.From(UnityEngine.Random.Range((int)agentDef.MinimumCost, (int)agentDef.MaximumCost + 1));
             if (!economyManager.TryRecordExpense(cost, LedgerEntryType.AgentExpense, "Ajan Gönderimi: " + agentDef.DisplayName))
             {
                 return false;
@@ -337,7 +337,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             }
 
             var agentSetup = rival.Definition.RivalAgentSetup;
-            if (agentSetup == null || agentSetup.AvailableAgents.Length == 0)
+            if (agentSetup == null || agentSetup.AvailableAgents.Count == 0)
             {
                 return rival.Definition.DisplayName + ": Ajan kataloğu tanımlı değil.";
             }
@@ -358,7 +358,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
         {
             var definition = rival.Definition;
             var agentSetup = definition.RivalAgentSetup;
-            if (agentSetup == null || agentSetup.AvailableAgents.Length == 0)
+            if (agentSetup == null || agentSetup.AvailableAgents.Count == 0)
             {
                 return null;
             }
@@ -382,7 +382,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             var catalog = agentSetup.AvailableAgents;
 
             var totalWeight = 0;
-            for (var i = 0; i < catalog.Length; i++)
+            for (var i = 0; i < catalog.Count; i++)
             {
                 if (catalog[i] != null)
                 {
@@ -408,7 +408,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
                 AgentDefinition selectedAgent = null;
                 var agentPick = UnityEngine.Random.Range(0, totalWeight);
                 var agentCumulative = 0;
-                for (var ci = 0; ci < catalog.Length; ci++)
+                for (var ci = 0; ci < catalog.Count; ci++)
                 {
                     var cDef = catalog[ci];
                     if (cDef == null) continue;
@@ -425,7 +425,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
                     continue;
                 }
 
-                var cost = Money.From(UnityEngine.Random.Range(selectedAgent.MinimumCost, selectedAgent.MaximumCost + 1));
+                var cost = Money.From(UnityEngine.Random.Range((int)selectedAgent.MinimumCost, (int)selectedAgent.MaximumCost + 1));
                 var agent = new PlayerTargetedAgentRuntimeData(
                     selectedAgent,
                     rival,

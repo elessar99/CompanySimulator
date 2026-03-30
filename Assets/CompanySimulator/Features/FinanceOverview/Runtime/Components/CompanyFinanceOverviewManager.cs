@@ -289,6 +289,14 @@ namespace CompanySimulator.Features.FinanceOverview.Runtime.Components
                     return "Başlangıç Sermayesi";
                 case LedgerEntryType.ProjectSaleIncome:
                     return "İş Satış Geliri";
+                case LedgerEntryType.RentExpense:
+                    return "Kira Gideri";
+                case LedgerEntryType.MiscIncome:
+                    return "Diğer Gelir";
+                case LedgerEntryType.MiscExpense:
+                    return "Diğer Gider";
+                case LedgerEntryType.AgentExpense:
+                    return "Ajan Gideri";
                 default:
                     return type.ToString();
             }

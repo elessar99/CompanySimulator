@@ -34,7 +34,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             }
 
             DaysSinceLastPayout = 0;
-            var income = UnityEngine.Random.Range(Definition.MinimumIncomePerCycle, Definition.MaximumIncomePerCycle + 1);
+            var income = UnityEngine.Random.Range((int)Definition.MinimumIncomePerCycle, (int)Definition.MaximumIncomePerCycle + 1);
             var agentMultiplier = IsAgentAffected ? AgentRevenueReductionMultiplier : 1f;
             var earned = Money.From(income * competitionMultiplier * agentMultiplier);
             LastEarnedIncome = earned;

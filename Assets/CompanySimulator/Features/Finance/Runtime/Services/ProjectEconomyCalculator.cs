@@ -146,13 +146,14 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
                     continue;
                 }
 
+                var clampedBudget = Money.From(allocatedBudgetAmount);
                 if (investmentType.IsRecurringExpense)
                 {
-                    recurringInvestmentCost += allocation.AllocatedBudget;
+                    recurringInvestmentCost += clampedBudget;
                 }
                 else
                 {
-                    upfrontInvestmentCost += allocation.AllocatedBudget;
+                    upfrontInvestmentCost += clampedBudget;
                 }
 
                 var budgetMultiplier = investmentType.EvaluateBudgetMultiplier(allocatedBudgetAmount);
