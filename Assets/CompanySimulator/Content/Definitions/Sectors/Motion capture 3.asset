@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ff3d5cac42454b4096f1cb49716ba26, type: 3}
+  m_Name: Motion capture 3
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Sectors.Runtime.Definitions.SectorDefinition
+  id: Motion_capture4
+  displayName: Motion Capture
+  description: Hareket yakalama
+  revenueMultiplier: 1
+  durationMultiplier: 1
+  competitionSensitivity: 1
+  successToRevenueWeight: 0.5
+  profitPayoutIntervalDays: 7
+  riskLevel: 0
+  revenueRiskRatio: 0.1
+  competitionRevenueCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.07
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 10
+      value: 0.3
+      inSlope: -0.07
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  saleRevenueMultiplier: 3
+  competitionLingerDays: 30
+  supportedRoles:
+  - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
+  - {fileID: 11400000, guid: 379253f427d3f144da54891df54442c5, type: 2}
+  availableInvestments:
+  - {fileID: 11400000, guid: 862daa3bb64019a4196a9d783af843e6, type: 2}

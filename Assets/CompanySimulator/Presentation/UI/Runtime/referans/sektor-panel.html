@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sektör Paneli</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg: #09111f;
+            --panel: #10192b;
+            --line: rgba(139, 176, 255, 0.14);
+            --text: #eef4ff;
+            --muted: #8fa3c8;
+            --soft: #6e7e9d;
+            --blue: #5aa0ff;
+            --cyan: #4de2d0;
+            --gold: #f5c45d;
+            --green: #43d68f;
+            --red: #ff6b81;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            padding: 28px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(77, 226, 208, 0.12), transparent 28%),
+                radial-gradient(circle at top right, rgba(90, 160, 255, 0.14), transparent 24%),
+                linear-gradient(180deg, #08101d, #0d1423 48%, #0a1020);
+        }
+
+        .stage { max-width: 1060px; margin: 0 auto; }
+        .demo-head { margin-bottom: 18px; }
+        .demo-head h1 { font-size: 30px; margin-bottom: 6px; }
+        .demo-head p, .muted, .card p, .employee-card p, .slot p, .notice, .invest-card p, .section-head small { color: var(--muted); font-size: 13px; }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(17, 26, 43, 0.96), rgba(13, 21, 35, 0.98));
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 26px 70px rgba(0, 0, 0, 0.45);
+        }
+
+        .panel-head, .head-left, .head-right, .title-wrap, .card-head, .row, .between, .toolbar, .tag-row, .btn-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .panel-head {
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: linear-gradient(180deg, rgba(86, 132, 231, 0.08), rgba(86, 132, 231, 0));
+            border-bottom: 1px solid var(--line);
+        }
+
+        .title-wrap { min-width: 0; }
+        .head-right, .between, .panel-head { justify-content: space-between; }
+
+        .icon, .icon-btn, .mini-icon, .plus, .avatar {
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+        }
+
+        .icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: #04111f;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--line);
+            background: rgba(95, 141, 235, 0.08);
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .icon-btn.hidden { visibility: hidden; }
+        .panel-title small { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+        .panel-title strong { display: block; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .panel-body { padding: 22px; }
+
+        .toolbar, .tag-row, .btn-row { flex-wrap: wrap; }
+
+        .chip, .tag, .risk {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(90, 160, 255, 0.07);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .chip strong, .tag strong { color: var(--text); }
+
+        .grid { display: grid; gap: 14px; }
+        .sector-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .info-grid, .employee-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+        .job-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+        .card, .slot, .employee-card, .stat-card, .invest-card, .notice {
+            border: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(24, 36, 58, 0.95), rgba(16, 24, 40, 0.96));
+            border-radius: 18px;
+        }
+
+        .card, .slot, .employee-card, .invest-card, .notice, .stat-card { padding: 16px; }
+
+        .card, .slot, .employee-card {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+        }
+
+        .card:hover, .slot:hover, .employee-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(110, 174, 255, 0.35);
+            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22);
+        }
+
+        .card::before, .employee-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent, var(--blue)), transparent);
+        }
+
+        .mini-icon, .avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent, var(--blue)), var(--accent-2, var(--cyan)));
+            color: #08111e;
+            font-size: 20px;
+            font-weight: 700;
+            flex: 0 0 auto;
+        }
+
+        .risk { padding: 5px 10px; font-size: 11px; font-weight: 700; border-color: currentColor; }
+        .low { color: var(--green); background: rgba(67, 214, 143, 0.08); }
+        .mid { color: var(--gold); background: rgba(245, 196, 93, 0.08); }
+        .high { color: var(--red); background: rgba(255, 107, 129, 0.08); }
+
+        .card h3, .employee-card h4, .slot h4, .invest-card h4 { font-size: 16px; margin-bottom: 4px; }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .metric strong, .stat-card strong { display: block; font-size: 18px; margin-bottom: 2px; }
+        .metric span, .stat-card span { color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+
+        .section { margin-top: 22px; }
+        .section-head { display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+        .section-head h3 { font-size: 15px; }
+        .stat-card { display: flex; flex-direction: column; align-items: flex-start; }
+
+        .empty {
+            padding: 26px 18px;
+            text-align: center;
+            color: var(--soft);
+            border: 1px dashed rgba(143, 163, 200, 0.22);
+            border-radius: 18px;
+            background: rgba(90, 160, 255, 0.04);
+        }
+
+        .slot {
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            border-style: dashed;
+        }
+
+        .plus {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(90, 160, 255, 0.1);
+            font-size: 22px;
+        }
+
+        .employee-card.selected {
+            border-color: rgba(90, 160, 255, 0.55);
+            box-shadow: 0 0 0 1px rgba(90, 160, 255, 0.22) inset, 0 12px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        .employee-card.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--blue);
+            color: #07101d;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .grade { color: #d3b1ff; background: rgba(180, 113, 255, 0.08); }
+        .multi { color: #8ad7ff; background: rgba(90, 160, 255, 0.08); }
+        .salary { color: #7bf0b6; background: rgba(67, 214, 143, 0.08); }
+
+        .notice {
+            color: #f2cf78;
+            background: linear-gradient(180deg, rgba(245, 196, 93, 0.08), rgba(245, 196, 93, 0.03));
+        }
+
+        .progress { margin-top: 16px; }
+        .progress .between { margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+        .bar { height: 8px; border-radius: 999px; background: rgba(90, 160, 255, 0.08); overflow: hidden; }
+        .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+
+        .input {
+            width: 160px;
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #0c1424;
+            color: var(--text);
+            text-align: right;
+            font: inherit;
+        }
+
+        .btn-row { justify-content: flex-end; margin-top: 18px; }
+        .btn {
+            border: 1px solid var(--line);
+            background: rgba(90, 160, 255, 0.08);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 11px 16px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn.primary, .btn.success { border: 0; color: #07101d; }
+        .btn.primary { background: linear-gradient(135deg, var(--blue), var(--cyan)); }
+        .btn.success { width: 100%; justify-content: center; background: linear-gradient(135deg, #49d792, #4de2d0); margin-top: 14px; }
+
+        @media (max-width: 720px) {
+            body { padding: 14px; }
+            .panel-body, .panel-head { padding: 16px; }
+            .metrics { grid-template-columns: 1fr 1fr; }
+            .input { width: 100%; }
+            .between.mobile-stack, .investment-line { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stage">
+        <div class="demo-head">
+            <h1>Sektör Paneli</h1>
+            <p>Tek panel içinde modüler gezinme. Sektörler, roller ve çalışanlar sadece veri listesinden üretiliyor.</p>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div class="head-left">
+                    <button id="backBtn" class="icon-btn hidden" type="button">←</button>
+                    <div class="title-wrap">
+                        <div id="titleIcon" class="icon">S</div>
+                        <div class="panel-title">
+                            <small id="titleSub">Panel</small>
+                            <strong id="titleMain">Sektörler</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="head-right">
+                    <button class="icon-btn" type="button">?</button>
+                    <button class="icon-btn" type="button">✕</button>
+                </div>
+            </div>
+            <div id="app" class="panel-body"></div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            sectors: [
+                { id: 'advertising', name: 'Advertising', label: 'Reklam', icon: '📢', risk: 'low', cycle: '7 gün', jobs: 0, roles: ['Actor', 'Director'], accent: ['#5aa0ff', '#4de2d0'] },
+                { id: 'app', name: 'Application Development', label: 'Uygulama Geliştirme', icon: '💻', risk: 'mid', cycle: '14 gün', jobs: 0, roles: ['Frontend', 'Backend', 'UI'], accent: ['#9b7bff', '#5aa0ff'] },
+                { id: 'film', name: 'Film Series Production', label: 'Film / Dizi Yapım', icon: '🎬', risk: 'high', cycle: '30 gün', jobs: 0, roles: ['Actor', 'Director', 'Writer', 'Editor', 'Camera'], accent: ['#ffb45f', '#ff6b81'] },
+                { id: 'game', name: 'Game Development', label: 'Oyun Geliştirme', icon: '🎮', risk: 'high', cycle: '21 gün', jobs: 0, roles: ['Designer', 'Programmer', 'Artist', 'QA'], accent: ['#45d999', '#4de2d0'] },
+                { id: 'mocap', name: 'Motion Capture', label: 'Hareket Yakalama', icon: '🎭', risk: 'mid', cycle: '10 gün', jobs: 0, roles: ['Actor', 'Technician', 'Director'], accent: ['#ff7ac8', '#9b7bff'] }
+            ],
+            employees: [
+                { id: 1, name: 'Ali Ozturk', role: 'Actor', grade: 'Ortalama', mult: 'x1.0', salary: '1', accent: ['#5aa0ff', '#4de2d0'] },
+                { id: 2, name: 'Can Yildiz', role: 'Actor', grade: 'Ortalama', mult: 'x1.0', salary: '1', accent: ['#ffb45f', '#ff6b81'] },
+                { id: 3, name: 'Ali Ozdemir', role: 'Actor', grade: 'Ortalama', mult: 'x1.0', salary: '1', accent: ['#45d999', '#4de2d0'] },
+                { id: 4, name: 'Elif Kaya', role: 'Actor', grade: 'Iyi', mult: 'x1.2', salary: '2', accent: ['#ff7ac8', '#9b7bff'] },
+                { id: 5, name: 'Mehmet Demir', role: 'Director', grade: 'Iyi', mult: 'x1.5', salary: '3', accent: ['#9b7bff', '#5aa0ff'] },
+                { id: 6, name: 'Selin Arslan', role: 'Director', grade: 'Uzman', mult: 'x2.0', salary: '5', accent: ['#4de2d0', '#45d999'] }
+            ]
+        };
+
+        const state = { stack: [{ name: 'sectors' }], selected: {} };
+        const app = document.getElementById('app');
+        const backBtn = document.getElementById('backBtn');
+        const titleMain = document.getElementById('titleMain');
+        const titleSub = document.getElementById('titleSub');
+        const titleIcon = document.getElementById('titleIcon');
+
+        const riskMap = {
+            low: ['Dusuk Risk', 'low'],
+            mid: ['Orta Risk', 'mid'],
+            high: ['Yuksek Risk', 'high']
+        };
+
+        const current = () => state.stack[state.stack.length - 1];
+        const getSector = id => data.sectors.find(sector => sector.id === id);
+        const initials = name => name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase();
+        const esc = text => String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+        function setHeader(meta) {
+            titleMain.textContent = meta.title;
+            titleSub.textContent = meta.subtitle;
+            titleIcon.textContent = meta.icon;
+            titleIcon.style.background = `linear-gradient(135deg, ${meta.colors[0]}, ${meta.colors[1]})`;
+            backBtn.classList.toggle('hidden', state.stack.length === 1);
+        }
+
+        function push(view) {
+            state.stack.push(view);
+            render();
+        }
+
+        function back() {
+            if (state.stack.length > 1) state.stack.pop();
+            render();
+        }
+
+        function employeeCard(employee, role, isSelected) {
+            return `
+                <button class="employee-card ${isSelected ? 'selected' : ''}" type="button" onclick="toggleEmployee(${employee.id}, '${role}')" style="--accent:${employee.accent[0]};--accent-2:${employee.accent[1]}">
+                    <div class="avatar">${initials(employee.name)}</div>
+                    <h4>${esc(employee.name)}</h4>
+                    <p>${esc(employee.role)}</p>
+                    <div class="tag-row">
+                        <span class="tag grade">${esc(employee.grade)}</span>
+                        <span class="tag multi">${esc(employee.mult)}</span>
+                        <span class="tag salary">Maas: ${esc(employee.salary)}</span>
+                    </div>
+                </button>`;
+        }
+
+        function sectorCard(sector) {
+            const [riskText, riskClass] = riskMap[sector.risk];
+            return `
+                <button class="card" type="button" onclick="pushView('detail','${sector.id}')" style="--accent:${sector.accent[0]};--accent-2:${sector.accent[1]}">
+                    <div class="card-head">
+                        <div class="mini-icon">${sector.icon}</div>
+                        <span class="risk ${riskClass}">${riskText}</span>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <h3>${esc(sector.name)}</h3>
+                        <p>${esc(sector.label)}</p>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric"><strong>${sector.jobs}</strong><span>Aktif Is</span></div>
+                        <div class="metric"><strong>${esc(sector.cycle)}</strong><span>Dongu</span></div>
+                        <div class="metric"><strong>${sector.roles.length}</strong><span>Meslek</span></div>
+                    </div>
+                </button>`;
+        }
+
+        function renderSectors() {
+            setHeader({ title: 'Sektorler', subtitle: 'Ana Panel', icon: 'S', colors: ['#5aa0ff', '#4de2d0'] });
+            app.innerHTML = `
+                <div class="toolbar">
+                    <span class="chip">Grid tabanli sector listesi</span>
+                    <span class="chip">Tek panel icinde akis</span>
+                    <span class="chip">Moduler geri navigasyonu</span>
+                </div>
+                <div class="grid sector-grid">${data.sectors.map(sectorCard).join('')}</div>`;
+        }
+
+        function renderDetail(sector) {
+            const [riskText, riskClass] = riskMap[sector.risk];
+            setHeader({ title: sector.name, subtitle: sector.label, icon: sector.icon, colors: sector.accent });
+            app.innerHTML = `
+                <div class="toolbar">
+                    <span class="chip">Risk <strong>${riskText}</strong></span>
+                    <span class="chip">Gelir <strong>${esc(sector.cycle)}</strong></span>
+                    <span class="chip">Meslek <strong>${sector.roles.length}</strong></span>
+                </div>
+                <div class="grid info-grid">
+                    <div class="stat-card"><strong>${sector.jobs}</strong><span>Aktif Is</span></div>
+                    <div class="stat-card"><strong>${esc(sector.cycle)}</strong><span>Gelir Dongusu</span></div>
+                    <div class="stat-card"><strong class="${riskClass}">${riskText.split(' ')[0]}</strong><span>Risk</span></div>
+                    <div class="stat-card"><strong>${sector.roles.length}</strong><span>Calisabilecek Meslek</span></div>
+                </div>
+                <div class="section">
+                    <div class="section-head">
+                        <h3>Aktif Isler</h3>
+                        <small>Bu sektor icin hazir kart alanlari</small>
+                    </div>
+                    <div class="empty">Bu sektorde su anda aktif is bulunmuyor.</div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" type="button" onclick="pushView('job','${sector.id}')">+ Yeni Is Olustur</button>
+                </div>`;
+        }
+
+        function renderJob(sector) {
+            const assignments = sector.roles.slice(0, 2).map(role => {
+                const selectedId = state.selected[role];
+                const employee = data.employees.find(item => item.id === selectedId);
+                return employee
+                    ? `<button class="employee-card" type="button" onclick="pushView('pick','${sector.id}','${role}')" style="--accent:${employee.accent[0]};--accent-2:${employee.accent[1]}">
+                        <div class="avatar">${initials(employee.name)}</div>
+                        <h4>${esc(role)} / Slot 1</h4>
+                        <p>${esc(employee.name)}</p>
+                        <div class="tag-row">
+                            <span class="tag grade">${esc(employee.grade)}</span>
+                            <span class="tag multi">${esc(employee.mult)}</span>
+                        </div>
+                    </button>`
+                    : `<button class="slot" type="button" onclick="pushView('pick','${sector.id}','${role}')">
+                        <span class="plus">+</span>
+                        <h4>${esc(role)} / Slot 1</h4>
+                        <p>Calisan secmek icin tikla</p>
+                    </button>`;
+            }).join('');
+
+            setHeader({ title: sector.name + ' / Yeni Is', subtitle: 'Tek Panel Akisi', icon: sector.icon, colors: sector.accent });
+            app.innerHTML = `
+                <div class="notice">Yeni is baslatmak icin sirkete en az bir muhasebeci ataman gerekiyor.</div>
+                <div class="toolbar" style="margin-top:14px;">
+                    <span class="chip">Sektor <strong>${esc(sector.label)}</strong></span>
+                    <span class="chip">Gelir <strong>${esc(sector.cycle)}</strong></span>
+                    <span class="chip">Risk <strong>${riskMap[sector.risk][0]}</strong></span>
+                </div>
+                <div class="progress">
+                    <div class="between"><span>Is Kapasitesi</span><strong>0 / 0</strong></div>
+                    <div class="bar"><span></span></div>
+                </div>
+                <div class="section">
+                    <div class="section-head">
+                        <h3>Calisan Atamalari</h3>
+                        <small>Roller sabit HTML degil, veriden geliyor</small>
+                    </div>
+                    <div class="grid job-grid">${assignments}</div>
+                </div>
+                <div class="section">
+                    <div class="section-head">
+                        <h3>Yatirim</h3>
+                        <small>Ornek gider alani</small>
+                    </div>
+                    <div class="invest-card">
+                        <div class="between investment-line">
+                            <div>
+                                <h4>Marketing Budget</h4>
+                                <p>Gider Tipi: Pesin</p>
+                            </div>
+                            <span class="tag grade">Degerlendirme: Orta</span>
+                        </div>
+                        <div class="between mobile-stack" style="margin-top:14px;">
+                            <p>Min: 100 | Onerilen: 100.000 | Maks: 1.000.000</p>
+                            <input class="input" value="100.000">
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-head">
+                        <h3>Onizleme</h3>
+                        <small>Secimler ve tutarlar sonrasinda</small>
+                    </div>
+                    <div class="empty">Calisan secip yatirim tutarlarini girdikten sonra onizleme yapabilirsin.</div>
+                </div>
+                <button class="btn success" type="button">Isi Baslat</button>`;
+        }
+
+        function renderPicker(sector, role) {
+            const candidates = data.employees.filter(employee => employee.role === role);
+            setHeader({ title: role + ' Secimi', subtitle: sector.name, icon: 'C', colors: sector.accent });
+            app.innerHTML = `
+                <div class="toolbar">
+                    <span class="chip">Rol <strong>${esc(role)}</strong></span>
+                    <span class="chip">Sektor <strong>${esc(sector.label)}</strong></span>
+                    <span class="chip">Secim tek slot icin</span>
+                </div>
+                <div class="grid employee-grid">
+                    ${candidates.length ? candidates.map(employee => employeeCard(employee, role, state.selected[role] === employee.id)).join('') : '<div class="empty">Bu rol icin uygun calisan yok.</div>'}
+                </div>
+                <div class="btn-row">
+                    <button class="btn" type="button" onclick="back()">Iptal</button>
+                    <button class="btn primary" type="button" onclick="back()">Secimi Onayla</button>
+                </div>`;
+        }
+
+        function render() {
+            const view = current();
+            if (view.name === 'sectors') return renderSectors();
+            if (view.name === 'detail') return renderDetail(getSector(view.sectorId));
+            if (view.name === 'job') return renderJob(getSector(view.sectorId));
+            if (view.name === 'pick') return renderPicker(getSector(view.sectorId), view.role);
+        }
+
+        function pushView(name, sectorId, role) {
+            push({ name, sectorId, role });
+        }
+
+        function toggleEmployee(id, role) {
+            state.selected[role] = state.selected[role] === id ? null : id;
+            render();
+        }
+
+        backBtn.addEventListener('click', back);
+        window.pushView = pushView;
+        window.toggleEmployee = toggleEmployee;
+        window.back = back;
+        render();
+    </script>
+</body>
+</html>
