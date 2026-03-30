@@ -326,7 +326,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
             var sector = activeProject.Sector;
             var competitionMultiplier = SectorCompetitionService.GetCachedRevenueMultiplier(sector);
-            var adjustedRevenue = Money.From(activeProject.CycleRevenue.Amount * competitionMultiplier);
+            var agentMultiplier = activeProject.IsAgentAffected ? activeProject.AgentRevenueReductionMultiplier : 1f;
+            var adjustedRevenue = Money.From(activeProject.CycleRevenue.Amount * competitionMultiplier * agentMultiplier);
             var saleMultiplier = sector != null ? sector.SaleRevenueMultiplier : 1f;
             saleValue = Money.From(adjustedRevenue.Amount * saleMultiplier);
 
@@ -486,7 +487,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
                     var realizedRevenue = activeProject.RollCycleRevenue();
                     var competitionMultiplier = SectorCompetitionService.GetCachedRevenueMultiplier(activeProject.Sector);
-                    realizedRevenue = Money.From(realizedRevenue.Amount * competitionMultiplier);
+                    var agentMultiplier = activeProject.IsAgentAffected ? activeProject.AgentRevenueReductionMultiplier : 1f;
+                    realizedRevenue = Money.From(realizedRevenue.Amount * competitionMultiplier * agentMultiplier);
                     if (realizedRevenue > Money.Zero)
                     {
                         RecordIncomeInternal(realizedRevenue, LedgerEntryType.ProjectRevenue, $"{activeProject.DisplayName} dönemsel gelir");

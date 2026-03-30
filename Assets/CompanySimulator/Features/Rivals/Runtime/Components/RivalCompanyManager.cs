@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Agents.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
@@ -15,6 +16,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
     {
         [SerializeField] private RivalCompanySetupDefinition setup;
         [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private AgentManager agentManager;
 
         private readonly List<RivalCompanyRuntimeData> rivals = new List<RivalCompanyRuntimeData>(8);
         private bool isInitialized;
@@ -27,6 +29,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
         private void Awake()
         {
             economyManager ??= FindObjectOfType<EconomyManager>();
+            agentManager ??= FindObjectOfType<AgentManager>();
         }
 
         private void OnEnable()
@@ -100,6 +103,11 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             }
         }
 
+        public void ForceRebuildCompetitionCache()
+        {
+            RebuildCompetitionCache();
+        }
+
         private void OnDayAdvanced(int currentDay)
         {
             if (!isInitialized)
@@ -110,9 +118,15 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
             SectorCompetitionService.AdvanceLingeringDay();
             RebuildCompetitionCache();
 
+            var playerProjects = economyManager != null ? economyManager.ActiveProjects : null;
+
             for (var i = 0; i < rivals.Count; i++)
             {
-                rivals[i].AdvanceDay(currentDay);
+                var shouldSendAgent = rivals[i].AdvanceDay(currentDay);
+                if (shouldSendAgent && agentManager != null && playerProjects != null && playerProjects.Count > 0)
+                {
+                    agentManager.TrySendRivalAgentToPlayer(rivals[i], playerProjects, false);
+                }
             }
 
             DataChanged?.Invoke();

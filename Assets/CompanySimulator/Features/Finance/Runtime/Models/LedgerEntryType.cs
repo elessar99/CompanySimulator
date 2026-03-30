@@ -13,6 +13,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         MiscExpense = 8,
         LoanIncome = 9,
         LoanRepaymentExpense = 10,
-        ProjectSaleIncome = 11
+        ProjectSaleIncome = 11,
+        AgentExpense = 12
     }
 }

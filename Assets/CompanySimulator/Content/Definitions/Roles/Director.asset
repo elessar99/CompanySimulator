@@ -20,3 +20,23 @@ MonoBehaviour:
   requiresOffice: 1
   maxConcurrentAssignmentsPerEmployee: 1
   allowedSectors: []
+  kotuSettings:
+    minimumExpectedSalary: 300
+    maximumExpectedSalary: 450
+    incomeMultiplier: 0.5
+    spawnChanceWeight: 35
+  ortalamaSettings:
+    minimumExpectedSalary: 1
+    maximumExpectedSalary: 1
+    incomeMultiplier: 1
+    spawnChanceWeight: 3500
+  iyiSettings:
+    minimumExpectedSalary: 601
+    maximumExpectedSalary: 725
+    incomeMultiplier: 1.5
+    spawnChanceWeight: 20
+  profesyonelSettings:
+    minimumExpectedSalary: 726
+    maximumExpectedSalary: 800
+    incomeMultiplier: 3
+    spawnChanceWeight: 10

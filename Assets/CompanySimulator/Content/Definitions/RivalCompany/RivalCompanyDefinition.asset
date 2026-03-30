@@ -15,8 +15,12 @@ MonoBehaviour:
   id: RivalCompanyDefinition
   displayName: RivalCompanyDefinition
   startingBalance: 1000
-  jobCheckIntervalDays: 1
-  jobStartChance: 0.5
-  maxJobsPerCheck: 3
+  jobCheckIntervalDays: 3
+  jobStartChance: 1
+  maxJobsPerCheck: 10
+  sellCheckIntervalDays: 4
+  maxSellsPerCheck: 100
+  sellDesireMultiplier: 0.6
   availableJobs:
+  - {fileID: 11400000, guid: 837bd96fcd005a140a64cd54e897567a, type: 2}
   - {fileID: 11400000, guid: f6f031a188b707c4291b1eea131b6053, type: 2}

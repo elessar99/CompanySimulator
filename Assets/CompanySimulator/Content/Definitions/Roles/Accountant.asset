@@ -39,4 +39,4 @@ MonoBehaviour:
     minimumExpectedSalary: 726
     maximumExpectedSalary: 800
     incomeMultiplier: 10
-    spawnChanceWeight: 10
+    spawnChanceWeight: 100

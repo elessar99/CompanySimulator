@@ -26,10 +26,10 @@ MonoBehaviour:
     incomeMultiplier: 0.5
     spawnChanceWeight: 35
   ortalamaSettings:
-    minimumExpectedSalary: 420
-    maximumExpectedSalary: 600
+    minimumExpectedSalary: 1
+    maximumExpectedSalary: 1
     incomeMultiplier: 1
-    spawnChanceWeight: 40
+    spawnChanceWeight: 4000
   iyiSettings:
     minimumExpectedSalary: 600
     maximumExpectedSalary: 800

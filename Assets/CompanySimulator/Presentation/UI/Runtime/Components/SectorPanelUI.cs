@@ -1265,7 +1265,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             var result = economyManager.PreviewProject(request);
-            draftResultText.text = BuildResultSummary(result);
+            var isNewProject = selectedActiveProject == null;
+            draftResultText.text = BuildResultSummary(result, simulateExtraProject: isNewProject);
         }
 
         private void StartDraft()
@@ -1323,7 +1324,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
             else
             {
-                draftResultText.text = "Ýþ baþlatýlamadý. Muhtemelen bakiye yetersiz.\n\n" + BuildResultSummary(economyManager.PreviewProject(request));
+                draftResultText.text = "Ýþ baþlatýlamadý. Muhtemelen bakiye yetersiz.\n\n" + BuildResultSummary(economyManager.PreviewProject(request), simulateExtraProject: true);
             }
 
         }
@@ -1561,7 +1562,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return result;
         }
 
-        private string BuildResultSummary(ProjectEconomyResult result, SectorDefinition sector = null)
+        private string BuildResultSummary(ProjectEconomyResult result, SectorDefinition sector = null, bool simulateExtraProject = false)
         {
             var baseRevenue = result.Revenue;
             if (sector == null && selectedSector != null)
@@ -1569,7 +1570,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 sector = selectedSector.Sector;
             }
 
-            var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(sector);
+            var multiplier = simulateExtraProject
+                ? SectorCompetitionService.GetCachedRevenueMultiplierWithExtra(sector, 1)
+                : SectorCompetitionService.GetCachedRevenueMultiplier(sector);
             var adjustedRevenue = Money.From(baseRevenue.Amount * multiplier);
             var adjustedProfit = adjustedRevenue - result.PayrollCost - result.RecurringInvestmentCost;
             return $"Tahmini Gelir: {adjustedRevenue.Amount:N0} | Tahmini Kâr: {adjustedProfit.Amount:N0}\n(Rekabet Çarpaný: {multiplier:P0})";

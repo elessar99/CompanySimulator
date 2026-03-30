@@ -19,6 +19,35 @@ MonoBehaviour:
   durationMultiplier: 1
   competitionSensitivity: 1
   successToRevenueWeight: 0.5
+  profitPayoutIntervalDays: 7
+  riskLevel: 0
+  revenueRiskRatio: 0.1
+  competitionRevenueCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: -0.07
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 10
+      value: 0.3
+      inSlope: -0.07
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  saleRevenueMultiplier: 3
+  competitionLingerDays: 10
   supportedRoles:
   - {fileID: 11400000, guid: 76101fd08443a7c409fdeff5c53915bd, type: 2}
   - {fileID: 11400000, guid: 379253f427d3f144da54891df54442c5, type: 2}

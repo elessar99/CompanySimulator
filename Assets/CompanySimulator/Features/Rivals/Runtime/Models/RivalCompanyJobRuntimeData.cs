@@ -11,12 +11,18 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             Definition = definition;
             StartDay = startDay;
             DaysSinceLastPayout = 0;
+            LastEarnedIncome = Money.Zero;
+            IsAgentAffected = false;
+            AgentRevenueReductionMultiplier = 1f;
         }
 
         public RivalCompanyJobDefinition Definition { get; }
         public SectorDefinition Sector => Definition.Sector;
         public int StartDay { get; }
         public int DaysSinceLastPayout { get; private set; }
+        public Money LastEarnedIncome { get; private set; }
+        public bool IsAgentAffected { get; private set; }
+        public float AgentRevenueReductionMultiplier { get; private set; }
 
         public Money AdvanceDay(float competitionMultiplier)
         {
@@ -29,7 +35,22 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
 
             DaysSinceLastPayout = 0;
             var income = UnityEngine.Random.Range(Definition.MinimumIncomePerCycle, Definition.MaximumIncomePerCycle + 1);
-            return Money.From(income * competitionMultiplier);
+            var agentMultiplier = IsAgentAffected ? AgentRevenueReductionMultiplier : 1f;
+            var earned = Money.From(income * competitionMultiplier * agentMultiplier);
+            LastEarnedIncome = earned;
+            return earned;
+        }
+
+        public void SetAgentEffect(float revenueReductionMultiplier)
+        {
+            IsAgentAffected = true;
+            AgentRevenueReductionMultiplier = revenueReductionMultiplier;
+        }
+
+        public void ClearAgentEffect()
+        {
+            IsAgentAffected = false;
+            AgentRevenueReductionMultiplier = 1f;
         }
     }
 }

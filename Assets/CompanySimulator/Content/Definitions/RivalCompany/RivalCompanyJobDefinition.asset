@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: RivalCompanyJobDefinition
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Rivals.Runtime.Definitions.RivalCompanyJobDefinition
   id: RivalCompanyJobDefinition
-  displayName: RivalCompanyJobDefinition
+  displayName: Reklam
   sector: {fileID: 11400000, guid: 88bfb5defa21b3144bfdb92fb5ed6859, type: 2}
-  jobCost: 1000
-  payoutIntervalDays: 7
-  minimumIncomePerCycle: 500
+  jobCost: 100
+  payoutIntervalDays: 1
+  minimumIncomePerCycle: 2000
   maximumIncomePerCycle: 2000
-  selectionWeight: 1
+  selectionWeight: 1000
+  abandonChance: 0.051
+  abandonRevenueMultiplier: 3

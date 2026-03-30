@@ -1,6 +1,9 @@
 using System.Text;
+using CompanySimulator.Features.Agents.Runtime.Components;
+using CompanySimulator.Features.Agents.Runtime.Definitions;
 using CompanySimulator.Features.Rivals.Runtime.Components;
 using CompanySimulator.Features.Rivals.Runtime.Models;
+using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -12,6 +15,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
     public sealed class RivalCompanyPanelUI : MonoBehaviour
     {
         [SerializeField] private RivalCompanyManager rivalCompanyManager;
+        [SerializeField] private AgentManager agentManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
@@ -26,6 +30,16 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private RectTransform contentRoot;
         private Text pageTitleText;
 
+        private enum PageState
+        {
+            RivalList,
+            RivalSectorAgents
+        }
+
+        private PageState currentPage = PageState.RivalList;
+        private RivalCompanyRuntimeData selectedRival;
+        private SectorDefinition selectedSector;
+
         private static readonly StringBuilder SharedBuilder = new StringBuilder(256);
 
         public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
@@ -37,6 +51,13 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 rivalCompanyManager = new GameObject("RivalCompanyManager", typeof(RivalCompanyManager))
                     .GetComponent<RivalCompanyManager>();
+            }
+
+            agentManager ??= FindObjectOfType<AgentManager>();
+            if (agentManager == null)
+            {
+                agentManager = new GameObject("AgentManager", typeof(AgentManager))
+                    .GetComponent<AgentManager>();
             }
 
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
@@ -59,6 +80,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rivalCompanyManager.DataChanged += RefreshPage;
             }
 
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= RefreshPage;
+                agentManager.DataChanged += RefreshPage;
+            }
+
             RefreshPage();
         }
 
@@ -67,6 +94,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (rivalCompanyManager != null)
             {
                 rivalCompanyManager.DataChanged -= RefreshPage;
+            }
+
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= RefreshPage;
             }
         }
 
@@ -79,6 +111,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen) financeOverviewPanelUI.ClosePanel();
             if (debugPanelUI != null && debugPanelUI.IsOpen) debugPanelUI.ClosePanel();
 
+            currentPage = PageState.RivalList;
+            selectedRival = null;
+            selectedSector = null;
             panelRoot.SetActive(true);
             RefreshPage();
         }
@@ -100,8 +135,22 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rivalCompanyManager.Initialize();
             }
 
-            pageTitleText.text = "Rakip Şirketler";
             RuntimePanelUiUtility.ClearChildren(contentRoot);
+
+            switch (currentPage)
+            {
+                case PageState.RivalList:
+                    RenderRivalListPage();
+                    break;
+                case PageState.RivalSectorAgents:
+                    RenderRivalSectorAgentsPage();
+                    break;
+            }
+        }
+
+        private void RenderRivalListPage()
+        {
+            pageTitleText.text = "Rakip Şirketler";
 
             var rivals = rivalCompanyManager.Rivals;
             if (rivals.Count == 0)
@@ -127,46 +176,233 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             SharedBuilder.Append("\nAktif İş Sayısı: ");
             SharedBuilder.Append(rival.ActiveJobCount);
 
-            SharedBuilder.Append("\nSektörler: ");
+            CreateInfoCard(SharedBuilder.ToString(), 110f);
+
+            var activeJobs = rival.ActiveJobs;
+            var sectorJobCounts = new System.Collections.Generic.Dictionary<SectorDefinition, int>(4);
+            for (var i = 0; i < activeJobs.Count; i++)
+            {
+                var sector = activeJobs[i].Sector;
+                if (sector == null) continue;
+                sectorJobCounts.TryGetValue(sector, out var count);
+                sectorJobCounts[sector] = count + 1;
+            }
+
             var sectors = rival.OperatingSectors;
+            for (var i = 0; i < sectors.Count; i++)
+            {
+                var sector = sectors[i];
+                sectorJobCounts.TryGetValue(sector, out var jobCount);
+                var agentCount = agentManager != null ? agentManager.GetActiveAgentCountForRivalSector(rival, sector) : 0;
+
+                SharedBuilder.Clear();
+                SharedBuilder.Append(sector.DisplayName);
+                SharedBuilder.Append(" - Aktif İş: ");
+                SharedBuilder.Append(jobCount);
+                if (agentCount > 0)
+                {
+                    SharedBuilder.Append(" | Ajan: ");
+                    SharedBuilder.Append(agentCount);
+                }
+
+                var capturedRival = rival;
+                var capturedSector = sector;
+                var sectorButton = CreateButton(contentRoot, "SectorBtn_" + sector.Id, SharedBuilder.ToString());
+                var sectorBtnRect = sectorButton.GetComponent<RectTransform>();
+                sectorBtnRect.sizeDelta = new Vector2(0f, 44f);
+                sectorButton.onClick.AddListener(() => NavigateToSectorAgents(capturedRival, capturedSector));
+            }
+
             if (sectors.Count == 0)
             {
-                SharedBuilder.Append("Belirtilmemiş");
+                CreateInfoCard("  Henüz aktif sektör yok.", 36f);
+            }
+        }
+
+        private void NavigateToSectorAgents(RivalCompanyRuntimeData rival, SectorDefinition sector)
+        {
+            selectedRival = rival;
+            selectedSector = sector;
+            currentPage = PageState.RivalSectorAgents;
+            RefreshPage();
+        }
+
+        private void RenderRivalSectorAgentsPage()
+        {
+            if (selectedRival == null || selectedSector == null)
+            {
+                currentPage = PageState.RivalList;
+                RefreshPage();
+                return;
+            }
+
+            pageTitleText.text = selectedRival.Definition.DisplayName + " - " + selectedSector.DisplayName;
+
+            var backButton = CreateButton(contentRoot, "BackButton", "← Geri");
+            var backRect = backButton.GetComponent<RectTransform>();
+            backRect.sizeDelta = new Vector2(0f, 40f);
+            backButton.onClick.AddListener(() =>
+            {
+                currentPage = PageState.RivalList;
+                selectedRival = null;
+                selectedSector = null;
+                RefreshPage();
+            });
+
+            var activeJobs = selectedRival.ActiveJobs;
+            var sectorJobCount = 0;
+            var agentAffectedCount = 0;
+            for (var i = 0; i < activeJobs.Count; i++)
+            {
+                if (activeJobs[i].Sector != selectedSector) continue;
+                sectorJobCount++;
+                if (activeJobs[i].IsAgentAffected) agentAffectedCount++;
+            }
+
+            SharedBuilder.Clear();
+            SharedBuilder.Append("Bu Sektördeki İşler: ");
+            SharedBuilder.Append(sectorJobCount);
+            if (agentAffectedCount > 0)
+            {
+                SharedBuilder.Append("\nAjan Etkisi Altında: ");
+                SharedBuilder.Append(agentAffectedCount);
+                SharedBuilder.Append(" (rekabete dahil edilmiyor)");
+            }
+
+            var activeAgentCount = agentManager != null ? agentManager.GetActiveAgentCountForRivalSector(selectedRival, selectedSector) : 0;
+            if (activeAgentCount > 0)
+            {
+                SharedBuilder.Append("\nAktif Ajanlarınız: ");
+                SharedBuilder.Append(activeAgentCount);
+            }
+
+            CreateInfoCard(SharedBuilder.ToString(), 80f);
+
+            if (agentManager != null)
+            {
+                RenderFailedAgentsForSector();
+                RenderActiveAgentsForSector();
+            }
+
+            SharedBuilder.Clear();
+            SharedBuilder.Append("Gönderilebilir Ajanlar");
+            if (agentManager != null)
+            {
+                SharedBuilder.Append(" (Yenilenmeye ");
+                SharedBuilder.Append(agentManager.DaysUntilNextRefresh);
+                SharedBuilder.Append(" gün)");
+            }
+
+            CreateInfoCard(SharedBuilder.ToString(), 36f);
+
+            if (agentManager == null)
+            {
+                CreateInfoCard("Ajan sistemi bulunamadı.", 36f);
+                return;
+            }
+
+            var agents = agentManager.GetAvailableAgents();
+            if (agents.Count == 0)
+            {
+                CreateInfoCard("Havuzda ajan kalmadı. Yenilenmeyi bekleyin.", 36f);
+                return;
+            }
+
+            for (var i = 0; i < agents.Count; i++)
+            {
+                RenderAgentCard(agents[i]);
+            }
+        }
+
+        private void RenderFailedAgentsForSector()
+        {
+            var failed = agentManager.FailedAgents;
+            for (var i = 0; i < failed.Count; i++)
+            {
+                var agent = failed[i];
+                if (agent.TargetRival != selectedRival || agent.TargetSector != selectedSector)
+                {
+                    continue;
+                }
+
+                SharedBuilder.Clear();
+                SharedBuilder.Append(agent.Definition.DisplayName);
+                SharedBuilder.Append(" - Başarısız oldu! Hiçbir işi etkileyemedi. Maliyet: ");
+                SharedBuilder.Append(agent.Cost.Amount.ToString("N0"));
+
+                var card = CreateInfoCard(SharedBuilder.ToString(), 44f);
+                card.color = new Color(1f, 0.55f, 0.55f, 1f);
+            }
+        }
+
+        private void RenderActiveAgentsForSector()
+        {
+            var deployed = agentManager.DeployedAgents;
+            var hasActive = false;
+
+            for (var i = 0; i < deployed.Count; i++)
+            {
+                var agent = deployed[i];
+                if (!agent.IsActive || agent.TargetRival != selectedRival || agent.TargetSector != selectedSector)
+                {
+                    continue;
+                }
+
+                if (!hasActive)
+                {
+                    CreateInfoCard("Aktif Ajanlar", 36f);
+                    hasActive = true;
+                }
+
+                SharedBuilder.Clear();
+                SharedBuilder.Append(agent.Definition.DisplayName);
+                SharedBuilder.Append(" | Kalan Gün: ");
+                SharedBuilder.Append(agent.RemainingDays);
+                SharedBuilder.Append(" | Etkilenen İş: ");
+                SharedBuilder.Append(agent.AffectedJobs.Count);
+                SharedBuilder.Append(" | Maliyet: ");
+                SharedBuilder.Append(agent.Cost.Amount.ToString("N0"));
+
+                CreateInfoCard(SharedBuilder.ToString(), 44f);
+            }
+        }
+
+        private void RenderAgentCard(AgentDefinition agentDef)
+        {
+            SharedBuilder.Clear();
+            SharedBuilder.Append(agentDef.DisplayName);
+            SharedBuilder.Append("\nSüre: ");
+            SharedBuilder.Append(agentDef.DetectionDurationDays);
+            SharedBuilder.Append(" gün | Maks Sabotaj: ");
+            SharedBuilder.Append(agentDef.MaxSimultaneousSabotage);
+            SharedBuilder.Append(" iş | Başarı: %");
+            SharedBuilder.Append((agentDef.SuccessChance * 100f).ToString("F0"));
+            SharedBuilder.Append("\nGelir Düşürme: %");
+            SharedBuilder.Append(((1f - agentDef.RevenueReductionMultiplier) * 100f).ToString("F0"));
+            SharedBuilder.Append(" | Maliyet: ");
+            SharedBuilder.Append(agentDef.MinimumCost.ToString("N0"));
+            SharedBuilder.Append(" - ");
+            SharedBuilder.Append(agentDef.MaximumCost.ToString("N0"));
+
+            CreateInfoCard(SharedBuilder.ToString(), 80f);
+
+            var canDeploy = agentManager.CanDeployAgent(agentDef);
+            var capturedDef = agentDef;
+            var deployButton = CreateButton(contentRoot, "DeployBtn_" + agentDef.Id, canDeploy ? "Ajan Gönder" : "Yetersiz Bakiye");
+            var deployRect = deployButton.GetComponent<RectTransform>();
+            deployRect.sizeDelta = new Vector2(0f, 40f);
+
+            if (canDeploy)
+            {
+                deployButton.onClick.AddListener(() =>
+                {
+                    agentManager.DeployAgent(capturedDef, selectedRival, selectedSector);
+                });
             }
             else
             {
-                for (var i = 0; i < sectors.Count; i++)
-                {
-                    if (i > 0) SharedBuilder.Append(", ");
-                    SharedBuilder.Append(sectors[i].DisplayName);
-                }
+                deployButton.interactable = false;
             }
-
-            var activeJobs = rival.ActiveJobs;
-            if (activeJobs.Count > 0)
-            {
-                SharedBuilder.Append("\nSektör Bazlı İşler: ");
-                var sectorJobCounts = new System.Collections.Generic.Dictionary<string, int>(4);
-                for (var i = 0; i < activeJobs.Count; i++)
-                {
-                    var sectorName = activeJobs[i].Sector != null ? activeJobs[i].Sector.DisplayName : "Bilinmeyen";
-                    sectorJobCounts.TryGetValue(sectorName, out var count);
-                    sectorJobCounts[sectorName] = count + 1;
-                }
-
-                var first = true;
-                foreach (var pair in sectorJobCounts)
-                {
-                    if (!first) SharedBuilder.Append(", ");
-                    SharedBuilder.Append(pair.Key);
-                    SharedBuilder.Append(" (");
-                    SharedBuilder.Append(pair.Value);
-                    SharedBuilder.Append(")");
-                    first = false;
-                }
-            }
-
-            CreateInfoCard(SharedBuilder.ToString(), 150f);
         }
 
         private void EnsureCanvas()

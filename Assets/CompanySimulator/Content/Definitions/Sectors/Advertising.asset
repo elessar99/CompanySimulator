@@ -64,6 +64,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  saleRevenueMultiplier: 3
+  competitionLingerDays: 10
   supportedRoles:
   - {fileID: 11400000, guid: f3df3001b83fbd741bac5e708e32a576, type: 2}
   - {fileID: 11400000, guid: 39a67a0a1d0c9354395765b06ee8daae, type: 2}

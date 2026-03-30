@@ -79,6 +79,8 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
         public IReadOnlyList<InvestmentAllocationInput> CurrentInvestmentAllocations => currentInvestmentAllocations;
         public float MarketDemandMultiplier { get; }
         public float CompetitorPressure { get; }
+        public bool IsAgentAffected { get; private set; }
+        public float AgentRevenueReductionMultiplier { get; private set; } = 1f;
         public SectorDefinition Sector => ProjectType != null ? ProjectType.Sector : null;
         public Money CyclePayrollCost => currentResult.PayrollCost;
         public Money CycleRecurringInvestmentCost => currentResult.RecurringInvestmentCost;
@@ -143,6 +145,18 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             }
 
             return 0;
+        }
+
+        public void SetAgentEffect(float revenueReductionMultiplier)
+        {
+            IsAgentAffected = true;
+            AgentRevenueReductionMultiplier = revenueReductionMultiplier;
+        }
+
+        public void ClearAgentEffect()
+        {
+            IsAgentAffected = false;
+            AgentRevenueReductionMultiplier = 1f;
         }
     }
 }

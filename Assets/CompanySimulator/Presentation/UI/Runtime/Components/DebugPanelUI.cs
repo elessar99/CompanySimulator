@@ -1,4 +1,5 @@
 using System.Text;
+using CompanySimulator.Features.Agents.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Rivals.Runtime.Components;
 using CompanySimulator.Features.Rivals.Runtime.Models;
@@ -17,6 +18,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private EconomyManager economyManager;
         [SerializeField] private SectorManager sectorManager;
         [SerializeField] private RivalCompanyManager rivalCompanyManager;
+        [SerializeField] private AgentManager agentManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
@@ -31,6 +33,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private RectTransform contentRoot;
         private Text pageTitleText;
         private int activeTab;
+        private string lastAgentSendResult;
 
         private static readonly StringBuilder SharedBuilder = new StringBuilder(512);
 
@@ -41,6 +44,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             economyManager ??= FindObjectOfType<EconomyManager>();
             sectorManager ??= FindObjectOfType<SectorManager>();
             rivalCompanyManager ??= FindObjectOfType<RivalCompanyManager>();
+            agentManager ??= FindObjectOfType<AgentManager>();
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
@@ -73,6 +77,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 economyManager.DayAdvanced += OnDayAdvanced;
             }
 
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= RefreshPage;
+                agentManager.DataChanged += RefreshPage;
+            }
+
             RefreshPage();
         }
 
@@ -91,6 +101,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (economyManager != null)
             {
                 economyManager.DayAdvanced -= OnDayAdvanced;
+            }
+
+            if (agentManager != null)
+            {
+                agentManager.DataChanged -= RefreshPage;
             }
         }
 
@@ -131,10 +146,15 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 pageTitleText.text = "Debug — Sektör İstatistikleri";
                 RenderSectorTab();
             }
-            else
+            else if (activeTab == 1)
             {
                 pageTitleText.text = "Debug — Şirket İstatistikleri";
                 RenderRivalTab();
+            }
+            else
+            {
+                pageTitleText.text = "Debug — Oyuncuya Gelen Ajanlar";
+                RenderPlayerAgentTab();
             }
         }
 
@@ -222,6 +242,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             SharedBuilder.Append(rival.ActiveJobCount);
             SharedBuilder.Append("\nSatış Çarpanı: ");
             SharedBuilder.Append(definition.SellDesireMultiplier.ToString("F2"));
+            SharedBuilder.Append("  |  İş Başlatmaya: ");
+            SharedBuilder.Append(rival.DaysUntilNextJobCheck);
+            SharedBuilder.Append(" gün  |  İş Satmaya: ");
+            SharedBuilder.Append(rival.DaysUntilNextSellCheck);
+            SharedBuilder.Append(" gün");
 
             var jobs = definition.AvailableJobs;
             for (var j = 0; j < jobs.Count; j++)
@@ -238,24 +263,209 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 var effectiveWeight = (int)System.Math.Ceiling(job.SelectionWeight * multiplier * multiplier);
                 if (effectiveWeight < 1) effectiveWeight = 1;
 
-                var effectiveAbandon = job.AbandonChance / safeMultiplier / safeMultiplier;
                 var effectiveSell = job.AbandonChance * definition.SellDesireMultiplier / safeMultiplier / safeMultiplier;
 
                 SharedBuilder.Append("\n  [");
                 SharedBuilder.Append(job.Sector.DisplayName);
-                SharedBuilder.Append("] Seçim Ağırlığı: ");
+                SharedBuilder.Append("] Ağırlık: ");
                 SharedBuilder.Append(job.SelectionWeight);
                 SharedBuilder.Append(" → ");
                 SharedBuilder.Append(effectiveWeight);
-                SharedBuilder.Append("  |  Bırakma: ");
-                SharedBuilder.Append((effectiveAbandon * 100f).ToString("F1"));
-                SharedBuilder.Append("%  |  Satma: ");
+                SharedBuilder.Append("  |  Satma: ");
                 SharedBuilder.Append((effectiveSell * 100f).ToString("F1"));
                 SharedBuilder.Append("%");
             }
 
-            var text = CreateInfoCard(SharedBuilder.ToString(), 48f + jobs.Count * 26f);
+            var activeJobs = rival.ActiveJobs;
+            if (activeJobs.Count > 0)
+            {
+                SharedBuilder.Append("\n<b>Aktif İşler:</b>");
+                for (var j = 0; j < activeJobs.Count; j++)
+                {
+                    var activeJob = activeJobs[j];
+                    SharedBuilder.Append("\n  • ");
+                    SharedBuilder.Append(activeJob.Definition.DisplayName);
+                    SharedBuilder.Append(" [");
+                    SharedBuilder.Append(activeJob.Sector != null ? activeJob.Sector.DisplayName : "?");
+                    SharedBuilder.Append("]  Son Gelir: ");
+                    SharedBuilder.Append(activeJob.LastEarnedIncome.Amount.ToString("N0"));
+                    SharedBuilder.Append("  |  Ödemeye: ");
+                    SharedBuilder.Append(activeJob.Definition.PayoutIntervalDays - activeJob.DaysSinceLastPayout);
+                    SharedBuilder.Append(" gün");
+                }
+            }
+
+            var startLog = rival.JobStartLog;
+            if (startLog.Count > 0)
+            {
+                var startCount = startLog.Count > 5 ? 5 : startLog.Count;
+                SharedBuilder.Append("\n<b>Son Başlatılan İşler:</b>");
+                for (var j = startLog.Count - startCount; j < startLog.Count; j++)
+                {
+                    var entry = startLog[j];
+                    SharedBuilder.Append("\n  + Gün ");
+                    SharedBuilder.Append(entry.Day);
+                    SharedBuilder.Append(": ");
+                    SharedBuilder.Append(entry.JobName);
+                    SharedBuilder.Append(" (Maliyet: ");
+                    SharedBuilder.Append(entry.Amount.Amount.ToString("N0"));
+                    SharedBuilder.Append(")");
+                }
+            }
+
+            var sellLog = rival.JobSellLog;
+            if (sellLog.Count > 0)
+            {
+                var sellCount = sellLog.Count > 5 ? 5 : sellLog.Count;
+                SharedBuilder.Append("\n<b>Son Satılan İşler:</b>");
+                for (var j = sellLog.Count - sellCount; j < sellLog.Count; j++)
+                {
+                    var entry = sellLog[j];
+                    SharedBuilder.Append("\n  - Gün ");
+                    SharedBuilder.Append(entry.Day);
+                    SharedBuilder.Append(": ");
+                    SharedBuilder.Append(entry.JobName);
+                    SharedBuilder.Append(" (Gelir: ");
+                    SharedBuilder.Append(entry.Amount.Amount.ToString("N0"));
+                    SharedBuilder.Append(")");
+                }
+            }
+
+            var totalLines = 2 + jobs.Count + activeJobs.Count;
+            if (startLog.Count > 0) totalLines += 1 + System.Math.Min(5, startLog.Count);
+            if (sellLog.Count > 0) totalLines += 1 + System.Math.Min(5, sellLog.Count);
+            var text = CreateInfoCard(SharedBuilder.ToString(), 26f + totalLines * 24f);
             text.supportRichText = true;
+        }
+
+        private void RenderPlayerAgentTab()
+        {
+            if (agentManager == null)
+            {
+                CreateInfoCard("Ajan sistemi bulunamadı.", 48f);
+                return;
+            }
+
+            var activeAgents = agentManager.PlayerTargetedAgents;
+            var failedAgents = agentManager.FailedPlayerTargetedAgents;
+
+            SharedBuilder.Clear();
+            SharedBuilder.Append("<b>Oyuncuya Gönderilen Ajanlar</b>");
+            SharedBuilder.Append("\nAktif: ");
+            SharedBuilder.Append(activeAgents.Count);
+            SharedBuilder.Append("  |  Son Başarısız: ");
+            SharedBuilder.Append(failedAgents.Count);
+            var headerText = CreateInfoCard(SharedBuilder.ToString(), 58f);
+            headerText.supportRichText = true;
+
+            if (activeAgents.Count > 0)
+            {
+                CreateInfoCard("<b>Aktif Ajanlar</b>", 32f).supportRichText = true;
+                for (var i = 0; i < activeAgents.Count; i++)
+                {
+                    var agent = activeAgents[i];
+                    SharedBuilder.Clear();
+                    SharedBuilder.Append(agent.Definition.DisplayName);
+                    SharedBuilder.Append(" | Gönderen: ");
+                    SharedBuilder.Append(agent.SourceRival.Definition.DisplayName);
+                    SharedBuilder.Append("\nSektör: ");
+                    SharedBuilder.Append(agent.TargetSector.DisplayName);
+                    SharedBuilder.Append(" | Kalan Gün: ");
+                    SharedBuilder.Append(agent.RemainingDays);
+                    SharedBuilder.Append(" | Etkilenen Proje: ");
+                    SharedBuilder.Append(agent.AffectedProjects.Count);
+                    SharedBuilder.Append(" | Maliyet: ");
+                    SharedBuilder.Append(agent.Cost.Amount.ToString("N0"));
+
+                    for (var j = 0; j < agent.AffectedProjects.Count; j++)
+                    {
+                        var project = agent.AffectedProjects[j];
+                        SharedBuilder.Append("\n  • ");
+                        SharedBuilder.Append(project.DisplayName);
+                        SharedBuilder.Append(" [");
+                        SharedBuilder.Append(project.Sector != null ? project.Sector.DisplayName : "?");
+                        SharedBuilder.Append("] Gelir Düşme: %");
+                        SharedBuilder.Append(((1f - agent.Definition.RevenueReductionMultiplier) * 100f).ToString("F0"));
+                    }
+
+                    var lineCount = 2 + agent.AffectedProjects.Count;
+                    CreateInfoCard(SharedBuilder.ToString(), 20f + lineCount * 24f);
+                }
+            }
+
+            if (failedAgents.Count > 0)
+            {
+                CreateInfoCard("<b>Son Başarısız Ajanlar</b>", 32f).supportRichText = true;
+                for (var i = 0; i < failedAgents.Count; i++)
+                {
+                    var agent = failedAgents[i];
+                    SharedBuilder.Clear();
+                    SharedBuilder.Append(agent.Definition.DisplayName);
+                    SharedBuilder.Append(" | Gönderen: ");
+                    SharedBuilder.Append(agent.SourceRival.Definition.DisplayName);
+                    SharedBuilder.Append(" | Sektör: ");
+                    SharedBuilder.Append(agent.TargetSector.DisplayName);
+                    SharedBuilder.Append(" — BAŞARISIZ");
+
+                    var card = CreateInfoCard(SharedBuilder.ToString(), 44f);
+                    card.color = new Color(1f, 0.55f, 0.55f, 1f);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(lastAgentSendResult))
+            {
+                CreateInfoCard("<b>Son Tetikleme Sonucu:</b>", 32f).supportRichText = true;
+                CreateInfoCard(lastAgentSendResult, 80f);
+            }
+
+            CreateInfoCard("<b>Ajan Gönderme Tetikle</b>", 32f).supportRichText = true;
+
+            if (rivalCompanyManager == null || !rivalCompanyManager.IsInitialized)
+            {
+                CreateInfoCard("Rakip şirket verisi yüklenmedi.", 48f);
+                return;
+            }
+
+            var rivals = rivalCompanyManager.Rivals;
+            for (var i = 0; i < rivals.Count; i++)
+            {
+                var rival = rivals[i];
+                var definition = rival.Definition;
+
+                SharedBuilder.Clear();
+                SharedBuilder.Append(definition.DisplayName);
+                SharedBuilder.Append(" | Ajan Kontrolüne: ");
+                SharedBuilder.Append(rival.DaysUntilNextAgentCheck);
+                SharedBuilder.Append(" gün | Şans: %");
+                SharedBuilder.Append((definition.AgentSendChance * 100f).ToString("F0"));
+                SharedBuilder.Append("\nOyuncu Etkisi: ");
+                SharedBuilder.Append(definition.PlayerInfluenceWeight.ToString("F1"));
+                SharedBuilder.Append(" | Şirket Etkisi: ");
+                SharedBuilder.Append(definition.RivalInfluenceWeight.ToString("F1"));
+
+                if (definition.RivalAgentSetup != null)
+                {
+                    SharedBuilder.Append(" | Katalog: ");
+                    SharedBuilder.Append(definition.RivalAgentSetup.AvailableAgents.Length);
+                    SharedBuilder.Append(" ajan");
+                }
+                else
+                {
+                    SharedBuilder.Append(" | Katalog: YOK");
+                }
+
+                CreateInfoCard(SharedBuilder.ToString(), 58f);
+
+                var capturedRival = rival;
+                var sendButton = CreateButton(contentRoot, "SendAgentBtn_" + definition.Id, "Ajan Gönder → " + definition.DisplayName);
+                var sendRect = sendButton.GetComponent<RectTransform>();
+                sendRect.sizeDelta = new Vector2(0f, 40f);
+                sendButton.onClick.AddListener(() =>
+                {
+                    lastAgentSendResult = agentManager.ForceRivalSendAgent(capturedRival);
+                    RefreshPage();
+                });
+            }
         }
 
         private void SwitchTab(int tab)
@@ -369,6 +579,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var rivalTabButton = CreateButton(tabBar.transform, "RivalTab", "Şirketler");
             rivalTabButton.onClick.AddListener(() => SwitchTab(1));
+
+            var agentTabButton = CreateButton(tabBar.transform, "AgentTab", "Ajanlar");
+            agentTabButton.onClick.AddListener(() => SwitchTab(2));
 
             var scrollRoot = CreateUiObject("ScrollRoot", panelRoot.transform);
             var scrollRectTransform = scrollRoot.GetComponent<RectTransform>();

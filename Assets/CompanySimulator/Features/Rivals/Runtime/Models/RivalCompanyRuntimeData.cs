@@ -11,9 +11,12 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
     {
         private readonly List<RivalCompanyJobRuntimeData> activeJobs = new List<RivalCompanyJobRuntimeData>(8);
         private readonly List<SectorDefinition> cachedSectors = new List<SectorDefinition>(4);
+        private readonly List<RivalJobLogEntry> jobStartLog = new List<RivalJobLogEntry>(8);
+        private readonly List<RivalJobLogEntry> jobSellLog = new List<RivalJobLogEntry>(8);
         private Money balance;
         private int daysSinceLastJobCheck;
         private int daysSinceLastSellCheck;
+        private int daysSinceLastAgentCheck;
 
         public RivalCompanyRuntimeData(RivalCompanyDefinition definition)
         {
@@ -21,6 +24,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             balance = Money.From(definition.StartingBalance);
             daysSinceLastJobCheck = 0;
             daysSinceLastSellCheck = 0;
+            daysSinceLastAgentCheck = 0;
             RebuildSectorCache();
         }
 
@@ -30,18 +34,26 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
         public IReadOnlyList<RivalCompanyJobRuntimeData> ActiveJobs => activeJobs;
         public IReadOnlyList<SectorDefinition> OperatingSectors => cachedSectors;
         public int ActiveJobCount => activeJobs.Count;
+        public int DaysSinceLastJobCheck => daysSinceLastJobCheck;
+        public int DaysSinceLastSellCheck => daysSinceLastSellCheck;
+        public int DaysUntilNextJobCheck => Math.Max(0, Definition.JobCheckIntervalDays - daysSinceLastJobCheck);
+        public int DaysUntilNextSellCheck => Math.Max(0, Definition.SellCheckIntervalDays - daysSinceLastSellCheck);
+        public int DaysSinceLastAgentCheck => daysSinceLastAgentCheck;
+        public int DaysUntilNextAgentCheck => Math.Max(0, Definition.AgentSendCheckIntervalDays - daysSinceLastAgentCheck);
+        public IReadOnlyList<RivalJobLogEntry> JobStartLog => jobStartLog;
+        public IReadOnlyList<RivalJobLogEntry> JobSellLog => jobSellLog;
 
-        public void AdvanceDay(int currentDay)
+        public bool AdvanceDay(int currentDay)
         {
             ProcessJobPayouts();
-            TryAbandonJobs();
             daysSinceLastJobCheck++;
             daysSinceLastSellCheck++;
+            daysSinceLastAgentCheck++;
 
             if (daysSinceLastSellCheck >= Definition.SellCheckIntervalDays)
             {
                 daysSinceLastSellCheck = 0;
-                TrySellJobs();
+                TrySellJobs(currentDay);
             }
 
             if (daysSinceLastJobCheck >= Definition.JobCheckIntervalDays)
@@ -49,6 +61,15 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
                 daysSinceLastJobCheck = 0;
                 TryStartJobs(currentDay);
             }
+
+            var shouldSendAgent = false;
+            if (daysSinceLastAgentCheck >= Definition.AgentSendCheckIntervalDays)
+            {
+                daysSinceLastAgentCheck = 0;
+                shouldSendAgent = true;
+            }
+
+            return shouldSendAgent;
         }
 
         private void ProcessJobPayouts()
@@ -92,6 +113,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
 
                 balance = balance - Money.From(selected.JobCost);
                 activeJobs.Add(new RivalCompanyJobRuntimeData(selected, currentDay));
+                jobStartLog.Add(new RivalJobLogEntry(selected.DisplayName, selected.Sector, currentDay, Money.From(selected.JobCost)));
                 started++;
             }
 
@@ -101,44 +123,7 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             }
         }
 
-        private void TryAbandonJobs()
-        {
-            var abandoned = false;
-            for (var i = activeJobs.Count - 1; i >= 0; i--)
-            {
-                var job = activeJobs[i];
-                var multiplier = SectorCompetitionService.GetCachedRevenueMultiplier(job.Sector);
-                var safeMultiplier = multiplier > 0f ? multiplier : 0.01f;
-
-                var effectiveAbandonChance = job.Definition.AbandonChance / safeMultiplier / safeMultiplier;
-                var roll = UnityEngine.Random.value;
-                if (roll > effectiveAbandonChance)
-                {
-                    continue;
-                }
-
-                var avgIncome = (job.Definition.MinimumIncomePerCycle + job.Definition.MaximumIncomePerCycle) / 2;
-                var adjustedAvgIncome = avgIncome * multiplier;
-                var abandonPayout = Money.From(adjustedAvgIncome * job.Definition.AbandonRevenueMultiplier);
-                balance = balance + abandonPayout;
-
-                var sector = job.Sector;
-                if (sector != null && sector.CompetitionLingerDays > 0)
-                {
-                    SectorCompetitionService.RegisterLingeringProject(sector, sector.CompetitionLingerDays);
-                }
-
-                activeJobs.RemoveAt(i);
-                abandoned = true;
-            }
-
-            if (abandoned)
-            {
-                RebuildSectorCache();
-            }
-        }
-
-        private void TrySellJobs()
+        private void TrySellJobs(int currentDay)
         {
             if (activeJobs.Count == 0 || Definition.SellDesireMultiplier <= 0f)
             {
@@ -165,16 +150,16 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
 
                 var avgIncome = (job.Definition.MinimumIncomePerCycle + job.Definition.MaximumIncomePerCycle) / 2;
                 var adjustedAvgIncome = avgIncome * multiplier;
-                var sector = job.Sector;
-                var saleMultiplier = sector != null ? sector.SaleRevenueMultiplier : 1f;
-                var sellPayout = Money.From(adjustedAvgIncome * saleMultiplier);
+                var sellPayout = Money.From(adjustedAvgIncome * job.Definition.AbandonRevenueMultiplier);
                 balance = balance + sellPayout;
 
+                var sector = job.Sector;
                 if (sector != null && sector.CompetitionLingerDays > 0)
                 {
                     SectorCompetitionService.RegisterLingeringProject(sector, sector.CompetitionLingerDays);
                 }
 
+                jobSellLog.Add(new RivalJobLogEntry(job.Definition.DisplayName, sector, currentDay, sellPayout));
                 activeJobs.RemoveAt(i);
                 sold++;
             }

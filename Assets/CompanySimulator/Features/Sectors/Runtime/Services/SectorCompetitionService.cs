@@ -79,7 +79,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Services
             {
                 for (var i = 0; i < playerProjects.Count; i++)
                 {
-                    if (playerProjects[i].Sector == sector)
+                    if (playerProjects[i].Sector == sector && !playerProjects[i].IsAgentAffected)
                     {
                         count++;
                     }
@@ -94,7 +94,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Services
                     var jobs = rival.ActiveJobs;
                     for (var j = 0; j < jobs.Count; j++)
                     {
-                        if (jobs[j].Sector == sector)
+                        if (jobs[j].Sector == sector && !jobs[j].IsAgentAffected)
                         {
                             count++;
                         }
@@ -115,6 +115,7 @@ namespace CompanySimulator.Features.Sectors.Runtime.Services
             {
                 for (var i = 0; i < playerProjects.Count; i++)
                 {
+                    if (playerProjects[i].IsAgentAffected) continue;
                     var sector = playerProjects[i].Sector;
                     if (sector == null) continue;
                     ProjectCountCache.TryGetValue(sector, out var current);
@@ -129,10 +130,10 @@ namespace CompanySimulator.Features.Sectors.Runtime.Services
                     var jobs = rivals[i].ActiveJobs;
                     for (var j = 0; j < jobs.Count; j++)
                     {
-                        var sector = jobs[j].Sector;
-                        if (sector == null) continue;
-                        ProjectCountCache.TryGetValue(sector, out var current);
-                        ProjectCountCache[sector] = current + 1;
+                        var job = jobs[j];
+                        if (job.Sector == null || job.IsAgentAffected) continue;
+                        ProjectCountCache.TryGetValue(job.Sector, out var current);
+                        ProjectCountCache[job.Sector] = current + 1;
                     }
                 }
             }
@@ -155,6 +156,17 @@ namespace CompanySimulator.Features.Sectors.Runtime.Services
 
             ProjectCountCache.TryGetValue(sector, out var count);
             return Mathf.Clamp01(sector.CompetitionRevenueCurve.Evaluate(count));
+        }
+
+        public static float GetCachedRevenueMultiplierWithExtra(SectorDefinition sector, int extraProjects)
+        {
+            if (sector == null || sector.CompetitionRevenueCurve == null)
+            {
+                return 1f;
+            }
+
+            ProjectCountCache.TryGetValue(sector, out var count);
+            return Mathf.Clamp01(sector.CompetitionRevenueCurve.Evaluate(count + extraProjects));
         }
 
         public static int GetCachedProjectCount(SectorDefinition sector)

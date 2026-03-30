@@ -10,13 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 14bbab461e71f9c46994f39c89c57867, type: 3}
-  m_Name: RivalCompanyJobDefinition 1
+  m_Name: game dev
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Rivals.Runtime.Definitions.RivalCompanyJobDefinition
-  id: RivalCompanyJobDefinition
-  displayName: RivalCompanyJobDefinition
-  sector: {fileID: 11400000, guid: 88bfb5defa21b3144bfdb92fb5ed6859, type: 2}
+  id: sss
+  displayName: "oyun geli\u015Ftirme"
+  sector: {fileID: 11400000, guid: a00e1e086365ad140a47c5e372f7b561, type: 2}
   jobCost: 1000
-  payoutIntervalDays: 7
-  minimumIncomePerCycle: 500
-  maximumIncomePerCycle: 2000
-  selectionWeight: 1
+  payoutIntervalDays: 5
+  minimumIncomePerCycle: 2000
+  maximumIncomePerCycle: 4000
+  selectionWeight: 1000
+  abandonChance: 0.1
+  abandonRevenueMultiplier: 1
