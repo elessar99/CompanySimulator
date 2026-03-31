@@ -1416,7 +1416,7 @@ MonoBehaviour:
   debugPanelUI: {fileID: 660682439}
   securityPanelUI: {fileID: 247165542}
   rootCanvas: {fileID: 1362092756}
-  panelSize: {x: 1800, y: 1200}
+  panelSize: {x: 2200, y: 1200}
 --- !u!114 &1311983861
 MonoBehaviour:
   m_ObjectHideFlags: 0
