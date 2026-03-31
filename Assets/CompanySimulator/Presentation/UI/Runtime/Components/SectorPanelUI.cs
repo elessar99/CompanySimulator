@@ -787,6 +787,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             topLayout.childForceExpandHeight = false;
             topLayout.childAlignment = TextAnchor.MiddleLeft;
 
+            var riskAccent = GetSectorRiskAccent(sectorData.Sector);
+            CreateTag(topRow.transform, GetSectorRiskLabel(sectorData.Sector), new Color(riskAccent.r, riskAccent.g, riskAccent.b, 0.18f), riskAccent, 13);
             CreateTag(topRow.transform, $"Aktif {sectorData.ActiveProjectCount}", new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
             CreateTag(topRow.transform, $"{sectorData.Sector.ProfitPayoutIntervalDays}g Döngü", new Color(ColBlue.r, ColBlue.g, ColBlue.b, 0.16f), ColBlue, 13);
 
@@ -1655,13 +1657,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             topLayout.spacing = 8f;
             topLayout.childControlWidth = true;
             topLayout.childControlHeight = true;
-            topLayout.childForceExpandWidth = true;
+            topLayout.childForceExpandWidth = false;
             topLayout.childForceExpandHeight = false;
 
             var nameText = CreateText(topRow.transform, investment.DisplayName, 20, TextAnchor.MiddleLeft);
             nameText.color = ColText;
             nameText.fontStyle = FontStyle.Bold;
 
+            CreateFlexibleSpacer(topRow.transform);
             CreateTag(topRow.transform, investment.IsRecurringExpense ? "Gelirden Düþer" : "Peþin", new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
 
             var minimumBudget = GetMinimumAllowedBudget(project, investment);
@@ -2276,6 +2279,42 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                     return ColPurple;
                 default:
                     return ColBlue;
+            }
+        }
+
+        private Color GetSectorRiskAccent(SectorDefinition sector)
+        {
+            if (sector == null)
+            {
+                return ColGreen;
+            }
+
+            switch (sector.RiskLevel)
+            {
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Orta:
+                    return ColGold;
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Yuksek:
+                    return ColRed;
+                default:
+                    return ColGreen;
+            }
+        }
+
+        private string GetSectorRiskLabel(SectorDefinition sector)
+        {
+            if (sector == null)
+            {
+                return "Düþük Risk";
+            }
+
+            switch (sector.RiskLevel)
+            {
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Orta:
+                    return "Orta Risk";
+                case CompanySimulator.Features.Sectors.Runtime.Definitions.SectorRiskLevel.Yuksek:
+                    return "Yüksek Risk";
+                default:
+                    return "Düþük Risk";
             }
         }
 
