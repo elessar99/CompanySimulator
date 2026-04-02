@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
+using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -11,6 +12,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
     public sealed class EmployeeManager : MonoBehaviour
     {
         [SerializeField] private EmployeeRosterSetupDefinition setup;
+        [SerializeField] private EconomyManager economyManager;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private int employeeCount;
         [SerializeField] private int applicantCount;
@@ -18,6 +20,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
         private readonly List<EmployeeRuntimeData> employees = new List<EmployeeRuntimeData>(64);
         private readonly List<EmployeeRuntimeData> applicants = new List<EmployeeRuntimeData>(64);
         private readonly List<EmployeeRoleDefinition> roles = new List<EmployeeRoleDefinition>(32);
+        private readonly Dictionary<EmployeeRoleDefinition, int> nextApplicantSpawnDayByRole = new Dictionary<EmployeeRoleDefinition, int>(32);
         private int generatedApplicantSequence;
         private bool isInitialized;
 
@@ -42,9 +45,28 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
 
         private void Awake()
         {
+            economyManager ??= FindObjectOfType<EconomyManager>();
             if (initializeOnAwake)
             {
                 Initialize();
+            }
+        }
+
+        private void OnEnable()
+        {
+            economyManager ??= FindObjectOfType<EconomyManager>();
+            if (economyManager != null)
+            {
+                economyManager.DayAdvanced -= HandleDayAdvanced;
+                economyManager.DayAdvanced += HandleDayAdvanced;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (economyManager != null)
+            {
+                economyManager.DayAdvanced -= HandleDayAdvanced;
             }
         }
 
@@ -61,17 +83,20 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             employees.Clear();
             applicants.Clear();
             roles.Clear();
+            nextApplicantSpawnDayByRole.Clear();
             generatedApplicantSequence = 0;
 
             RegisterRoles(setup.AvailableRoles);
 
             CreateRuntimeList(setup.StartingEmployees, employees, "employee");
-            CreateRuntimeList(setup.JobApplicants, applicants, "applicant");
+            CreateRuntimeList(setup.JobApplicants, applicants, "applicant", setup.ApplicantLifetimeDays);
 
             if (setup.AutoGenerateApplicants)
             {
-                GenerateApplicantsForAllRoles();
+                GenerateInitialApplicantsForAllRoles();
             }
+
+            InitializeApplicantSpawnSchedule(GetCurrentDay());
 
             UpdateSnapshot();
             isInitialized = true;
@@ -105,7 +130,6 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
 
         public IReadOnlyList<EmployeeRuntimeData> GetApplicantsByRole(EmployeeRoleDefinition role)
         {
-            EnsureApplicantsForRole(role);
             return FilterByRole(applicants, role);
         }
 
@@ -116,7 +140,6 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
 
         public int GetApplicantCount(EmployeeRoleDefinition role)
         {
-            EnsureApplicantsForRole(role);
             return CountByRole(applicants, role);
         }
 
@@ -132,6 +155,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
                 return false;
             }
 
+            applicant.MarkAsEmployee();
             employees.Add(applicant);
             RegisterRole(applicant.Role);
             UpdateSnapshot();
@@ -310,7 +334,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return isInitialized;
         }
 
-        private void CreateRuntimeList(IReadOnlyList<EmployeeProfileDefinition> sourceList, List<EmployeeRuntimeData> targetList, string prefix)
+        private void CreateRuntimeList(IReadOnlyList<EmployeeProfileDefinition> sourceList, List<EmployeeRuntimeData> targetList, string prefix, int applicantLifetimeDays = 0)
         {
             for (var i = 0; i < sourceList.Count; i++)
             {
@@ -320,7 +344,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
                     continue;
                 }
 
-                var runtimeData = new EmployeeRuntimeData($"{prefix}_{profile.Id}_{i}", profile);
+                var runtimeData = new EmployeeRuntimeData($"{prefix}_{profile.Id}_{i}", profile, applicantLifetimeDays);
                 targetList.Add(runtimeData);
                 RegisterRole(runtimeData.Role);
             }
@@ -382,28 +406,42 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return count;
         }
 
-        private void EnsureApplicantsForRole(EmployeeRoleDefinition role)
+        private void HandleDayAdvanced(int currentDay)
         {
-            if (!EnsureInitialized() || role == null || !setup.AutoGenerateApplicants)
+            if (!EnsureInitialized())
             {
                 return;
             }
 
-            if (CountByRole(applicants, role) > 0)
+            var hasChanges = AdvanceApplicantPool(currentDay);
+            if (!hasChanges)
             {
                 return;
             }
 
-            GenerateApplicantsForRole(role);
             UpdateSnapshot();
             DataChanged?.Invoke();
         }
 
-        private void GenerateApplicantsForAllRoles()
+        private void GenerateInitialApplicantsForAllRoles()
         {
             for (var i = 0; i < roles.Count; i++)
             {
-                GenerateApplicantsForRole(roles[i]);
+                GenerateInitialApplicantsForRole(roles[i]);
+            }
+        }
+
+        private void GenerateInitialApplicantsForRole(EmployeeRoleDefinition role)
+        {
+            if (role == null)
+            {
+                return;
+            }
+
+            var applicantCountToCreate = GetInitialApplicantCountForRole(role);
+            for (var i = 0; i < applicantCountToCreate; i++)
+            {
+                applicants.Add(CreateRandomApplicant(role, setup.ApplicantLifetimeDays));
             }
         }
 
@@ -417,11 +455,11 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             var applicantCountToCreate = UnityEngine.Random.Range(setup.MinGeneratedApplicantsPerRole, setup.MaxGeneratedApplicantsPerRole + 1);
             for (var i = 0; i < applicantCountToCreate; i++)
             {
-                applicants.Add(CreateRandomApplicant(role));
+                applicants.Add(CreateRandomApplicant(role, setup.ApplicantLifetimeDays));
             }
         }
 
-        private EmployeeRuntimeData CreateRandomApplicant(EmployeeRoleDefinition role)
+        private EmployeeRuntimeData CreateRandomApplicant(EmployeeRoleDefinition role, int applicantLifetimeDays)
         {
             generatedApplicantSequence++;
 
@@ -435,7 +473,102 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
                 displayName,
                 role,
                 quality,
-                Money.From(salary));
+                Money.From(salary),
+                applicantLifetimeDays);
+        }
+
+        private bool AdvanceApplicantPool(int currentDay)
+        {
+            var hasChanges = RemoveExpiredApplicants();
+            if (!setup.AutoGenerateApplicants)
+            {
+                return hasChanges;
+            }
+
+            for (var i = 0; i < roles.Count; i++)
+            {
+                var role = roles[i];
+                if (role == null)
+                {
+                    continue;
+                }
+
+                if (!nextApplicantSpawnDayByRole.TryGetValue(role, out var nextSpawnDay))
+                {
+                    nextSpawnDay = currentDay + role.ApplicantRefreshIntervalDays;
+                }
+
+                var generatedForRole = false;
+                while (currentDay >= nextSpawnDay)
+                {
+                    GenerateApplicantsForRole(role);
+                    nextSpawnDay += role.ApplicantRefreshIntervalDays;
+                    generatedForRole = true;
+                }
+
+                if (generatedForRole)
+                {
+                    hasChanges = true;
+                }
+
+                nextApplicantSpawnDayByRole[role] = nextSpawnDay;
+            }
+
+            return hasChanges;
+        }
+
+        private bool RemoveExpiredApplicants()
+        {
+            var removedAny = false;
+            for (var i = applicants.Count - 1; i >= 0; i--)
+            {
+                var applicant = applicants[i];
+                if (applicant == null || applicant.ApplicantRemainingDays <= 0)
+                {
+                    continue;
+                }
+
+                if (applicant.AdvanceApplicantDay())
+                {
+                    continue;
+                }
+
+                applicants.RemoveAt(i);
+                removedAny = true;
+            }
+
+            return removedAny;
+        }
+
+        private void InitializeApplicantSpawnSchedule(int currentDay)
+        {
+            nextApplicantSpawnDayByRole.Clear();
+            for (var i = 0; i < roles.Count; i++)
+            {
+                var role = roles[i];
+                if (role == null)
+                {
+                    continue;
+                }
+
+                nextApplicantSpawnDayByRole[role] = currentDay + role.ApplicantRefreshIntervalDays;
+            }
+        }
+
+        private int GetInitialApplicantCountForRole(EmployeeRoleDefinition role)
+        {
+            if (role == null)
+            {
+                return 0;
+            }
+
+            var sectorMultiplier = Mathf.Max(1, role.AllowedSectors.Count > 0 ? role.AllowedSectors.Count : 1);
+            return setup.InitialGeneratedApplicantsPerAllowedSector * sectorMultiplier;
+        }
+
+        private int GetCurrentDay()
+        {
+            return economyManager != null ? Mathf.Max(1, economyManager.CurrentDay) : 1;
         }
 
         private EmployeeQualityTier RollQualityTier(EmployeeRoleDefinition role)

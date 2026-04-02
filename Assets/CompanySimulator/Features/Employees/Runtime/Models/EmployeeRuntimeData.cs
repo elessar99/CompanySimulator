@@ -5,7 +5,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
 {
     public sealed class EmployeeRuntimeData
     {
-        public EmployeeRuntimeData(string id, EmployeeProfileDefinition sourceDefinition)
+        public EmployeeRuntimeData(string id, EmployeeProfileDefinition sourceDefinition, int applicantRemainingDays = 0)
         {
             Id = id;
             SourceDefinition = sourceDefinition;
@@ -15,9 +15,10 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             ExpectedDailySalary = sourceDefinition != null ? sourceDefinition.ExpectedDailySalary : Money.Zero;
             QualityTier = sourceDefinition != null ? sourceDefinition.QualityTier : EmployeeQualityTier.Kotu;
             IncomeMultiplier = sourceDefinition != null ? sourceDefinition.IncomeMultiplier : 0.5f;
+            ApplicantRemainingDays = applicantRemainingDays > 0 ? applicantRemainingDays : 0;
         }
 
-        public EmployeeRuntimeData(string id, string displayName, EmployeeRoleDefinition role, float quality, Money expectedDailySalary)
+        public EmployeeRuntimeData(string id, string displayName, EmployeeRoleDefinition role, float quality, Money expectedDailySalary, int applicantRemainingDays = 0)
         {
             Id = id;
             SourceDefinition = null;
@@ -27,6 +28,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             ExpectedDailySalary = expectedDailySalary;
             QualityTier = role != null ? role.GetQualityTier(quality) : ResolveQualityTier(quality);
             IncomeMultiplier = role != null ? role.GetIncomeMultiplier(QualityTier) : ResolveIncomeMultiplier(QualityTier);
+            ApplicantRemainingDays = applicantRemainingDays > 0 ? applicantRemainingDays : 0;
         }
 
         public string Id { get; }
@@ -37,6 +39,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public Money ExpectedDailySalary { get; }
         public EmployeeQualityTier QualityTier { get; }
         public float IncomeMultiplier { get; }
+        public int ApplicantRemainingDays { get; private set; }
         public string CurrentAssignmentName { get; private set; }
         public bool IsAssigned => !string.IsNullOrWhiteSpace(CurrentAssignmentName);
 
@@ -54,6 +57,27 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public void ClearAssignment()
         {
             CurrentAssignmentName = string.Empty;
+        }
+
+        public void SetApplicantRemainingDays(int remainingDays)
+        {
+            ApplicantRemainingDays = remainingDays > 0 ? remainingDays : 0;
+        }
+
+        public bool AdvanceApplicantDay()
+        {
+            if (ApplicantRemainingDays <= 0)
+            {
+                return false;
+            }
+
+            ApplicantRemainingDays--;
+            return ApplicantRemainingDays > 0;
+        }
+
+        public void MarkAsEmployee()
+        {
+            ApplicantRemainingDays = 0;
         }
 
         private static EmployeeQualityTier ResolveQualityTier(float quality)

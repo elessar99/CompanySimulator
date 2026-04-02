@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using CompanySimulator.Features.Employees.Runtime.Definitions;
 
 namespace CompanySimulator.Presentation.UI.Runtime.Common
 {
@@ -96,6 +97,65 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
             for (var i = parent.childCount - 1; i >= 0; i--)
             {
                 Object.Destroy(parent.GetChild(i).gameObject);
+            }
+        }
+
+        public static void EnsureResponsiveCanvasScaler(Canvas canvas)
+        {
+            if (canvas == null)
+            {
+                return;
+            }
+
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler == null)
+            {
+                scaler = canvas.gameObject.AddComponent<CanvasScaler>();
+            }
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            scaler.referencePixelsPerUnit = 100f;
+        }
+
+        public static void ConfigureCenteredPanel(RectTransform rectTransform, Vector2 panelSize, float verticalOffset)
+        {
+            if (rectTransform == null)
+            {
+                return;
+            }
+
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = new Vector2(0f, -verticalOffset);
+            rectTransform.sizeDelta = panelSize;
+        }
+
+        public static void BringToFront(GameObject panelRoot)
+        {
+            if (panelRoot == null)
+            {
+                return;
+            }
+
+            panelRoot.transform.SetAsLastSibling();
+        }
+
+        public static string GetEmployeeQualityLabel(EmployeeQualityTier qualityTier)
+        {
+            switch (qualityTier)
+            {
+                case EmployeeQualityTier.Kotu:
+                    return "Kötü";
+                case EmployeeQualityTier.Ortalama:
+                    return "Ortalama";
+                case EmployeeQualityTier.Iyi:
+                    return "İyi";
+                default:
+                    return "Profesyonel";
             }
         }
     }

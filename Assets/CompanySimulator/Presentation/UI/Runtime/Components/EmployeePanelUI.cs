@@ -21,6 +21,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
+        [SerializeField] private float panelVerticalOffset = 72f;
 
         private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
         private static readonly Color ColPanel = new Color(0.063f, 0.098f, 0.169f, 1f);
@@ -28,6 +29,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private static readonly Color ColSurfaceAlt = new Color(0.047f, 0.078f, 0.141f, 1f);
         private static readonly Color ColText = new Color(0.933f, 0.957f, 1f, 1f);
         private static readonly Color ColMuted = new Color(0.561f, 0.639f, 0.784f, 1f);
+        private static readonly Color ColGrey = new Color(0.47f, 0.52f, 0.6f, 1f);
         private static readonly Color ColBlue = new Color(0.353f, 0.627f, 1f, 1f);
         private static readonly Color ColCyan = new Color(0.302f, 0.886f, 0.816f, 1f);
         private static readonly Color ColGold = new Color(0.961f, 0.769f, 0.365f, 1f);
@@ -123,6 +125,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             panelRoot.SetActive(true);
+            RuntimePanelUiUtility.BringToFront(panelRoot);
             NavigateToRoleList();
         }
 
@@ -316,13 +319,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void CreateApplicantButton(EmployeeRuntimeData applicant)
         {
             var accent = GetEmployeeAccent(applicant);
-            var card = CreateSurface(EnsureApplicantGridHost(), $"Applicant_{applicant.Id}", 196f, ColPanel);
+            var cardColor = Blend(ColPanel, accent, 0.12f);
+            var card = CreateSurface(EnsureApplicantGridHost(), $"Applicant_{applicant.Id}", 196f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
             cardRect.sizeDelta = new Vector2(400f, 196f);
             var cardLayout = card.GetComponent<LayoutElement>();
             cardLayout.preferredWidth = 400f;
             cardLayout.minWidth = 400f;
-            AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
+            AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
             var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
@@ -349,7 +353,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             name.fontStyle = FontStyle.Bold;
             name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            CreateTag(topRow.transform, applicant.QualityTier.ToString(), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            CreateTag(topRow.transform, RuntimePanelUiUtility.GetEmployeeQualityLabel(applicant.QualityTier), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
 
             var role = CreateText(content.transform, applicant.Role != null ? applicant.Role.DisplayName : "Rol Yok", 14, TextAnchor.MiddleLeft);
             role.color = ColMuted;
@@ -358,14 +362,15 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var statRow = CreateUiObject("StatsRow", content.transform);
             statRow.AddComponent<LayoutElement>().preferredHeight = 42f;
             var statGrid = statRow.AddComponent<GridLayoutGroup>();
-            statGrid.cellSize = new Vector2(174f, 42f);
-            statGrid.spacing = new Vector2(8f, 0f);
+            statGrid.cellSize = new Vector2(116f, 42f);
+            statGrid.spacing = new Vector2(6f, 0f);
             statGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            statGrid.constraintCount = 2;
+            statGrid.constraintCount = 3;
             statGrid.childAlignment = TextAnchor.MiddleCenter;
 
             CreateMiniStat(statRow.transform, applicant.ExpectedDailySalary.Amount.ToString("N0"), "Günlük Maaş");
             CreateMiniStat(statRow.transform, "x" + applicant.IncomeMultiplier.ToString("0.0"), "Katkı");
+            CreateMiniStat(statRow.transform, applicant.ApplicantRemainingDays + "g", "Kalan Süre");
 
             CreateFlexibleSpacer(content.transform);
 
@@ -381,18 +386,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void CreateEmployeeCard(EmployeeRuntimeData employee)
         {
             var accent = GetEmployeeAccent(employee);
+            var cardColor = Blend(ColPanel, accent, 0.12f);
             var statusLabel = employee.IsAssigned ? "Çalışıyor" : "Boşta";
             var statusColor = employee.IsAssigned ? ColGold : ColGreen;
             var assignmentText = employee.IsAssigned && !string.IsNullOrWhiteSpace(employee.CurrentAssignmentName)
                 ? "Görev: " + employee.CurrentAssignmentName
                 : "Atama bekliyor";
-            var card = CreateSurface(EnsureEmployeeGridHost(), $"Employee_{employee.Id}", 196f, ColPanel);
+            var card = CreateSurface(EnsureEmployeeGridHost(), $"Employee_{employee.Id}", 196f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
             cardRect.sizeDelta = new Vector2(400f, 196f);
             var cardLayout = card.GetComponent<LayoutElement>();
             cardLayout.preferredWidth = 400f;
             cardLayout.minWidth = 400f;
-            AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
+            AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
             var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
@@ -419,7 +425,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             name.fontStyle = FontStyle.Bold;
             name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            CreateTag(topRow.transform, employee.QualityTier.ToString(), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            CreateTag(topRow.transform, RuntimePanelUiUtility.GetEmployeeQualityLabel(employee.QualityTier), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
             CreateTag(topRow.transform, statusLabel, new Color(statusColor.r, statusColor.g, statusColor.b, 0.18f), statusColor, 13);
 
             var assignment = CreateText(content.transform, assignmentText, 14, TextAnchor.MiddleLeft);
@@ -468,18 +474,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rootCanvas = FindObjectOfType<Canvas>();
             }
 
-            if (rootCanvas != null)
+            if (rootCanvas == null)
             {
-                return;
+                var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                rootCanvas = canvasObject.GetComponent<Canvas>();
+                rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             }
 
-            var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            rootCanvas = canvasObject.GetComponent<Canvas>();
-            rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            RuntimePanelUiUtility.EnsureResponsiveCanvasScaler(rootCanvas);
         }
 
         private void EnsureEventSystem()
@@ -515,11 +517,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             panelRoot = CreateUiObject("EmployeePanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = new Vector2(0f, -10f);
-            panelRect.sizeDelta = panelSize;
+            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -754,7 +752,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return roleGridParent;
             }
 
-            roleGridParent = CreateGridHost("RoleGrid", 400f, 186f).transform;
+            var roleGridHost = CreateGridHost("RoleGrid", 400f, 186f);
+            var roleGrid = roleGridHost.GetComponent<GridLayoutGroup>();
+            if (roleGrid != null)
+            {
+                roleGrid.childAlignment = TextAnchor.UpperCenter;
+            }
+
+            roleGridParent = roleGridHost.transform;
             return roleGridParent;
         }
 
@@ -765,7 +770,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return employeeGridParent;
             }
 
-            employeeGridParent = CreateGridHost("EmployeeGrid", 400f, 196f).transform;
+            var employeeGridHost = CreateGridHost("EmployeeGrid", 400f, 196f);
+            var employeeGrid = employeeGridHost.GetComponent<GridLayoutGroup>();
+            if (employeeGrid != null)
+            {
+                employeeGrid.childAlignment = TextAnchor.UpperCenter;
+            }
+
+            employeeGridParent = employeeGridHost.transform;
             return employeeGridParent;
         }
 
@@ -776,7 +788,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return applicantGridParent;
             }
 
-            applicantGridParent = CreateGridHost("ApplicantGrid", 400f, 196f).transform;
+            var applicantGridHost = CreateGridHost("ApplicantGrid", 400f, 196f);
+            var applicantGrid = applicantGridHost.GetComponent<GridLayoutGroup>();
+            if (applicantGrid != null)
+            {
+                applicantGrid.childAlignment = TextAnchor.UpperCenter;
+            }
+
+            applicantGridParent = applicantGridHost.transform;
             return applicantGridParent;
         }
 
@@ -830,16 +849,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return ColBlue;
             }
 
-            switch (employee.QualityTier.ToString())
+            switch (employee.QualityTier)
             {
-                case "Low":
+                case EmployeeQualityTier.Kotu:
+                    return ColGrey;
+                case EmployeeQualityTier.Ortalama:
                     return ColGreen;
-                case "Mid":
+                case EmployeeQualityTier.Iyi:
                     return ColGold;
-                case "High":
+                case EmployeeQualityTier.Profesyonel:
                     return ColPurple;
                 default:
-                    return ColBlue;
+                    return ColGrey;
             }
         }
 

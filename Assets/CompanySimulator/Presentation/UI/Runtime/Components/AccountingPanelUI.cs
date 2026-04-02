@@ -1,5 +1,6 @@
 using CompanySimulator.Features.Accounting.Runtime.Components;
 using CompanySimulator.Features.Accounting.Runtime.Models;
+using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
+        [SerializeField] private float panelVerticalOffset = 72f;
 
         private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
         private static readonly Color ColPanel = new Color(0.063f, 0.098f, 0.169f, 1f);
@@ -28,11 +30,13 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private static readonly Color ColSurfaceAlt = new Color(0.047f, 0.078f, 0.141f, 1f);
         private static readonly Color ColText = new Color(0.933f, 0.957f, 1f, 1f);
         private static readonly Color ColMuted = new Color(0.561f, 0.639f, 0.784f, 1f);
+        private static readonly Color ColGrey = new Color(0.47f, 0.52f, 0.6f, 1f);
         private static readonly Color ColBlue = new Color(0.353f, 0.627f, 1f, 1f);
         private static readonly Color ColCyan = new Color(0.302f, 0.886f, 0.816f, 1f);
         private static readonly Color ColGold = new Color(0.961f, 0.769f, 0.365f, 1f);
         private static readonly Color ColGreen = new Color(0.263f, 0.839f, 0.561f, 1f);
         private static readonly Color ColRed = new Color(1f, 0.42f, 0.506f, 1f);
+        private static readonly Color ColPurple = new Color(0.62f, 0.46f, 1f, 1f);
 
         private Font defaultFont;
         private Sprite roundedSprite;
@@ -123,6 +127,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             panelRoot.SetActive(true);
+            RuntimePanelUiUtility.BringToFront(panelRoot);
             RefreshPage();
         }
 
@@ -193,18 +198,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rootCanvas = FindObjectOfType<Canvas>();
             }
 
-            if (rootCanvas != null)
+            if (rootCanvas == null)
             {
-                return;
+                var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                rootCanvas = canvasObject.GetComponent<Canvas>();
+                rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             }
 
-            var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            rootCanvas = canvasObject.GetComponent<Canvas>();
-            rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            RuntimePanelUiUtility.EnsureResponsiveCanvasScaler(rootCanvas);
         }
 
         private void EnsureEventSystem()
@@ -240,11 +241,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             panelRoot = CreateUiObject("AccountingPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = new Vector2(0f, -10f);
-            panelRect.sizeDelta = panelSize;
+            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -372,7 +369,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             name.fontStyle = FontStyle.Bold;
             name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            CreateTag(topRow.transform, accountant.QualityTier.ToString(), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            CreateTag(topRow.transform, RuntimePanelUiUtility.GetEmployeeQualityLabel(accountant.QualityTier), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
             CreateTag(topRow.transform, "Atanmış", new Color(ColGreen.r, ColGreen.g, ColGreen.b, 0.18f), ColGreen, 13);
 
             var statRow = CreateUiObject("StatsRow", content.transform);
@@ -445,7 +442,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             name.fontStyle = FontStyle.Bold;
             name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            CreateTag(topRow.transform, accountant.QualityTier.ToString(), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            CreateTag(topRow.transform, RuntimePanelUiUtility.GetEmployeeQualityLabel(accountant.QualityTier), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
             CreateTag(topRow.transform, "Boşta", new Color(ColBlue.r, ColBlue.g, ColBlue.b, 0.16f), ColBlue, 13);
 
             var statRow = CreateUiObject("StatsRow", content.transform);
@@ -621,16 +618,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return ColBlue;
             }
 
-            switch (accountant.QualityTier.ToString())
+            switch (accountant.QualityTier)
             {
-                case "Low":
+                case EmployeeQualityTier.Kotu:
+                    return ColGrey;
+                case EmployeeQualityTier.Ortalama:
                     return ColGreen;
-                case "Mid":
+                case EmployeeQualityTier.Iyi:
                     return ColGold;
-                case "High":
-                    return ColCyan;
+                case EmployeeQualityTier.Profesyonel:
+                    return ColPurple;
                 default:
-                    return ColBlue;
+                    return ColGrey;
             }
         }
 

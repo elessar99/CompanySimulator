@@ -24,6 +24,10 @@ MonoBehaviour:
   availableJobs:
   - {fileID: 11400000, guid: 837bd96fcd005a140a64cd54e897567a, type: 2}
   - {fileID: 11400000, guid: f6f031a188b707c4291b1eea131b6053, type: 2}
+  - {fileID: 11400000, guid: 6cca31100bbc0c24695c7827cc6f1855, type: 2}
+  - {fileID: 11400000, guid: 12a3beb64911766439de755227ae91d4, type: 2}
+  - {fileID: 11400000, guid: 4b867cf4a0a13914b9b49864262aeed3, type: 2}
+  - {fileID: 11400000, guid: 4b867cf4a0a13914b9b49864262aeed3, type: 2}
   agentSendCheckIntervalDays: 10
   agentSendChance: 0.3
   minAgentsPerSend: 1

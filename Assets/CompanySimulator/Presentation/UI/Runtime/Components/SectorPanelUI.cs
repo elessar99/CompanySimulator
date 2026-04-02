@@ -5,6 +5,7 @@ using CompanySimulator.Features.Accounting.Runtime.Components;
 using CompanySimulator.Features.Agents.Runtime.Components;
 using CompanySimulator.Features.Banking.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Components;
+using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
@@ -41,6 +42,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private AgentManager agentManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
+        [SerializeField] private float panelVerticalOffset = 72f;
 
         private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
         private static readonly Color ColPanel = new Color(0.063f, 0.098f, 0.169f, 1f);
@@ -48,6 +50,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private static readonly Color ColSurfaceAlt = new Color(0.047f, 0.078f, 0.141f, 1f);
         private static readonly Color ColText = new Color(0.933f, 0.957f, 1f, 1f);
         private static readonly Color ColMuted = new Color(0.561f, 0.639f, 0.784f, 1f);
+        private static readonly Color ColGrey = new Color(0.47f, 0.52f, 0.6f, 1f);
         private static readonly Color ColBlue = new Color(0.353f, 0.627f, 1f, 1f);
         private static readonly Color ColCyan = new Color(0.302f, 0.886f, 0.816f, 1f);
         private static readonly Color ColGold = new Color(0.961f, 0.769f, 0.365f, 1f);
@@ -175,6 +178,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             panelRoot.SetActive(true);
+            RuntimePanelUiUtility.BringToFront(panelRoot);
             NavigateToSectorList();
         }
 
@@ -345,18 +349,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rootCanvas = FindObjectOfType<Canvas>();
             }
 
-            if (rootCanvas != null)
+            if (rootCanvas == null)
             {
-                return;
+                var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                rootCanvas = canvasObject.GetComponent<Canvas>();
+                rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             }
 
-            var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            rootCanvas = canvasObject.GetComponent<Canvas>();
-            rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            RuntimePanelUiUtility.EnsureResponsiveCanvasScaler(rootCanvas);
         }
 
         private void EnsureEventSystem()
@@ -461,11 +461,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             panelRoot = CreateUiObject("SectorPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = new Vector2(0f, -10f);
-            panelRect.sizeDelta = panelSize;
+            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -1293,7 +1289,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             CreateTag(topRow.transform, expandedEmployeeSlotId == slotId ? "Açýk" : "Kapalý", new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
 
-            var subtitle = CreateText(content.transform, selectedEmployee == null ? "Boþ çalýþan seç" : $"{selectedEmployee.DisplayName} | Kademe: {selectedEmployee.QualityTier} | x{selectedEmployee.IncomeMultiplier:0.0}", 14, TextAnchor.MiddleLeft);
+            var subtitle = CreateText(content.transform, selectedEmployee == null ? "Boþ çalýþan seç" : $"{selectedEmployee.DisplayName} | Kademe: {RuntimePanelUiUtility.GetEmployeeQualityLabel(selectedEmployee.QualityTier)} | x{selectedEmployee.IncomeMultiplier:0.0}", 14, TextAnchor.MiddleLeft);
             subtitle.color = ColMuted;
             subtitle.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
 
@@ -1425,18 +1421,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void CreateEmployeeCandidateButton(string slotId, EmployeeRuntimeData employee, Transform parent)
         {
             var accent = GetEmployeeAccent(employee);
-            var card = CreateSurface(parent, $"Candidate_{slotId}_{employee.Id}", 128f, ColPanel);
+            var cardColor = Blend(ColPanel, accent, 0.12f);
+            var card = CreateSurface(parent, $"Candidate_{slotId}_{employee.Id}", 128f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
             cardRect.sizeDelta = new Vector2(400f, 128f);
             var cardLayout = card.GetComponent<LayoutElement>();
             cardLayout.preferredWidth = 400f;
             cardLayout.minWidth = 400f;
-            AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
+            AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
             var button = card.AddComponent<Button>();
             button.targetGraphic = card.GetComponent<Image>();
-            button.colors = CreateButtonColors(ColPanel, Blend(ColPanel, accent, 0.18f), Darken(ColPanel, 0.12f));
+            button.colors = CreateButtonColors(cardColor, Blend(cardColor, accent, 0.18f), Darken(cardColor, 0.12f));
 
             var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
             var contentLayout = content.AddComponent<VerticalLayoutGroup>();
@@ -1460,7 +1457,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             name.color = ColText;
             name.fontStyle = FontStyle.Bold;
 
-            CreateTag(topRow.transform, employee.QualityTier.ToString(), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            CreateTag(topRow.transform, RuntimePanelUiUtility.GetEmployeeQualityLabel(employee.QualityTier), new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
 
             var role = CreateText(content.transform, employee.Role != null ? employee.Role.DisplayName : "Rol Yok", 14, TextAnchor.MiddleLeft);
             role.color = ColMuted;
@@ -2268,17 +2265,18 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return ColBlue;
             }
 
-            var qualityKey = employee.QualityTier.ToString();
-            switch (qualityKey)
+            switch (employee.QualityTier)
             {
-                case "Low":
+                case EmployeeQualityTier.Kotu:
+                    return ColGrey;
+                case EmployeeQualityTier.Ortalama:
                     return ColGreen;
-                case "Mid":
+                case EmployeeQualityTier.Iyi:
                     return ColGold;
-                case "High":
+                case EmployeeQualityTier.Profesyonel:
                     return ColPurple;
                 default:
-                    return ColBlue;
+                    return ColGrey;
             }
         }
 

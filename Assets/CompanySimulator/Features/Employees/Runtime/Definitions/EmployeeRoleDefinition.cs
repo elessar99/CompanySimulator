@@ -36,6 +36,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         [SerializeField, Min(0f)] private float qualityWeight = 1f;
         [SerializeField, Min(0f)] private float profitWeight = 1f;
         [SerializeField] private bool requiresOffice = true;
+        [SerializeField, Min(1)] private int applicantRefreshIntervalDays = 3;
         [SerializeField, Min(1)] private int maxConcurrentAssignmentsPerEmployee = 1;
         [SerializeField] private SectorDefinition[] allowedSectors = Array.Empty<SectorDefinition>();
         [SerializeField] private EmployeeQualityTierSettings kotuSettings = new EmployeeQualityTierSettings(300, 450, 0.5f, 35f);
@@ -47,6 +48,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         public float QualityWeight => Mathf.Max(0f, qualityWeight);
         public float ProfitWeight => Mathf.Max(0f, profitWeight);
         public bool RequiresOffice => requiresOffice;
+        public int ApplicantRefreshIntervalDays => Mathf.Max(1, applicantRefreshIntervalDays);
 
         // Şimdilik her çalışan aynı anda sadece tek bir işte çalışabilir.
         public int MaxConcurrentAssignmentsPerEmployee => 1;

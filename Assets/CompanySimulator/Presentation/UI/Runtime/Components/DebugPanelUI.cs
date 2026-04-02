@@ -28,6 +28,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(820f, 720f);
+        [SerializeField] private float panelVerticalOffset = 72f;
 
         private Font defaultFont;
         private GameObject panelRoot;
@@ -127,6 +128,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (securityPanelUI != null && securityPanelUI.IsOpen) securityPanelUI.ClosePanel();
 
             panelRoot.SetActive(true);
+            RuntimePanelUiUtility.BringToFront(panelRoot);
             RefreshPage();
         }
 
@@ -484,18 +486,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 rootCanvas = FindObjectOfType<Canvas>();
             }
 
-            if (rootCanvas != null)
+            if (rootCanvas == null)
             {
-                return;
+                var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                rootCanvas = canvasObject.GetComponent<Canvas>();
+                rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             }
 
-            var canvasObject = new GameObject("MainCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            rootCanvas = canvasObject.GetComponent<Canvas>();
-            rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            RuntimePanelUiUtility.EnsureResponsiveCanvasScaler(rootCanvas);
         }
 
         private void EnsureEventSystem()
@@ -531,11 +529,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             panelRoot = CreateUiObject("DebugPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = new Vector2(0f, -10f);
-            panelRect.sizeDelta = panelSize;
+            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
 
             panelRoot.AddComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.98f);
 
