@@ -26,6 +26,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
         [SerializeField] private SecurityPanelUI securityPanelUI;
+        [SerializeField] private ShopPanelUI shopPanelUI;
+        [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(820f, 720f);
         [SerializeField] private float panelVerticalOffset = 72f;
@@ -54,6 +56,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             rivalCompanyPanelUI ??= FindObjectOfType<RivalCompanyPanelUI>();
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
+            shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
+            inventoryPanelUI ??= FindObjectOfType<InventoryPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();

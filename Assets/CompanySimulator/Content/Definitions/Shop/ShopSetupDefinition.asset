@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f40803c473a9b4478b5039f6e5ef652, type: 3}
+  m_Name: ShopSetupDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Shop.Runtime.Definitions.ShopSetupDefinition
+  id: ShopSetupDefinition
+  displayName: ShopSetupDefinition
+  catalogs:
+  - {fileID: 11400000, guid: 94c0abda8f10a3042bcb22b8f11133e9, type: 2}
+  - {fileID: 11400000, guid: 6ce626c8931cc3a459c3672b33a32a50, type: 2}

@@ -18,5 +18,26 @@ MonoBehaviour:
   qualityWeight: 1
   profitWeight: 1
   requiresOffice: 1
+  applicantRefreshIntervalDays: 1
   maxConcurrentAssignmentsPerEmployee: 1
   allowedSectors: []
+  kotuSettings:
+    minimumExpectedSalary: 300
+    maximumExpectedSalary: 450
+    incomeMultiplier: 0.5
+    spawnChanceWeight: 35
+  ortalamaSettings:
+    minimumExpectedSalary: 451
+    maximumExpectedSalary: 600
+    incomeMultiplier: 1
+    spawnChanceWeight: 35
+  iyiSettings:
+    minimumExpectedSalary: 601
+    maximumExpectedSalary: 725
+    incomeMultiplier: 1.5
+    spawnChanceWeight: 20
+  profesyonelSettings:
+    minimumExpectedSalary: 726
+    maximumExpectedSalary: 800
+    incomeMultiplier: 3
+    spawnChanceWeight: 20

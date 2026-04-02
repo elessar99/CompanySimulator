@@ -24,5 +24,7 @@ MonoBehaviour:
   startingEmployees: []
   jobApplicants: []
   autoGenerateApplicants: 1
-  minGeneratedApplicantsPerRole: 2
+  applicantLifetimeDays: 7
+  initialGeneratedApplicantsPerAllowedSector: 10
+  minGeneratedApplicantsPerRole: 1
   maxGeneratedApplicantsPerRole: 4

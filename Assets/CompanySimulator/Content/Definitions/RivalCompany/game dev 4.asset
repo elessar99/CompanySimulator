@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14bbab461e71f9c46994f39c89c57867, type: 3}
   m_Name: game dev 4
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Rivals.Runtime.Definitions.RivalCompanyJobDefinition
-  id: sss
-  displayName: "oyun geli\u015Ftirme"
-  sector: {fileID: 11400000, guid: a00e1e086365ad140a47c5e372f7b561, type: 2}
+  id: sssa
+  displayName: "oyun geli\u015Ftirmez"
+  sector: {fileID: 11400000, guid: 15d55f8fc0829c34d9540d836702c6e0, type: 2}
   jobCost: 1000
   payoutIntervalDays: 5
   minimumIncomePerCycle: 2000

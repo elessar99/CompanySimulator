@@ -188,7 +188,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             const int sectorCardCount = 6;
             const float sectorCardWidth = 400f;
             const float sectorCardHeight = 186f;
-            const float sectorGridSpacing = 12f;
+            const float sectorGridSpacing = 36f;
             var sectorColumnCount = CalculateGridColumnCount(sectorCardWidth, sectorGridSpacing);
             var sectorGridHeight = CalculateGridHeight(sectorCardCount, sectorColumnCount, sectorCardHeight, sectorGridSpacing);
 
@@ -220,7 +220,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             const int projectCardCount = 6;
             const float projectCardWidth = 400f;
             const float projectCardHeight = 228f;
-            const float projectGridSpacing = 12f;
+            const float projectGridSpacing = 36f;
             var projectColumnCount = CalculateGridColumnCount(projectCardWidth, projectGridSpacing);
             var projectGridHeight = CalculateGridHeight(projectCardCount, projectColumnCount, projectCardHeight, projectGridSpacing);
 
@@ -253,7 +253,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             const float slotCardHeight = 96f;
             const float candidateCardWidth = 400f;
             const float candidateCardHeight = 128f;
-            const float gridSpacing = 12f;
+            const float gridSpacing = 36f;
             const int candidateCount = 6;
 
             var columnCount = CalculateGridColumnCount(candidateCardWidth, gridSpacing);
@@ -942,7 +942,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var contentLayout = content.AddComponent<VerticalLayoutGroup>();
             contentLayout.padding = new RectOffset(8, 8, 8, 8);
-            contentLayout.spacing = 12f;
+            contentLayout.spacing = 36f;
             contentLayout.childControlWidth = true;
             contentLayout.childControlHeight = true;
             contentLayout.childForceExpandWidth = true;

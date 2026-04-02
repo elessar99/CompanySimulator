@@ -27,7 +27,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6cca31100bbc0c24695c7827cc6f1855, type: 2}
   - {fileID: 11400000, guid: 12a3beb64911766439de755227ae91d4, type: 2}
   - {fileID: 11400000, guid: 4b867cf4a0a13914b9b49864262aeed3, type: 2}
-  - {fileID: 11400000, guid: 4b867cf4a0a13914b9b49864262aeed3, type: 2}
+  - {fileID: 11400000, guid: 7268ab83ad68938469a7959fef792c5f, type: 2}
   agentSendCheckIntervalDays: 10
   agentSendChance: 0.3
   minAgentsPerSend: 1

@@ -180,6 +180,44 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             return Balance >= result.TotalCosts;
         }
 
+        public bool CanSpend(Money amount)
+        {
+            if (!EnsureInitialized() || amount < Money.Zero)
+            {
+                return false;
+            }
+
+            return Balance >= amount;
+        }
+
+        public bool TrySpend(Money amount, LedgerEntryType expenseType, string description)
+        {
+            if (!EnsureInitialized())
+            {
+                return false;
+            }
+
+            if (amount < Money.Zero)
+            {
+                return false;
+            }
+
+            if (amount == Money.Zero)
+            {
+                return true;
+            }
+
+            if (Balance < amount)
+            {
+                return false;
+            }
+
+            ApplyExpense(amount, expenseType, description);
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            return true;
+        }
+
         public bool TryExecuteProject(ProjectExecutionDefinition executionDefinition, out ProjectEconomyResult result)
         {
             result = default;

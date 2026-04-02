@@ -39,6 +39,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
         [SerializeField] private DebugPanelUI debugPanelUI;
         [SerializeField] private SecurityPanelUI securityPanelUI;
+        [SerializeField] private ShopPanelUI shopPanelUI;
+        [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private AgentManager agentManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
@@ -175,6 +177,16 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (securityPanelUI != null && securityPanelUI.IsOpen)
             {
                 securityPanelUI.ClosePanel();
+            }
+
+            if (shopPanelUI != null && shopPanelUI.IsOpen)
+            {
+                shopPanelUI.ClosePanel();
+            }
+
+            if (inventoryPanelUI != null && inventoryPanelUI.IsOpen)
+            {
+                inventoryPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);
@@ -545,7 +557,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             contentRoot.sizeDelta = new Vector2(0f, 0f);
 
             var layout = content.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 12f;
+            layout.spacing = 36f;
             layout.padding = new RectOffset(8, 8, 8, 8);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
@@ -1229,7 +1241,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 var roleSection = CreateUiObject($"RoleSection_{role.Id}_{assignmentIndex}", contentRoot);
                 var roleSectionLayout = roleSection.AddComponent<VerticalLayoutGroup>();
                 roleSectionLayout.padding = new RectOffset(0, 0, assignmentIndex > 0 ? 10 : 0, 0);
-                roleSectionLayout.spacing = 12f;
+            roleSectionLayout.spacing = 36f;
                 roleSectionLayout.childControlWidth = true;
                 roleSectionLayout.childControlHeight = true;
                 roleSectionLayout.childForceExpandWidth = true;
@@ -1317,7 +1329,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 const float candidateCardWidth = 400f;
                 const float candidateCardHeight = 128f;
-                const float candidateGridSpacing = 12f;
+            const float candidateGridSpacing = 36f;
                 var candidateColumnCount = CalculateGridColumnCount(candidateCardWidth, candidateGridSpacing);
                 var candidateGridHeight = CalculateGridHeight(availableEmployees.Count, candidateColumnCount, candidateCardHeight, candidateGridSpacing);
 
@@ -1505,7 +1517,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             const float investmentCardWidth = 600f;
             const float investmentCardHeight = 132f;
-            const float investmentGridSpacing = 12f;
+            const float investmentGridSpacing = 36f;
 
             var investmentGridHost = CreateUiObject("InvestmentGrid", contentRoot);
             var investmentGrid = investmentGridHost.AddComponent<GridLayoutGroup>();
@@ -2183,7 +2195,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             const float projectCardWidth = 400f;
             const float projectCardHeight = 228f;
-            const float projectGridSpacing = 12f;
+            const float projectGridSpacing = 36f;
 
             var host = CreateUiObject("ActiveProjectGrid", contentRoot);
             var grid = host.AddComponent<GridLayoutGroup>();
@@ -2243,7 +2255,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             const float sectorCardWidth = 400f;
             const float sectorCardHeight = 186f;
-            const float sectorGridSpacing = 12f;
+            const float sectorGridSpacing = 36f;
 
             var gridHost = CreateUiObject("SectorGrid", contentRoot);
             var grid = gridHost.AddComponent<GridLayoutGroup>();

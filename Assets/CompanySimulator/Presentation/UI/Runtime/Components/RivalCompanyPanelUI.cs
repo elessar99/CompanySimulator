@@ -23,6 +23,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private DebugPanelUI debugPanelUI;
         [SerializeField] private SecurityPanelUI securityPanelUI;
+        [SerializeField] private ShopPanelUI shopPanelUI;
+        [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
         [SerializeField] private float panelVerticalOffset = 72f;
@@ -85,6 +87,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
+            shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
+            inventoryPanelUI ??= FindObjectOfType<InventoryPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -131,6 +135,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen) financeOverviewPanelUI.ClosePanel();
             if (debugPanelUI != null && debugPanelUI.IsOpen) debugPanelUI.ClosePanel();
             if (securityPanelUI != null && securityPanelUI.IsOpen) securityPanelUI.ClosePanel();
+            if (shopPanelUI != null && shopPanelUI.IsOpen) shopPanelUI.ClosePanel();
+            if (inventoryPanelUI != null && inventoryPanelUI.IsOpen) inventoryPanelUI.ClosePanel();
 
             currentPage = PageState.RivalList;
             selectedRival = null;
@@ -216,7 +222,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = GetRivalAccent(rival);
             const float sectorCardWidth = 400f;
             const float sectorCardHeight = 92f;
-            const float sectorGridSpacing = 12f;
+            const float sectorGridSpacing = 36f;
             var sectorColumnCount = Mathf.Max(1, CalculateGridColumnCount(sectorCardWidth, sectorGridSpacing));
             var sectorRowCount = sectors.Count > 0 ? Mathf.CeilToInt(sectors.Count / (float)sectorColumnCount) : 1;
             var sectorGridHeight = (sectorRowCount * sectorCardHeight) + (Mathf.Max(0, sectorRowCount - 1) * sectorGridSpacing);
@@ -697,7 +703,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             contentRoot.sizeDelta = new Vector2(0f, 0f);
 
             var layout = content.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 12f;
+            layout.spacing = 36f;
             layout.padding = new RectOffset(8, 8, 8, 8);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
@@ -748,7 +754,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private GameObject CreateGridHost(string objectName, float cardWidth, float cardHeight)
         {
-            const float gridSpacing = 12f;
+            const float gridSpacing = 36f;
             var host = CreateUiObject(objectName, contentRoot);
             var grid = host.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(cardWidth, cardHeight);

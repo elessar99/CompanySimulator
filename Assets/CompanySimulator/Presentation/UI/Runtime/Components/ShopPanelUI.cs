@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using CompanySimulator.Features.Agents.Runtime.Components;
-using CompanySimulator.Features.Agents.Runtime.Models;
-using CompanySimulator.Features.Finance.Runtime.Components;
-using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Inventory.Runtime.Components;
+using CompanySimulator.Features.Shop.Runtime.Components;
+using CompanySimulator.Features.Shop.Runtime.Definitions;
 using CompanySimulator.Presentation.UI.Runtime.Common;
-using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,10 +9,10 @@ using UnityEngine.UI;
 namespace CompanySimulator.Presentation.UI.Runtime.Components
 {
     [DisallowMultipleComponent]
-    public sealed class SecurityPanelUI : MonoBehaviour
+    public sealed class ShopPanelUI : MonoBehaviour
     {
-        [SerializeField] private AgentManager agentManager;
-        [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private ShopManager shopManager;
+        [SerializeField] private InventoryManager inventoryManager;
         [SerializeField] private SectorPanelUI sectorPanelUI;
         [SerializeField] private EmployeePanelUI employeePanelUI;
         [SerializeField] private AccountingPanelUI accountingPanelUI;
@@ -23,10 +20,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private FinanceOverviewPanelUI financeOverviewPanelUI;
         [SerializeField] private RivalCompanyPanelUI rivalCompanyPanelUI;
         [SerializeField] private DebugPanelUI debugPanelUI;
-        [SerializeField] private ShopPanelUI shopPanelUI;
+        [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private Canvas rootCanvas;
-        [SerializeField] private Vector2 panelSize = new Vector2(780f, 720f);
+        [SerializeField] private Vector2 panelSize = new Vector2(1100f, 760f);
         [SerializeField] private float panelVerticalOffset = 72f;
 
         private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
@@ -40,21 +37,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private static readonly Color ColGold = new Color(0.961f, 0.769f, 0.365f, 1f);
         private static readonly Color ColGreen = new Color(0.263f, 0.839f, 0.561f, 1f);
         private static readonly Color ColRed = new Color(1f, 0.42f, 0.506f, 1f);
-        private static readonly Color ColPurple = new Color(0.62f, 0.46f, 1f, 1f);
 
         private Font defaultFont;
         private Sprite roundedSprite;
         private GameObject panelRoot;
         private RectTransform contentRoot;
         private Text pageTitleText;
-        private Text searchFeedbackText;
+        private ShopCatalogDefinition currentCatalog;
+        private string feedbackMessage = string.Empty;
 
         public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
         private void Awake()
         {
-            agentManager ??= FindObjectOfType<AgentManager>();
-            economyManager ??= FindObjectOfType<EconomyManager>();
+            shopManager ??= FindObjectOfType<ShopManager>();
+            inventoryManager ??= FindObjectOfType<InventoryManager>();
             sectorPanelUI ??= FindObjectOfType<SectorPanelUI>();
             employeePanelUI ??= FindObjectOfType<EmployeePanelUI>();
             accountingPanelUI ??= FindObjectOfType<AccountingPanelUI>();
@@ -62,7 +59,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             financeOverviewPanelUI ??= FindObjectOfType<FinanceOverviewPanelUI>();
             rivalCompanyPanelUI ??= FindObjectOfType<RivalCompanyPanelUI>();
             debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
-            shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
+            securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
             inventoryPanelUI ??= FindObjectOfType<InventoryPanelUI>();
             EnsureCanvas();
             EnsureEventSystem();
@@ -73,16 +70,16 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnEnable()
         {
-            if (agentManager != null)
+            if (shopManager != null)
             {
-                agentManager.DataChanged -= RefreshPage;
-                agentManager.DataChanged += RefreshPage;
+                shopManager.DataChanged -= RefreshPage;
+                shopManager.DataChanged += RefreshPage;
             }
 
-            if (economyManager != null)
+            if (inventoryManager != null)
             {
-                economyManager.DayAdvanced -= HandleDayAdvanced;
-                economyManager.DayAdvanced += HandleDayAdvanced;
+                inventoryManager.DataChanged -= RefreshPage;
+                inventoryManager.DataChanged += RefreshPage;
             }
 
             RefreshPage();
@@ -90,63 +87,28 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void OnDisable()
         {
-            if (agentManager != null)
+            if (shopManager != null)
             {
-                agentManager.DataChanged -= RefreshPage;
+                shopManager.DataChanged -= RefreshPage;
             }
 
-            if (economyManager != null)
+            if (inventoryManager != null)
             {
-                economyManager.DayAdvanced -= HandleDayAdvanced;
+                inventoryManager.DataChanged -= RefreshPage;
             }
         }
 
         public void OpenPanel()
         {
-            if (sectorPanelUI != null && sectorPanelUI.IsOpen)
-            {
-                sectorPanelUI.ClosePanel();
-            }
-
-            if (employeePanelUI != null && employeePanelUI.IsOpen)
-            {
-                employeePanelUI.ClosePanel();
-            }
-
-            if (accountingPanelUI != null && accountingPanelUI.IsOpen)
-            {
-                accountingPanelUI.ClosePanel();
-            }
-
-            if (bankPanelUI != null && bankPanelUI.IsOpen)
-            {
-                bankPanelUI.ClosePanel();
-            }
-
-            if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen)
-            {
-                financeOverviewPanelUI.ClosePanel();
-            }
-
-            if (rivalCompanyPanelUI != null && rivalCompanyPanelUI.IsOpen)
-            {
-                rivalCompanyPanelUI.ClosePanel();
-            }
-
-            if (debugPanelUI != null && debugPanelUI.IsOpen)
-            {
-                debugPanelUI.ClosePanel();
-            }
-
-            if (shopPanelUI != null && shopPanelUI.IsOpen)
-            {
-                shopPanelUI.ClosePanel();
-            }
-
-            if (inventoryPanelUI != null && inventoryPanelUI.IsOpen)
-            {
-                inventoryPanelUI.ClosePanel();
-            }
+            if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
+            if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
+            if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
+            if (bankPanelUI != null && bankPanelUI.IsOpen) bankPanelUI.ClosePanel();
+            if (financeOverviewPanelUI != null && financeOverviewPanelUI.IsOpen) financeOverviewPanelUI.ClosePanel();
+            if (rivalCompanyPanelUI != null && rivalCompanyPanelUI.IsOpen) rivalCompanyPanelUI.ClosePanel();
+            if (debugPanelUI != null && debugPanelUI.IsOpen) debugPanelUI.ClosePanel();
+            if (securityPanelUI != null && securityPanelUI.IsOpen) securityPanelUI.ClosePanel();
+            if (inventoryPanelUI != null && inventoryPanelUI.IsOpen) inventoryPanelUI.ClosePanel();
 
             panelRoot.SetActive(true);
             RuntimePanelUiUtility.BringToFront(panelRoot);
@@ -158,14 +120,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             panelRoot.SetActive(false);
         }
 
-        private void HandleDayAdvanced(int _)
-        {
-            if (IsOpen)
-            {
-                RefreshPage();
-            }
-        }
-
         private void RefreshPage()
         {
             if (contentRoot == null)
@@ -173,155 +127,113 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            ClearChildren(contentRoot);
-            pageTitleText.text = "Güvenlik";
-            searchFeedbackText = null;
+            pageTitleText.text = "Alışveriş";
+            RuntimePanelUiUtility.ClearChildren(contentRoot);
 
-            RenderSearchSection();
-            RenderSummarySection();
-            RenderActiveAgentDetails();
-            RenderDismissedAgentHistory();
-        }
-
-        private void RenderSearchSection()
-        {
-            CreateSectionTitle("Ajan Arama");
-
-            if (agentManager == null)
+            if (shopManager == null)
             {
-                CreateInfoCard("Ajan sistemi sahnede bulunamadı.");
+                CreateInfoCard("ShopManager sahnede bulunamadı.", 72f);
                 return;
             }
 
-            var cost = agentManager.GetAgentSearchCost();
-            var searchButton = CreateStyledButton(contentRoot, "SearchAgentsButton", $"Ajan Ara (Maliyet: {cost.Amount:N0})", ColBlue, Blend(ColBlue, ColCyan, 0.28f), Darken(ColBlue, 0.22f), ColText, TextAnchor.MiddleCenter);
-            var searchLayout = searchButton.gameObject.AddComponent<LayoutElement>();
-            searchLayout.preferredHeight = 52f;
-            searchLayout.minHeight = 52f;
-            searchButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 52f);
-            searchButton.onClick.AddListener(() =>
+            if (!shopManager.IsInitialized)
             {
-                if (agentManager != null)
-                {
-                    var result = agentManager.SearchForAgents();
-                    if (searchFeedbackText != null)
-                    {
-                        searchFeedbackText.text = result;
-                    }
+                shopManager.Initialize();
+            }
 
+            var catalogs = shopManager.Catalogs;
+            if (catalogs.Count == 0)
+            {
+                CreateInfoCard("Gösterilecek katalog bulunmuyor. Shop setup varlıklarını tanımlayıp ShopManager'a bağla.", 88f);
+                return;
+            }
+
+            if (currentCatalog == null || !ContainsCatalog(catalogs, currentCatalog))
+            {
+                currentCatalog = catalogs[0];
+            }
+
+            if (!string.IsNullOrWhiteSpace(feedbackMessage))
+            {
+                CreateInfoCard(feedbackMessage, 72f);
+            }
+
+            CreateCatalogTabs(catalogs);
+            RenderCatalog(currentCatalog);
+        }
+
+        private void CreateCatalogTabs(System.Collections.Generic.IReadOnlyList<ShopCatalogDefinition> catalogs)
+        {
+            var row = CreateUiObject("CatalogTabs", contentRoot);
+            var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 12f;
+            rowLayout.childControlWidth = true;
+            rowLayout.childControlHeight = true;
+            rowLayout.childForceExpandWidth = false;
+            rowLayout.childForceExpandHeight = false;
+            row.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            row.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 56f);
+
+            for (var i = 0; i < catalogs.Count; i++)
+            {
+                var catalog = catalogs[i];
+                var isSelected = currentCatalog == catalog;
+                var normal = isSelected ? ColBlue : ColSurfaceAlt;
+                var hover = isSelected ? Blend(ColBlue, ColCyan, 0.28f) : Blend(ColSurfaceAlt, ColBlue, 0.14f);
+                var pressed = isSelected ? Darken(ColBlue, 0.22f) : Darken(ColSurfaceAlt, 0.1f);
+                var button = CreateStyledButton(row.transform, "Catalog_" + catalog.Id, catalog.DisplayName, normal, hover, pressed, isSelected ? ColText : ColMuted, TextAnchor.MiddleCenter);
+                var layoutElement = button.gameObject.AddComponent<LayoutElement>();
+                layoutElement.preferredWidth = 220f;
+                layoutElement.minWidth = 220f;
+                layoutElement.preferredHeight = 56f;
+                layoutElement.minHeight = 56f;
+                button.onClick.AddListener(() =>
+                {
+                    currentCatalog = catalog;
                     RefreshPage();
-                }
-            });
-
-            searchFeedbackText = CreateInfoCard("Şirkette gizli ajan olup olmadığını kontrol etmek için arama yap.", 72f);
-        }
-
-        private void RenderSummarySection()
-        {
-            if (agentManager == null)
-            {
-                return;
-            }
-
-            var activeAgents = agentManager.PlayerTargetedAgents;
-            var detectedCount = 0;
-            var totalRevenueLoss = 0L;
-            var totalAffectedProjects = 0;
-
-            for (var i = 0; i < activeAgents.Count; i++)
-            {
-                var agent = activeAgents[i];
-                if (!agent.IsActive || !agent.IsDetected)
-                {
-                    continue;
-                }
-
-                detectedCount++;
-                totalAffectedProjects += agent.AffectedProjects.Count;
-                totalRevenueLoss += CalculateAgentRevenueLoss(agent);
-            }
-
-            if (detectedCount == 0)
-            {
-                CreateInfoCard("Henüz ajan tespit edilmedi.\nArama yaparak şirketini kontrol et.", 64f);
-                return;
-            }
-
-            CreateSectionTitle("Özet");
-
-            var summaryGridHost = CreateUiObject("SecuritySummaryGrid", contentRoot);
-            var summaryGrid = summaryGridHost.AddComponent<GridLayoutGroup>();
-            summaryGrid.cellSize = new Vector2(220f, 96f);
-            summaryGrid.spacing = new Vector2(36f, 36f);
-            summaryGrid.padding = new RectOffset(0, 0, 0, 0);
-            summaryGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            summaryGrid.constraintCount = 3;
-            summaryGrid.childAlignment = TextAnchor.UpperLeft;
-            var summaryFitter = summaryGridHost.AddComponent<ContentSizeFitter>();
-            summaryFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            summaryFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            CreateMetricCard(summaryGridHost.transform, "Tespit Edilen", detectedCount.ToString(), "Aktif Ajan", ColBlue);
-            CreateMetricCard(summaryGridHost.transform, "Etkilenen İş", totalAffectedProjects.ToString(), "Sabotaj Altında", ColGold);
-            CreateMetricCard(summaryGridHost.transform, "Gelir Kaybı", totalRevenueLoss.ToString("N0"), "Döngü Başına", ColRed);
-        }
-
-        private void RenderActiveAgentDetails()
-        {
-            if (agentManager == null)
-            {
-                return;
-            }
-
-            var activeAgents = agentManager.PlayerTargetedAgents;
-            var hasDetected = false;
-
-            for (var i = 0; i < activeAgents.Count; i++)
-            {
-                if (activeAgents[i].IsActive && activeAgents[i].IsDetected)
-                {
-                    hasDetected = true;
-                    break;
-                }
-            }
-
-            if (!hasDetected)
-            {
-                return;
-            }
-
-            CreateSectionTitle("Tespit Edilen Ajanlar");
-
-            for (var i = 0; i < activeAgents.Count; i++)
-            {
-                var agent = activeAgents[i];
-                if (!agent.IsActive || !agent.IsDetected)
-                {
-                    continue;
-                }
-
-                RenderAgentCard(agent);
+                });
             }
         }
 
-        private void RenderAgentCard(PlayerTargetedAgentRuntimeData agent)
+        private void RenderCatalog(ShopCatalogDefinition catalog)
         {
-            var definition = agent.Definition;
-            var affectedProjects = agent.AffectedProjects;
-            var senderName = agent.SourceRival != null && agent.SourceRival.Definition != null
-                ? agent.SourceRival.Definition.DisplayName
-                : "Bilinmiyor";
-            var sectorName = agent.TargetSector != null
-                ? agent.TargetSector.DisplayName
-                : "Bilinmiyor";
-            var currentDay = economyManager != null ? economyManager.CurrentDay : 0;
-            var elapsedDays = currentDay > agent.DeployDay ? currentDay - agent.DeployDay : 0;
-            var reductionPercent = (1f - definition.RevenueReductionMultiplier) * 100f;
+            if (catalog == null)
+            {
+                CreateInfoCard("Katalog bulunamadı.", 58f);
+                return;
+            }
 
-            var cardHeight = 172f + Mathf.Max(0, affectedProjects.Count - 1) * 56f;
-            var card = CreateSurface(contentRoot, "DetectedAgent_" + definition.Id, cardHeight, ColPanel);
-            AddHoverEffect(card, ColPanel, Blend(ColPanel, ColRed, 0.16f));
-            CreateAccentBar(card.transform, ColRed);
+            if (!string.IsNullOrWhiteSpace(catalog.Description))
+            {
+                CreateInfoCard(catalog.Description, 72f);
+            }
+
+            var products = shopManager.GetProducts(catalog);
+            if (products.Count == 0)
+            {
+                CreateInfoCard("Bu katalogta gösterilecek ürün yok.", 58f);
+                return;
+            }
+
+            var gridHost = CreateGridHost("ProductGrid", 400f, 236f);
+            for (var i = 0; i < products.Count; i++)
+            {
+                CreateProductCard(gridHost.transform, products[i]);
+            }
+        }
+
+        private void CreateProductCard(Transform parent, ShopProductDefinition product)
+        {
+            var accent = product != null && product.GoesToInventory ? ColCyan : ColGold;
+            var cardColor = Blend(ColPanel, accent, 0.08f);
+            var card = CreateSurface(parent, "Product_" + (product != null ? product.Id : "Missing"), 236f, cardColor);
+            var cardRect = card.GetComponent<RectTransform>();
+            cardRect.sizeDelta = new Vector2(400f, 236f);
+            var layout = card.GetComponent<LayoutElement>();
+            layout.preferredWidth = 400f;
+            layout.minWidth = 400f;
+            AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
+            CreateAccentBar(card.transform, accent);
 
             var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
             var contentLayout = content.AddComponent<VerticalLayoutGroup>();
@@ -342,85 +254,60 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             topLayout.childForceExpandHeight = false;
             topLayout.childAlignment = TextAnchor.MiddleLeft;
 
-            var title = CreateText(topRow.transform, definition.DisplayName, 18, TextAnchor.MiddleLeft);
+            var title = CreateText(topRow.transform, product != null ? product.DisplayName : "Ürün Yok", 18, TextAnchor.MiddleLeft);
             title.color = ColText;
             title.fontStyle = FontStyle.Bold;
             title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
-            CreateTag(topRow.transform, agent.IsExpired ? "Süresi Dolmuş" : "Tespit Edildi", new Color(ColRed.r, ColRed.g, ColRed.b, 0.18f), ColRed, 13);
+            CreateTag(topRow.transform, product != null && product.GoesToInventory ? "Envanter" : "Direkt", new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
 
-            var detail = CreateText(content.transform, $"Gönderen: {senderName} | Hedef: {sectorName}\nYerleşim: Gün {agent.DeployDay} | Geçen: {elapsedDays} gün | Kalan: {agent.RemainingDays} gün\nGelir Azaltma: %{reductionPercent:F0} | Maks. Sabotaj: {definition.MaxSimultaneousSabotage}", 13, TextAnchor.MiddleLeft);
-            detail.color = ColMuted;
-            detail.gameObject.AddComponent<LayoutElement>().preferredHeight = 54f;
+            var description = CreateText(content.transform, product != null ? product.Description : string.Empty, 13, TextAnchor.MiddleLeft);
+            description.color = ColMuted;
+            description.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
 
-            if (affectedProjects.Count == 0)
+            if (product != null && !string.IsNullOrWhiteSpace(product.FutureUsageHint))
             {
-                var emptyState = CreateText(content.transform, "Bu ajan henüz hiçbir işi etkilememiş.", 13, TextAnchor.MiddleLeft);
-                emptyState.color = ColMuted;
-                emptyState.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-                return;
+                var usage = CreateText(content.transform, product.FutureUsageHint, 12, TextAnchor.MiddleLeft);
+                usage.color = new Color(ColText.r, ColText.g, ColText.b, 0.72f);
+                usage.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
             }
 
-            for (var j = 0; j < affectedProjects.Count; j++)
+            var statsRow = CreateUiObject("StatsRow", content.transform);
+            statsRow.AddComponent<LayoutElement>().preferredHeight = 42f;
+            var statsGrid = statsRow.AddComponent<GridLayoutGroup>();
+            statsGrid.cellSize = new Vector2(116f, 42f);
+            statsGrid.spacing = new Vector2(6f, 0f);
+            statsGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            statsGrid.constraintCount = 3;
+            statsGrid.childAlignment = TextAnchor.MiddleCenter;
+
+            CreateMiniStat(statsRow.transform, product.PurchasePrice.Amount.ToString("N0"), "Fiyat");
+            CreateMiniStat(statsRow.transform, product.GrantedQuantity.ToString(), "Adet");
+            CreateMiniStat(statsRow.transform, shopManager.GetOwnedQuantity(product).ToString(), product.GoesToInventory ? "Sahip" : "Alındı");
+
+            CreateFlexibleSpacer(content.transform);
+
+            var hasPurchased = shopManager.HasPurchasedProduct(product);
+            var canPurchase = shopManager.CanPurchaseProduct(product, out var validationMessage);
+            var buttonLabel = !product.AllowMultiplePurchases && hasPurchased
+                ? "Satın Alındı"
+                : canPurchase ? "Satın Al" : validationMessage;
+            var button = CreateStyledButton(content.transform, "Buy_" + product.Id, buttonLabel, canPurchase ? ColBlue : ColSurfaceAlt, canPurchase ? Blend(ColBlue, ColCyan, 0.28f) : Blend(ColSurfaceAlt, ColBlue, 0.1f), canPurchase ? Darken(ColBlue, 0.22f) : Darken(ColSurfaceAlt, 0.08f), canPurchase ? ColText : ColMuted, TextAnchor.MiddleCenter);
+            button.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
+            button.interactable = canPurchase;
+            button.onClick.AddListener(() =>
             {
-                var project = affectedProjects[j];
-                var projectSectorName = project.Sector != null ? project.Sector.DisplayName : "-";
-                var cycleRevenue = project.CycleRevenue.Amount;
-                var revenueLoss = (long)(cycleRevenue * (1f - definition.RevenueReductionMultiplier));
+                if (shopManager.TryPurchaseProduct(product, out var resultMessage))
+                {
+                    feedbackMessage = resultMessage;
+                }
+                else
+                {
+                    feedbackMessage = resultMessage;
+                }
 
-                var projectDetail = CreateSurface(content.transform, "AffectedProject_" + j, 56f, ColSurfaceAlt);
-                var projectText = CreateText(projectDetail.transform, $"{project.DisplayName} ({projectSectorName})\nDöngü Geliri: {cycleRevenue:N0} | Kayıp: -{revenueLoss:N0}", 13, TextAnchor.MiddleLeft);
-                projectText.color = ColMuted;
-                StretchToParent(projectText.rectTransform, 12f, 8f, 12f, 8f);
-            }
-        }
-
-        private void RenderDismissedAgentHistory()
-        {
-            if (agentManager == null)
-            {
-                return;
-            }
-
-            var dismissed = agentManager.DismissedPlayerAgents;
-            if (dismissed.Count == 0)
-            {
-                return;
-            }
-
-            CreateSectionTitle("Son Kovulan Ajanlar");
-
-            for (var i = 0; i < dismissed.Count; i++)
-            {
-                var agent = dismissed[i];
-                var definition = agent.Definition;
-                var senderName = agent.SourceRival != null && agent.SourceRival.Definition != null
-                    ? agent.SourceRival.Definition.DisplayName
-                    : "Bilinmiyor";
-                var sectorName = agent.TargetSector != null
-                    ? agent.TargetSector.DisplayName
-                    : "Bilinmiyor";
-                var reductionPercent = (1f - definition.RevenueReductionMultiplier) * 100f;
-
-                var message = $"[Kovuldu] {definition.DisplayName}\n" +
-                              $"Gönderen: {senderName} | Sektör: {sectorName}\n" +
-                              $"Gelir Azaltma: %{reductionPercent:F0} | Yerleşim: Gün {agent.DeployDay}";
-                CreateInfoCard(message, 92f);
-            }
-        }
-
-        private long CalculateAgentRevenueLoss(PlayerTargetedAgentRuntimeData agent)
-        {
-            var loss = 0L;
-            var multiplier = 1f - agent.Definition.RevenueReductionMultiplier;
-            var affectedProjects = agent.AffectedProjects;
-
-            for (var i = 0; i < affectedProjects.Count; i++)
-            {
-                loss += (long)(affectedProjects[i].CycleRevenue.Amount * multiplier);
-            }
-
-            return loss;
+                RefreshPage();
+            });
         }
 
         private void EnsureCanvas()
@@ -459,19 +346,19 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "SecurityOpenButton", "Güvenlik", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(rootCanvas.transform, "ShopOpenButton", "Alışveriş", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(1490f, -80f);
+            buttonRect.anchoredPosition = new Vector2(20f, -130f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("SecurityPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("ShopPanel", rootCanvas.transform);
             var panelRect = panelRoot.GetComponent<RectTransform>();
             RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
             ApplyRoundedImage(panelRoot, ColBg);
@@ -493,12 +380,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             badgeRect.anchorMax = new Vector2(0f, 0.5f);
             badgeRect.pivot = new Vector2(0f, 0.5f);
             badgeRect.anchoredPosition = new Vector2(18f, 0f);
-            var badgeText = CreateText(badge.transform, "SEC", 16, TextAnchor.MiddleCenter);
+            var badgeText = CreateText(badge.transform, "SHP", 16, TextAnchor.MiddleCenter);
             badgeText.color = ColCyan;
             badgeText.fontStyle = FontStyle.Bold;
-            StretchToParent(badgeText.rectTransform, 0f, 0f, 0f, 0f);
+            RuntimePanelUiUtility.StretchToParent(badgeText.rectTransform, 0f, 0f, 0f, 0f);
 
-            pageTitleText = CreateText(headerRoot.transform, "Güvenlik", 28, TextAnchor.MiddleLeft);
+            pageTitleText = CreateText(headerRoot.transform, "Alışveriş", 28, TextAnchor.MiddleLeft);
             pageTitleText.color = ColText;
             pageTitleText.fontStyle = FontStyle.Bold;
             pageTitleText.rectTransform.anchorMin = new Vector2(0f, 1f);
@@ -563,90 +450,42 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             scrollRect.content = contentRoot;
         }
 
-        private void CreateSectionTitle(string title)
+        private bool ContainsCatalog(System.Collections.Generic.IReadOnlyList<ShopCatalogDefinition> catalogs, ShopCatalogDefinition catalog)
         {
-            var titleText = CreateText(contentRoot, title, 20, TextAnchor.MiddleLeft);
-            titleText.rectTransform.sizeDelta = new Vector2(0f, 34f);
-            titleText.color = ColText;
-            titleText.fontStyle = FontStyle.Bold;
+            for (var i = 0; i < catalogs.Count; i++)
+            {
+                if (catalogs[i] == catalog)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        private Text CreateInfoCard(string message, float height = 58f)
+        private GameObject CreateGridHost(string objectName, float cardWidth, float cardHeight)
         {
-            var card = CreateSurface(contentRoot, "InfoCard", height, ColSurface);
-            var text = CreateText(card.transform, message, 18, TextAnchor.MiddleLeft);
-            text.color = ColMuted;
-            StretchToParent(text.rectTransform, 14f, 8f, 14f, 8f);
-            return text;
+            const float gridSpacing = 36f;
+            var host = CreateUiObject(objectName, contentRoot);
+            var grid = host.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(cardWidth, cardHeight);
+            grid.spacing = new Vector2(gridSpacing, gridSpacing);
+            grid.padding = new RectOffset(0, 0, 0, 0);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = CalculateGridColumnCount(cardWidth, gridSpacing);
+            grid.childAlignment = TextAnchor.UpperCenter;
+
+            var fitter = host.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            return host;
         }
 
-        private GameObject CreateUiObject(string objectName, Transform parent)
+        private int CalculateGridColumnCount(float cardWidth, float spacing)
         {
-            return RuntimePanelUiUtility.CreateUiObject(objectName, parent);
-        }
-
-        private Button CreateStyledButton(Transform parent, string objectName, string label, Color normal, Color hover, Color pressed, Color textColor, TextAnchor anchor)
-        {
-            var buttonObject = CreateUiObject(objectName, parent);
-            ApplyRoundedImage(buttonObject, normal);
-            AddHoverEffect(buttonObject, normal, hover);
-
-            var button = buttonObject.AddComponent<Button>();
-            button.targetGraphic = buttonObject.GetComponent<Image>();
-            button.colors = CreateButtonColors(normal, hover, pressed);
-
-            var text = CreateText(buttonObject.transform, label, 18, anchor);
-            text.color = textColor;
-            text.fontStyle = FontStyle.Bold;
-            StretchToParent(text.rectTransform, 16f, 8f, 16f, 8f);
-            return button;
-        }
-
-        private Text CreateText(Transform parent, string value, int fontSize, TextAnchor anchor)
-        {
-            return RuntimePanelUiUtility.CreateText(parent, defaultFont, value, fontSize, anchor);
-        }
-
-        private void StretchToParent(RectTransform rectTransform, float left, float bottom, float right, float top)
-        {
-            RuntimePanelUiUtility.StretchToParent(rectTransform, left, bottom, right, top);
-        }
-
-        private void ClearChildren(RectTransform parent)
-        {
-            RuntimePanelUiUtility.ClearChildren(parent);
-        }
-
-        private void CreateMetricCard(Transform parent, string title, string value, string badge, Color accent)
-        {
-            var card = CreateSurface(parent, title.Replace(' ', '_') + "Metric", 96f, ColSurface);
-            var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(220f, 96f);
-            var layout = card.GetComponent<LayoutElement>();
-            layout.preferredWidth = 220f;
-            layout.minWidth = 220f;
-            CreateAccentBar(card.transform, accent);
-
-            var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
-            var contentLayout = content.AddComponent<VerticalLayoutGroup>();
-            contentLayout.padding = new RectOffset(0, 0, 0, 0);
-            contentLayout.spacing = 4f;
-            contentLayout.childControlWidth = true;
-            contentLayout.childControlHeight = true;
-            contentLayout.childForceExpandWidth = true;
-            contentLayout.childForceExpandHeight = false;
-
-            var titleText = CreateText(content.transform, title, 14, TextAnchor.MiddleLeft);
-            titleText.color = ColMuted;
-            titleText.gameObject.AddComponent<LayoutElement>().preferredHeight = 16f;
-
-            var valueText = CreateText(content.transform, value, 24, TextAnchor.MiddleLeft);
-            valueText.color = ColText;
-            valueText.fontStyle = FontStyle.Bold;
-            valueText.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
-
-            CreateFlexibleSpacer(content.transform);
-            CreateTag(content.transform, badge, new Color(accent.r, accent.g, accent.b, 0.18f), accent, 13);
+            const float horizontalPadding = 80f;
+            var availableWidth = Mathf.Max(cardWidth, panelSize.x - horizontalPadding);
+            return Mathf.Max(1, Mathf.FloorToInt((availableWidth + spacing) / (cardWidth + spacing)));
         }
 
         private GameObject CreateSurface(Transform parent, string name, float height, Color color)
@@ -655,7 +494,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var rect = surface.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(0f, height);
             ApplyRoundedImage(surface, color);
-
             var layout = surface.GetComponent<LayoutElement>();
             if (layout == null)
             {
@@ -670,8 +508,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private GameObject CreateRoundedBlock(Transform parent, string name, Vector2 size, Color color)
         {
             var block = CreateUiObject(name, parent);
-            var rect = block.GetComponent<RectTransform>();
-            rect.sizeDelta = size;
+            block.GetComponent<RectTransform>().sizeDelta = size;
             ApplyRoundedImage(block, color);
             return block;
         }
@@ -679,7 +516,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private GameObject CreateStretchContainer(Transform parent, string name, float left, float bottom, float right, float top)
         {
             var container = CreateUiObject(name, parent);
-            StretchToParent(container.GetComponent<RectTransform>(), left, bottom, right, top);
+            RuntimePanelUiUtility.StretchToParent(container.GetComponent<RectTransform>(), left, bottom, right, top);
             IgnoreLayout(container);
             return container;
         }
@@ -697,27 +534,68 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             var tag = CreateUiObject("Tag", parent);
             ApplyRoundedImage(tag, bgColor);
-
-            var tagLayout = tag.AddComponent<LayoutElement>();
-            tagLayout.preferredHeight = fontSize >= 14 ? 30f : 26f;
-
+            tag.AddComponent<LayoutElement>().preferredHeight = fontSize >= 14 ? 30f : 26f;
             var layout = tag.AddComponent<HorizontalLayoutGroup>();
             layout.padding = new RectOffset(10, 10, 4, 4);
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
-
             var fitter = tag.AddComponent<ContentSizeFitter>();
             fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
             var text = CreateText(tag.transform, value, fontSize, TextAnchor.MiddleCenter);
             text.color = textColor;
             text.fontStyle = FontStyle.Bold;
-            var textLayout = text.gameObject.AddComponent<LayoutElement>();
-            textLayout.preferredHeight = fontSize >= 14 ? 18f : 16f;
+            text.gameObject.AddComponent<LayoutElement>().preferredHeight = fontSize >= 14 ? 18f : 16f;
             return tag;
+        }
+
+        private GameObject CreateMiniStat(Transform parent, string value, string label)
+        {
+            var tile = CreateSurface(parent, "MiniStat", 42f, new Color(ColSurfaceAlt.r, ColSurfaceAlt.g, ColSurfaceAlt.b, 0.95f));
+            var valueText = CreateText(tile.transform, value, 17, TextAnchor.UpperCenter);
+            valueText.color = ColText;
+            valueText.fontStyle = FontStyle.Bold;
+            RuntimePanelUiUtility.StretchToParent(valueText.rectTransform, 6f, 18f, 6f, 3f);
+            var labelText = CreateText(tile.transform, label, 11, TextAnchor.LowerCenter);
+            labelText.color = ColMuted;
+            RuntimePanelUiUtility.StretchToParent(labelText.rectTransform, 6f, 3f, 6f, 21f);
+            return tile;
+        }
+
+        private Text CreateInfoCard(string message, float height = 58f)
+        {
+            var card = CreateSurface(contentRoot, "InfoCard", height, ColSurface);
+            var text = CreateText(card.transform, message, 18, TextAnchor.MiddleLeft);
+            text.color = ColMuted;
+            RuntimePanelUiUtility.StretchToParent(text.rectTransform, 14f, 8f, 14f, 8f);
+            return text;
+        }
+
+        private Button CreateStyledButton(Transform parent, string objectName, string label, Color normal, Color hover, Color pressed, Color textColor, TextAnchor anchor)
+        {
+            var buttonObject = CreateUiObject(objectName, parent);
+            ApplyRoundedImage(buttonObject, normal);
+            AddHoverEffect(buttonObject, normal, hover);
+            var button = buttonObject.AddComponent<Button>();
+            button.targetGraphic = buttonObject.GetComponent<Image>();
+            button.colors = CreateButtonColors(normal, hover, pressed);
+            var text = CreateText(buttonObject.transform, label, 18, anchor);
+            text.color = textColor;
+            text.fontStyle = FontStyle.Bold;
+            RuntimePanelUiUtility.StretchToParent(text.rectTransform, 16f, 8f, 16f, 8f);
+            return button;
+        }
+
+        private Text CreateText(Transform parent, string value, int fontSize, TextAnchor anchor)
+        {
+            return RuntimePanelUiUtility.CreateText(parent, defaultFont, value, fontSize, anchor);
+        }
+
+        private GameObject CreateUiObject(string objectName, Transform parent)
+        {
+            return RuntimePanelUiUtility.CreateUiObject(objectName, parent);
         }
 
         private void ApplyRoundedImage(GameObject target, Color color)
@@ -833,7 +711,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             const int size = 128;
             const int radius = 24;
-
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
             {
                 name = "GeneratedRoundedSprite",
@@ -844,7 +721,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var pixels = new Color32[size * size];
             var transparent = new Color32(255, 255, 255, 0);
             var solid = new Color32(255, 255, 255, 255);
-
             for (var y = 0; y < size; y++)
             {
                 for (var x = 0; x < size; x++)
@@ -855,15 +731,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
-
-            return Sprite.Create(
-                texture,
-                new Rect(0f, 0f, size, size),
-                new Vector2(0.5f, 0.5f),
-                100f,
-                0,
-                SpriteMeshType.FullRect,
-                new Vector4(radius, radius, radius, radius));
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
         }
 
         private static bool IsInsideRoundedRect(int x, int y, int size, int radius)
@@ -872,7 +740,6 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var right = (size - 1) - x;
             var bottom = y;
             var top = (size - 1) - y;
-
             if ((left >= radius && right >= radius) || (bottom >= radius && top >= radius))
             {
                 return true;
