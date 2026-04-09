@@ -100,6 +100,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
             if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
             if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
@@ -215,7 +217,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var gridHost = CreateGridHost("ProductGrid", 400f, 236f);
+            var gridHost = CreateGridHost("ProductGrid", 380f, 236f);
             for (var i = 0; i < products.Count; i++)
             {
                 CreateProductCard(gridHost.transform, products[i]);
@@ -228,10 +230,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var cardColor = Blend(ColPanel, accent, 0.08f);
             var card = CreateSurface(parent, "Product_" + (product != null ? product.Id : "Missing"), 236f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 236f);
+            cardRect.sizeDelta = new Vector2(380f, 236f);
             var layout = card.GetComponent<LayoutElement>();
-            layout.preferredWidth = 400f;
-            layout.minWidth = 400f;
+            layout.preferredWidth = 380f;
+            layout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -346,21 +348,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "ShopOpenButton", "Alışveriş", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "ShopOpenButton", "Alışveriş", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(20f, -130f);
+            buttonRect.anchoredPosition = new Vector2(20f, -72f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("ShopPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("ShopPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 

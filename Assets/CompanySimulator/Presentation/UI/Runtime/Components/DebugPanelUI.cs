@@ -123,6 +123,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
             if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
             if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
@@ -519,21 +521,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateButton(rootCanvas.transform, "DebugOpenButton", "Debug Panel");
+            var button = CreateButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "DebugOpenButton", "Debug Panel");
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(1280f, -80f);
+            buttonRect.anchoredPosition = new Vector2(1490f, -20f);
             buttonRect.sizeDelta = new Vector2(200f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("DebugPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("DebugPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
 
             panelRoot.AddComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.98f);
 

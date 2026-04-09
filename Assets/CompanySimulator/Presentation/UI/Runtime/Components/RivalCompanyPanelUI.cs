@@ -128,6 +128,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
             if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
             if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
@@ -220,7 +222,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var sectors = rival.OperatingSectors;
             var accent = GetRivalAccent(rival);
-            const float sectorCardWidth = 400f;
+            const float sectorCardWidth = 380f;
             const float sectorCardHeight = 92f;
             const float sectorGridSpacing = 36f;
             var sectorColumnCount = Mathf.Max(1, CalculateGridColumnCount(sectorCardWidth, sectorGridSpacing));
@@ -304,10 +306,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             var card = CreateSurface(parent, "SectorCard_" + rival.Definition.Id + "_" + sector.Id, 92f, ColSurfaceAlt);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 92f);
+            cardRect.sizeDelta = new Vector2(380f, 92f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColSurfaceAlt, Blend(ColSurfaceAlt, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -503,7 +505,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             if (deployableAgentGridParent == null)
             {
-                deployableAgentGridParent = CreateGridHost("DeployableAgentGrid", 400f, 214f).transform;
+                deployableAgentGridParent = CreateGridHost("DeployableAgentGrid", 380f, 214f).transform;
             }
 
             SharedBuilder.Clear();
@@ -526,10 +528,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = canDeploy ? ColPurple : ColSurfaceAlt;
             var card = CreateSurface(deployableAgentGridParent, "Agent_" + agentDef.Id, 214f, ColPanel);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 214f);
+            cardRect.sizeDelta = new Vector2(380f, 214f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColPanel, Blend(ColPanel, ColPurple, 0.18f));
             CreateAccentBar(card.transform, ColPurple);
 
@@ -605,21 +607,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "RivalCompanyOpenButton", "Rakip Şirketler", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "RivalCompanyOpenButton", "Rakip Şirketler", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(1050f, -80f);
+            buttonRect.anchoredPosition = new Vector2(1050f, -20f);
             buttonRect.sizeDelta = new Vector2(220f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("RivalCompanyPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("RivalCompanyPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 

@@ -93,6 +93,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
@@ -272,10 +274,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = GetRoleAccent(role);
             var card = CreateSurface(EnsureRoleGridHost(), $"Role_{role.Id}", 186f, ColPanel);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 186f);
+            cardRect.sizeDelta = new Vector2(380f, 186f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -336,10 +338,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var cardColor = Blend(ColPanel, accent, 0.12f);
             var card = CreateSurface(EnsureApplicantGridHost(), $"Applicant_{applicant.Id}", 196f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 196f);
+            cardRect.sizeDelta = new Vector2(380f, 196f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -408,10 +410,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 : "Atama bekliyor";
             var card = CreateSurface(EnsureEmployeeGridHost(), $"Employee_{employee.Id}", 196f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 196f);
+            cardRect.sizeDelta = new Vector2(380f, 196f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -517,21 +519,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "EmployeesOpenButton", "Çalışanlar", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "EmployeesOpenButton", "Çalışanlar", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(220f, -80f);
+            buttonRect.anchoredPosition = new Vector2(220f, -20f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("EmployeePanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("EmployeePanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -766,7 +768,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return roleGridParent;
             }
 
-            var roleGridHost = CreateGridHost("RoleGrid", 400f, 186f);
+            var roleGridHost = CreateGridHost("RoleGrid", 380f, 186f);
             var roleGrid = roleGridHost.GetComponent<GridLayoutGroup>();
             if (roleGrid != null)
             {
@@ -784,7 +786,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return employeeGridParent;
             }
 
-            var employeeGridHost = CreateGridHost("EmployeeGrid", 400f, 196f);
+            var employeeGridHost = CreateGridHost("EmployeeGrid", 380f, 196f);
             var employeeGrid = employeeGridHost.GetComponent<GridLayoutGroup>();
             if (employeeGrid != null)
             {
@@ -802,7 +804,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return applicantGridParent;
             }
 
-            var applicantGridHost = CreateGridHost("ApplicantGrid", 400f, 196f);
+            var applicantGridHost = CreateGridHost("ApplicantGrid", 380f, 196f);
             var applicantGrid = applicantGridHost.GetComponent<GridLayoutGroup>();
             if (applicantGrid != null)
             {
@@ -834,7 +836,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private int CalculateGridColumnCount(float cardWidth, float spacing)
         {
             const float horizontalPadding = 80f;
-            var availableWidth = Mathf.Max(cardWidth, panelSize.x - horizontalPadding);
+            var referenceWidth = contentRoot != null && contentRoot.rect.width > 0f
+                ? contentRoot.rect.width
+                : panelRoot != null ? panelRoot.GetComponent<RectTransform>().rect.width : panelSize.x;
+            var availableWidth = Mathf.Max(cardWidth, referenceWidth - horizontalPadding);
             return Mathf.Max(1, Mathf.FloorToInt((availableWidth + spacing) / (cardWidth + spacing)));
         }
 

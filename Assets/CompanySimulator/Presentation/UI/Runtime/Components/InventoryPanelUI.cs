@@ -83,6 +83,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen) sectorPanelUI.ClosePanel();
             if (employeePanelUI != null && employeePanelUI.IsOpen) employeePanelUI.ClosePanel();
             if (accountingPanelUI != null && accountingPanelUI.IsOpen) accountingPanelUI.ClosePanel();
@@ -138,7 +140,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var gridHost = CreateGridHost("OwnedItemGrid", 400f, 196f);
+            var gridHost = CreateGridHost("OwnedItemGrid", 380f, 196f);
             for (var i = 0; i < ownedItems.Count; i++)
             {
                 CreateOwnedItemCard(gridHost.transform, ownedItems[i]);
@@ -155,7 +157,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var gridHost = CreateGridHost("PurchaseGrid", 400f, 184f);
+            var gridHost = CreateGridHost("PurchaseGrid", 380f, 184f);
             for (var i = 0; i < purchases.Count; i++)
             {
                 CreateNonInventoryPurchaseCard(gridHost.transform, purchases[i]);
@@ -168,10 +170,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var cardColor = Blend(ColPanel, accent, 0.08f);
             var card = CreateSurface(parent, "InventoryItem_" + item.Product.Id, 196f, cardColor);
             var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(400f, 196f);
+            rect.sizeDelta = new Vector2(380f, 196f);
             var layout = card.GetComponent<LayoutElement>();
-            layout.preferredWidth = 400f;
-            layout.minWidth = 400f;
+            layout.preferredWidth = 380f;
+            layout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -232,10 +234,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var cardColor = Blend(ColPanel, accent, 0.08f);
             var card = CreateSurface(parent, "Purchase_" + purchase.Product.Id + "_" + purchase.PurchaseDay, 184f, cardColor);
             var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(400f, 184f);
+            rect.sizeDelta = new Vector2(380f, 184f);
             var layout = card.GetComponent<LayoutElement>();
-            layout.preferredWidth = 400f;
-            layout.minWidth = 400f;
+            layout.preferredWidth = 380f;
+            layout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -314,21 +316,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "InventoryOpenButton", "Envanter", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "InventoryOpenButton", "Envanter", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(220f, -130f);
+            buttonRect.anchoredPosition = new Vector2(220f, -72f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("InventoryPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("InventoryPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 

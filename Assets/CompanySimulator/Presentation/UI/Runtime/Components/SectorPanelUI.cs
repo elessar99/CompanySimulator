@@ -73,6 +73,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private Text draftResultText;
         private Button backButton;
         private Button agentDismissButton;
+        private Button computerToggleButton;
         private SectorRuntimeData selectedSector;
         private ProjectExecutionDefinition selectedProjectTemplate;
         private ActiveProjectRuntimeEntry selectedActiveProject;
@@ -134,6 +135,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void Start()
         {
+            RefreshComputerToggleButtonLabel();
             RefreshAll();
         }
 
@@ -144,6 +146,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (employeePanelUI != null && employeePanelUI.IsOpen)
             {
                 employeePanelUI.ClosePanel();
@@ -385,6 +389,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             CreateBalanceWidget();
             CreateDayWidget();
+            CreateComputerToggleButton();
             CreateOpenButton();
             CreatePanel();
             panelRoot.SetActive(false);
@@ -392,7 +397,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateBalanceWidget()
         {
-            var balanceRoot = CreateUiObject("MoneyBar", rootCanvas.transform);
+            var balanceRoot = CreateUiObject("MoneyBar", RuntimePanelUiUtility.GetOrCreateHudRoot(rootCanvas));
             var balanceRect = balanceRoot.GetComponent<RectTransform>();
             balanceRect.anchorMin = new Vector2(0f, 1f);
             balanceRect.anchorMax = new Vector2(0f, 1f);
@@ -409,19 +414,57 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "SectorsOpenButton", "Sektörler", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "SectorsOpenButton", "Sektörler", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(20f, -80f);
+            buttonRect.anchoredPosition = new Vector2(20f, -20f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
+        private void CreateComputerToggleButton()
+        {
+            computerToggleButton = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateHudRoot(rootCanvas), "ComputerToggleButton", "Bilgisayar", ColBlue, Blend(ColBlue, ColCyan, 0.22f), Darken(ColBlue, 0.18f), ColText, TextAnchor.MiddleCenter);
+            var buttonRect = computerToggleButton.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0.5f, 1f);
+            buttonRect.anchorMax = new Vector2(0.5f, 1f);
+            buttonRect.pivot = new Vector2(0.5f, 1f);
+            buttonRect.anchoredPosition = new Vector2(0f, -20f);
+            buttonRect.sizeDelta = new Vector2(200f, 44f);
+            computerToggleButton.onClick.AddListener(() =>
+            {
+                var isOpen = RuntimePanelUiUtility.ToggleComputerPanel(rootCanvas);
+                RefreshComputerToggleButtonLabel(isOpen);
+            });
+
+            RefreshComputerToggleButtonLabel();
+        }
+
+        private void RefreshComputerToggleButtonLabel()
+        {
+            RefreshComputerToggleButtonLabel(RuntimePanelUiUtility.IsComputerPanelOpen(rootCanvas));
+        }
+
+        private void RefreshComputerToggleButtonLabel(bool isOpen)
+        {
+            if (computerToggleButton == null)
+            {
+                return;
+            }
+
+            var label = computerToggleButton.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.text = isOpen ? "Bilgisayarý Kapat" : "Bilgisayarý Aç";
+            }
+        }
+
         private void CreateDayWidget()
         {
-            var dayRoot = CreateUiObject("DayBar", rootCanvas.transform);
+            var hudRoot = RuntimePanelUiUtility.GetOrCreateHudRoot(rootCanvas);
+            var dayRoot = CreateUiObject("DayBar", hudRoot);
             var dayRect = dayRoot.GetComponent<RectTransform>();
             dayRect.anchorMin = new Vector2(1f, 1f);
             dayRect.anchorMax = new Vector2(1f, 1f);
@@ -434,7 +477,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             dayText.color = ColText;
             StretchToParent(dayText.rectTransform, 12f, 6f, 12f, 6f);
 
-            var nextDayButton = CreateStyledButton(rootCanvas.transform, "NextDayButton", "Sonraki Gün", ColBlue, Blend(ColBlue, ColCyan, 0.25f), Darken(ColBlue, 0.2f), ColText, TextAnchor.MiddleCenter);
+            var nextDayButton = CreateStyledButton(hudRoot, "NextDayButton", "Sonraki Gün", ColBlue, Blend(ColBlue, ColCyan, 0.25f), Darken(ColBlue, 0.2f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = nextDayButton.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(1f, 1f);
             buttonRect.anchorMax = new Vector2(1f, 1f);
@@ -449,7 +492,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 }
             });
 
-            agentDismissButton = CreateStyledButton(rootCanvas.transform, "AgentDismissButton", "Ajanlarý Kov", new Color(ColRed.r, ColRed.g, ColRed.b, 0.16f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.26f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.34f), ColRed, TextAnchor.MiddleCenter);
+            agentDismissButton = CreateStyledButton(hudRoot, "AgentDismissButton", "Ajanlarý Kov", new Color(ColRed.r, ColRed.g, ColRed.b, 0.16f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.26f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.34f), ColRed, TextAnchor.MiddleCenter);
             var dismissRect = agentDismissButton.GetComponent<RectTransform>();
             dismissRect.anchorMin = new Vector2(1f, 1f);
             dismissRect.anchorMax = new Vector2(1f, 1f);
@@ -471,9 +514,9 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("SectorPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("SectorPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -761,14 +804,14 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = GetSectorAccent(sectorData.Sector);
             var cardObject = CreateUiObject($"Sector_{sectorData.Sector.Id}", gridParent);
             var cardRect = cardObject.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 186f);
+            cardRect.sizeDelta = new Vector2(380f, 186f);
             ApplyRoundedImage(cardObject, ColPanel);
             AddHoverEffect(cardObject, ColPanel, Blend(ColPanel, accent, 0.18f));
             CreateAccentBar(cardObject.transform, accent);
 
             var cardLayout = cardObject.AddComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             cardLayout.preferredHeight = 186f;
             cardLayout.minHeight = 186f;
 
@@ -842,10 +885,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = GetSectorAccent(activeProject.Sector);
             var card = CreateSurface(EnsureActiveProjectGridHost(), $"ActiveProject_{activeProject.DisplayName}", 228f, ColPanel);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 228f);
+            cardRect.sizeDelta = new Vector2(380f, 228f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -1266,10 +1309,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var slotRow = CreateLeftAlignedCardRow(parent, 96f);
             var slotCard = CreateSurface(slotRow.transform, $"EmployeeSlot_{slotId}", 96f, ColPanel);
             var slotRect = slotCard.GetComponent<RectTransform>();
-            slotRect.sizeDelta = new Vector2(400f, 96f);
+            slotRect.sizeDelta = new Vector2(380f, 96f);
             var slotLayout = slotCard.GetComponent<LayoutElement>();
-            slotLayout.preferredWidth = 400f;
-            slotLayout.minWidth = 400f;
+            slotLayout.preferredWidth = 380f;
+            slotLayout.minWidth = 380f;
             AddHoverEffect(slotCard, ColPanel, Blend(ColPanel, accent, 0.12f));
             CreateAccentBar(slotCard.transform, accent);
 
@@ -1327,7 +1370,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
             else
             {
-                const float candidateCardWidth = 400f;
+                const float candidateCardWidth = 380f;
                 const float candidateCardHeight = 128f;
             const float candidateGridSpacing = 36f;
                 var candidateColumnCount = CalculateGridColumnCount(candidateCardWidth, candidateGridSpacing);
@@ -1357,8 +1400,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 var clearRow = CreateLeftAlignedCardRow(parent, 44f);
                 var clearButton = CreateStyledButton(clearRow.transform, $"Clear_{slotId}", "Atamayý Temizle", new Color(ColRed.r, ColRed.g, ColRed.b, 0.16f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.26f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.34f), ColRed, TextAnchor.MiddleCenter);
                 var clearLayout = clearButton.gameObject.AddComponent<LayoutElement>();
-                clearLayout.preferredWidth = 400f;
-                clearLayout.minWidth = 400f;
+                clearLayout.preferredWidth = 380f;
+                clearLayout.minWidth = 380f;
                 clearLayout.preferredHeight = 44f;
                 clearLayout.minHeight = 44f;
                 clearButton.GetComponent<RectTransform>().sizeDelta = new Vector2(0f, 44f);
@@ -1436,10 +1479,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var cardColor = Blend(ColPanel, accent, 0.12f);
             var card = CreateSurface(parent, $"Candidate_{slotId}_{employee.Id}", 128f, cardColor);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 128f);
+            cardRect.sizeDelta = new Vector2(380f, 128f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, cardColor, Blend(cardColor, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -2193,7 +2236,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return activeProjectGridParent;
             }
 
-            const float projectCardWidth = 400f;
+            const float projectCardWidth = 380f;
             const float projectCardHeight = 228f;
             const float projectGridSpacing = 36f;
 
@@ -2253,7 +2296,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return sectorListGridParent;
             }
 
-            const float sectorCardWidth = 400f;
+            const float sectorCardWidth = 380f;
             const float sectorCardHeight = 186f;
             const float sectorGridSpacing = 36f;
 
@@ -2331,7 +2374,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private int CalculateGridColumnCount(float cardWidth, float spacing)
         {
             const float horizontalPadding = 80f;
-            var availableWidth = Mathf.Max(cardWidth, panelSize.x - horizontalPadding);
+            var referenceWidth = contentRoot != null && contentRoot.rect.width > 0f
+                ? contentRoot.rect.width
+                : panelRoot != null ? panelRoot.GetComponent<RectTransform>().rect.width : panelSize.x;
+            var availableWidth = Mathf.Max(cardWidth, referenceWidth - horizontalPadding);
             return Mathf.Max(1, Mathf.FloorToInt((availableWidth + spacing) / (cardWidth + spacing)));
         }
 

@@ -95,6 +95,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
@@ -241,21 +243,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "AccountingOpenButton", "Muhasebe", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "AccountingOpenButton", "Muhasebe", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(420f, -80f);
+            buttonRect.anchoredPosition = new Vector2(420f, -20f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("AccountingPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("AccountingPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -425,10 +427,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = GetAccountantAccent(accountant);
             var card = CreateSurface(EnsureAvailableAccountantGridHost(), $"Available_{accountant.Id}", 196f, ColPanel);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, 196f);
+            cardRect.sizeDelta = new Vector2(380f, 196f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -585,7 +587,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return assignedAccountantGridParent;
             }
 
-            assignedAccountantGridParent = CreateGridHost("AssignedAccountantGrid", 400f, 196f).transform;
+            assignedAccountantGridParent = CreateGridHost("AssignedAccountantGrid", 380f, 196f).transform;
             return assignedAccountantGridParent;
         }
 
@@ -596,7 +598,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return availableAccountantGridParent;
             }
 
-            availableAccountantGridParent = CreateGridHost("AvailableAccountantGrid", 400f, 196f).transform;
+            availableAccountantGridParent = CreateGridHost("AvailableAccountantGrid", 380f, 196f).transform;
             return availableAccountantGridParent;
         }
 

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
+using CompanySimulator.Presentation.UI.Runtime.Components;
 
 namespace CompanySimulator.Presentation.UI.Runtime.Common
 {
@@ -134,6 +135,38 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
             rectTransform.sizeDelta = panelSize;
         }
 
+        public static void ConfigureFillParentPanel(RectTransform rectTransform)
+        {
+            if (rectTransform == null)
+            {
+                return;
+            }
+
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = Vector2.zero;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+        }
+
+        public static void ConfigureFillComputerPanelChild(RectTransform rectTransform, Canvas canvas)
+        {
+            if (rectTransform == null)
+            {
+                return;
+            }
+
+            var computerPanelUi = GetComputerPanelUi(canvas);
+            if (computerPanelUi != null)
+            {
+                computerPanelUi.ApplyChildPanelLayout(rectTransform);
+                return;
+            }
+
+            ConfigureFillParentPanel(rectTransform);
+        }
+
         public static void BringToFront(GameObject panelRoot)
         {
             if (panelRoot == null)
@@ -142,6 +175,82 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
             }
 
             panelRoot.transform.SetAsLastSibling();
+        }
+
+        public static RectTransform GetOrCreateHudRoot(Canvas canvas)
+        {
+            if (canvas == null)
+            {
+                return null;
+            }
+
+            var existing = canvas.transform.Find("HudRoot") as RectTransform;
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            var hudRoot = CreateUiObject("HudRoot", canvas.transform);
+            var rect = hudRoot.GetComponent<RectTransform>();
+            StretchToParent(rect, 0f, 0f, 0f, 0f);
+            return rect;
+        }
+
+        public static RectTransform GetOrCreateComputerPanel(Canvas canvas)
+        {
+            return GetComputerPanelUi(canvas)?.PanelRoot;
+        }
+
+        public static void ConfigureResponsiveComputerPanel(RectTransform computerPanel, Canvas canvas, float topMargin, float bottomMargin, float innerPadding, float borderThickness)
+        {
+            GetComputerPanelUi(canvas)?.ApplyLayout();
+        }
+
+        public static RectTransform GetOrCreateComputerWindowRoot(Canvas canvas)
+        {
+            return GetComputerPanelUi(canvas)?.ContentRoot;
+        }
+
+        public static bool IsComputerPanelOpen(Canvas canvas)
+        {
+            var computerPanel = GetComputerPanelUi(canvas);
+            return computerPanel != null && computerPanel.gameObject.activeSelf;
+        }
+
+        public static void SetComputerPanelActive(Canvas canvas, bool isActive)
+        {
+            GetComputerPanelUi(canvas)?.SetVisible(isActive);
+        }
+
+        public static bool ToggleComputerPanel(Canvas canvas)
+        {
+            var computerPanel = GetComputerPanelUi(canvas);
+            return computerPanel != null && computerPanel.ToggleVisible();
+        }
+
+        public static ComputerPanelUI GetComputerPanelUi(Canvas canvas)
+        {
+            if (canvas == null)
+            {
+                return null;
+            }
+
+            var panels = canvas.GetComponentsInChildren<ComputerPanelUI>(true);
+            for (var i = 0; i < panels.Length; i++)
+            {
+                if (panels[i] != null)
+                {
+                    return panels[i];
+                }
+            }
+
+            var existingPanel = canvas.transform.Find("ComputerPanel");
+            if (existingPanel != null)
+            {
+                return existingPanel.gameObject.AddComponent<ComputerPanelUI>();
+            }
+
+            return null;
         }
 
         public static string GetEmployeeQualityLabel(EmployeeQualityTier qualityTier)

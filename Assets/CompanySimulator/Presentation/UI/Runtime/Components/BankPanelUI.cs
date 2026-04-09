@@ -92,6 +92,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
@@ -188,7 +190,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            offerGridParent = CreateGridHost("OfferGrid_" + contentRoot.childCount, 400f, 222f).transform;
+            offerGridParent = CreateGridHost("OfferGrid_" + contentRoot.childCount, 380f, 222f).transform;
             for (var i = 0; i < offers.Count; i++)
             {
                 CreateOfferCard(offers[i]);
@@ -204,7 +206,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            activeLoanGridParent = CreateGridHost("ActiveLoanGrid", 400f, 248f).transform;
+            activeLoanGridParent = CreateGridHost("ActiveLoanGrid", 380f, 248f).transform;
             for (var i = 0; i < activeLoans.Count; i++)
             {
                 var loan = activeLoans[i];
@@ -212,10 +214,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 var accent = GetLoanAccent(loan.RemainingDebt.Amount);
                 var card = CreateSurface(activeLoanGridParent, $"ActiveLoan_{loan.OfferId}_{i}", 248f, ColPanel);
                 var cardRect = card.GetComponent<RectTransform>();
-                cardRect.sizeDelta = new Vector2(400f, 248f);
+                cardRect.sizeDelta = new Vector2(380f, 248f);
                 var cardLayout = card.GetComponent<LayoutElement>();
-                cardLayout.preferredWidth = 400f;
-                cardLayout.minWidth = 400f;
+                cardLayout.preferredWidth = 380f;
+                cardLayout.minWidth = 380f;
                 AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
                 CreateAccentBar(card.transform, accent);
 
@@ -269,10 +271,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = offer.CanAccept ? ColGreen : ColGold;
             var card = CreateSurface(offerGridParent, $"Offer_{offer.OfferId}", string.IsNullOrWhiteSpace(offer.ValidationMessage) ? 222f : 248f, ColPanel);
             var cardRect = card.GetComponent<RectTransform>();
-            cardRect.sizeDelta = new Vector2(400f, string.IsNullOrWhiteSpace(offer.ValidationMessage) ? 222f : 248f);
+            cardRect.sizeDelta = new Vector2(380f, string.IsNullOrWhiteSpace(offer.ValidationMessage) ? 222f : 248f);
             var cardLayout = card.GetComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.minWidth = 400f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.minWidth = 380f;
             AddHoverEffect(card, ColPanel, Blend(ColPanel, accent, 0.18f));
             CreateAccentBar(card.transform, accent);
 
@@ -376,21 +378,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "BankOpenButton", "Banka", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "BankOpenButton", "Banka", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(620f, -80f);
+            buttonRect.anchoredPosition = new Vector2(620f, -20f);
             buttonRect.sizeDelta = new Vector2(180f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("BankPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("BankPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 

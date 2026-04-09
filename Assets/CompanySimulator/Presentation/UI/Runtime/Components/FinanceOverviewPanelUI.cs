@@ -90,6 +90,8 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void OpenPanel()
         {
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
+
             if (sectorPanelUI != null && sectorPanelUI.IsOpen)
             {
                 sectorPanelUI.ClosePanel();
@@ -261,7 +263,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var gridHost = CreateGridHost("LineItemGrid_" + contentRoot.childCount, 400f, 108f);
+            var gridHost = CreateGridHost("LineItemGrid_" + contentRoot.childCount, 380f, 108f);
             for (var i = 0; i < items.Count; i++)
             {
                 var item = items[i];
@@ -305,21 +307,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(rootCanvas.transform, "FinanceOverviewOpenButton", "Finans Takibi", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "FinanceOverviewOpenButton", "Finans Takibi", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
             var buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0f, 1f);
             buttonRect.anchorMax = new Vector2(0f, 1f);
             buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(820f, -80f);
+            buttonRect.anchoredPosition = new Vector2(820f, -20f);
             buttonRect.sizeDelta = new Vector2(220f, 44f);
             button.onClick.AddListener(OpenPanel);
         }
 
         private void CreatePanel()
         {
-            panelRoot = CreateUiObject("FinanceOverviewPanel", rootCanvas.transform);
+            panelRoot = CreateUiObject("FinanceOverviewPanel", RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas));
             var panelRect = panelRoot.GetComponent<RectTransform>();
-            RuntimePanelUiUtility.ConfigureCenteredPanel(panelRect, panelSize, panelVerticalOffset);
+            RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
             ApplyRoundedImage(panelRoot, ColBg);
             EnsureRoundedMask(panelRoot);
 
@@ -522,10 +524,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var accent = item.Amount.Amount >= 0 ? ColGreen : ColRed;
             var card = CreateSurface(parent, "LineItemCard", 108f, ColPanel);
             var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(400f, 108f);
+            rect.sizeDelta = new Vector2(380f, 108f);
             var layout = card.GetComponent<LayoutElement>();
-            layout.preferredWidth = 400f;
-            layout.minWidth = 400f;
+            layout.preferredWidth = 380f;
+            layout.minWidth = 380f;
             CreateAccentBar(card.transform, accent);
 
             var content = CreateStretchContainer(card.transform, "Content", 12f, 12f, 12f, 12f);
