@@ -48,6 +48,78 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
             return button;
         }
 
+        public static Button CreateDesktopAppButton(
+            Transform parent,
+            Font font,
+            string objectName,
+            string label,
+            Sprite iconSprite,
+            string fallbackText,
+            Color accentColor)
+        {
+            var buttonObject = CreateUiObject(objectName, parent);
+            var rootImage = buttonObject.AddComponent<Image>();
+            rootImage.color = new Color(0f, 0f, 0f, 0f);
+
+            var button = buttonObject.AddComponent<Button>();
+            var colors = button.colors;
+            colors.normalColor = new Color(1f, 1f, 1f, 0.08f);
+            colors.highlightedColor = new Color(1f, 1f, 1f, 0.14f);
+            colors.pressedColor = new Color(1f, 1f, 1f, 0.2f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.04f);
+            button.colors = colors;
+
+            var iconRoot = CreateUiObject("IconRoot", buttonObject.transform);
+            var iconRect = iconRoot.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.5f, 1f);
+            iconRect.anchorMax = new Vector2(0.5f, 1f);
+            iconRect.pivot = new Vector2(0.5f, 1f);
+            iconRect.anchoredPosition = new Vector2(0f, -6f);
+            iconRect.sizeDelta = new Vector2(72f, 72f);
+
+            var iconImage = iconRoot.AddComponent<Image>();
+            iconImage.color = iconSprite != null ? Color.white : accentColor;
+            if (iconSprite != null)
+            {
+                iconImage.sprite = iconSprite;
+                iconImage.type = Image.Type.Sliced;
+                iconImage.preserveAspect = true;
+            }
+
+            var iconShadow = iconRoot.AddComponent<Shadow>();
+            iconShadow.effectColor = new Color(0f, 0f, 0f, 0.35f);
+            iconShadow.effectDistance = new Vector2(0f, -3f);
+
+            if (iconSprite == null)
+            {
+                var fallback = CreateText(iconRoot.transform, font, fallbackText, 28, TextAnchor.MiddleCenter);
+                fallback.color = Color.white;
+                fallback.fontStyle = FontStyle.Bold;
+                var fallbackShadow = fallback.gameObject.AddComponent<Shadow>();
+                fallbackShadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
+                fallbackShadow.effectDistance = new Vector2(1f, -1f);
+                StretchToParent(fallback.rectTransform, 0f, 0f, 0f, 0f);
+            }
+
+            var labelText = CreateText(buttonObject.transform, font, label, 14, TextAnchor.UpperCenter);
+            labelText.color = Color.white;
+            labelText.fontStyle = FontStyle.Bold;
+            labelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            labelText.verticalOverflow = VerticalWrapMode.Truncate;
+            var labelRect = labelText.rectTransform;
+            labelRect.anchorMin = new Vector2(0f, 0f);
+            labelRect.anchorMax = new Vector2(1f, 0f);
+            labelRect.pivot = new Vector2(0.5f, 0f);
+            labelRect.offsetMin = new Vector2(4f, 2f);
+            labelRect.offsetMax = new Vector2(-4f, 30f);
+            var labelShadow = labelText.gameObject.AddComponent<Shadow>();
+            labelShadow.effectColor = new Color(0f, 0f, 0f, 0.7f);
+            labelShadow.effectDistance = new Vector2(1.5f, -1.5f);
+
+            return button;
+        }
+
         public static Text CreateInfoCard(Transform parent, Font font, string message, float height = 58f)
         {
             var infoRoot = CreateUiObject("InfoCard", parent);
@@ -209,6 +281,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
         public static RectTransform GetOrCreateComputerWindowRoot(Canvas canvas)
         {
             return GetComputerPanelUi(canvas)?.ContentRoot;
+        }
+
+        public static RectTransform GetOrCreateComputerDesktopIconRoot(Canvas canvas)
+        {
+            return GetComputerPanelUi(canvas)?.DesktopIconRoot;
         }
 
         public static bool IsComputerPanelOpen(Canvas canvas)

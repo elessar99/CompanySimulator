@@ -22,6 +22,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private ShopPanelUI shopPanelUI;
         [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private Canvas rootCanvas;
+        [SerializeField] private Sprite appIcon;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
         [SerializeField] private float panelVerticalOffset = 72f;
 
@@ -519,13 +520,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "EmployeesOpenButton", "Çalışanlar", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f), ColText, TextAnchor.MiddleCenter);
-            var buttonRect = button.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0f, 1f);
-            buttonRect.anchorMax = new Vector2(0f, 1f);
-            buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(220f, -20f);
-            buttonRect.sizeDelta = new Vector2(180f, 44f);
+            var button = RuntimePanelUiUtility.CreateDesktopAppButton(RuntimePanelUiUtility.GetOrCreateComputerDesktopIconRoot(rootCanvas), defaultFont, "EmployeesOpenButton", "Çalışanlar", appIcon, "EMP", ColGreen);
             button.onClick.AddListener(OpenPanel);
         }
 

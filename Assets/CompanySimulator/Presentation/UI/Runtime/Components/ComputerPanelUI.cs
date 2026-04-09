@@ -1,5 +1,6 @@
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace CompanySimulator.Presentation.UI.Runtime.Components
 {
@@ -16,12 +17,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField, Min(0f)] private float panelPaddingBottom = 18f;
         [SerializeField, Min(4f)] private float borderThickness = 18f;
         [SerializeField] private bool startVisible;
+        [SerializeField] private Vector2 desktopIconCellSize = new Vector2(96f, 112f);
+        [SerializeField] private Vector2 desktopIconSpacing = new Vector2(18f, 16f);
+        [SerializeField, Min(0f)] private float desktopIconPaddingLeft = 18f;
+        [SerializeField, Min(0f)] private float desktopIconPaddingRight = 18f;
+        [SerializeField, Min(0f)] private float desktopIconPaddingTop = 18f;
+        [SerializeField, Min(0f)] private float desktopIconPaddingBottom = 18f;
 
         private RectTransform rectTransform;
+        private RectTransform desktopIconRoot;
+        private RectTransform windowRoot;
 
         public Canvas RootCanvas => rootCanvas;
         public RectTransform PanelRoot => rectTransform != null ? rectTransform : (RectTransform)transform;
-        public RectTransform ContentRoot => PanelRoot;
+        public RectTransform ContentRoot => windowRoot != null ? windowRoot : PanelRoot;
+        public RectTransform DesktopIconRoot => desktopIconRoot != null ? desktopIconRoot : PanelRoot;
         public float TopMargin => topMargin;
         public float BottomMargin => bottomMargin;
         public float PanelPaddingLeft => panelPaddingLeft;
@@ -39,6 +49,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 RuntimePanelUiUtility.EnsureResponsiveCanvasScaler(rootCanvas);
             }
 
+            EnsureChildRoots();
             ApplyLayout();
             // gameObject.SetActive(startVisible);
         }
@@ -117,6 +128,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             rectTransform.pivot = new Vector2(0.5f, 1f);
             rectTransform.anchoredPosition = new Vector2(0f, -topGap);
             rectTransform.sizeDelta = new Vector2(width, height);
+
+            EnsureChildRoots();
+            ApplyDesktopIconLayout(widthScale, heightScale);
+            ApplyWindowRootLayout(widthScale, heightScale);
         }
 
         public void ApplyChildPanelLayout(RectTransform childRect)
@@ -126,17 +141,84 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            rootCanvas ??= GetComponentInParent<Canvas>();
-            var pixelRect = rootCanvas != null ? rootCanvas.pixelRect : new Rect(0f, 0f, 1920f, 1080f);
-            var widthScale = pixelRect.width > 0f ? pixelRect.width / 1920f : 1f;
-            var heightScale = pixelRect.height > 0f ? pixelRect.height / 1080f : 1f;
+            RuntimePanelUiUtility.ConfigureFillParentPanel(childRect);
+        }
 
-            childRect.anchorMin = Vector2.zero;
-            childRect.anchorMax = Vector2.one;
-            childRect.pivot = new Vector2(0.5f, 0.5f);
-            childRect.anchoredPosition = Vector2.zero;
-            childRect.offsetMin = new Vector2(panelPaddingLeft * widthScale, panelPaddingBottom * heightScale);
-            childRect.offsetMax = new Vector2(-(panelPaddingRight * widthScale), -(panelPaddingTop * heightScale));
+        private void EnsureChildRoots()
+        {
+            if (desktopIconRoot == null)
+            {
+                var existingDesktop = transform.Find("DesktopIconRoot") as RectTransform;
+                desktopIconRoot = existingDesktop != null
+                    ? existingDesktop
+                    : RuntimePanelUiUtility.CreateUiObject("DesktopIconRoot", transform).GetComponent<RectTransform>();
+            }
+
+            if (windowRoot == null)
+            {
+                var existingWindow = transform.Find("WindowRoot") as RectTransform;
+                windowRoot = existingWindow != null
+                    ? existingWindow
+                    : RuntimePanelUiUtility.CreateUiObject("WindowRoot", transform).GetComponent<RectTransform>();
+            }
+
+            if (desktopIconRoot.GetComponent<GridLayoutGroup>() == null)
+            {
+                desktopIconRoot.gameObject.AddComponent<GridLayoutGroup>();
+            }
+
+            if (desktopIconRoot.GetComponent<ContentSizeFitter>() == null)
+            {
+                var fitter = desktopIconRoot.gameObject.AddComponent<ContentSizeFitter>();
+                fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+                fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+            }
+
+            windowRoot.SetAsFirstSibling();
+            desktopIconRoot.SetAsLastSibling();
+        }
+
+        private void ApplyDesktopIconLayout(float widthScale, float heightScale)
+        {
+            if (desktopIconRoot == null)
+            {
+                return;
+            }
+
+            desktopIconRoot.anchorMin = Vector2.zero;
+            desktopIconRoot.anchorMax = Vector2.one;
+            desktopIconRoot.pivot = new Vector2(0f, 1f);
+            desktopIconRoot.anchoredPosition = Vector2.zero;
+            desktopIconRoot.offsetMin = new Vector2(desktopIconPaddingLeft * widthScale, desktopIconPaddingBottom * heightScale);
+            desktopIconRoot.offsetMax = new Vector2(-(desktopIconPaddingRight * widthScale), -(desktopIconPaddingTop * heightScale));
+
+            var grid = desktopIconRoot.GetComponent<GridLayoutGroup>();
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Vertical;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.constraint = GridLayoutGroup.Constraint.FixedRowCount;
+            grid.cellSize = new Vector2(desktopIconCellSize.x * widthScale, desktopIconCellSize.y * heightScale);
+            grid.spacing = new Vector2(desktopIconSpacing.x * widthScale, desktopIconSpacing.y * heightScale);
+            grid.padding = new RectOffset(0, 0, 0, 0);
+
+            var usableHeight = Mathf.Max(grid.cellSize.y, desktopIconRoot.rect.height);
+            grid.constraintCount = Mathf.Max(1, Mathf.FloorToInt((usableHeight + grid.spacing.y) / (grid.cellSize.y + grid.spacing.y)));
+            LayoutRebuilder.MarkLayoutForRebuild(desktopIconRoot);
+        }
+
+        private void ApplyWindowRootLayout(float widthScale, float heightScale)
+        {
+            if (windowRoot == null)
+            {
+                return;
+            }
+
+            windowRoot.anchorMin = Vector2.zero;
+            windowRoot.anchorMax = Vector2.one;
+            windowRoot.pivot = new Vector2(0.5f, 0.5f);
+            windowRoot.anchoredPosition = Vector2.zero;
+            windowRoot.offsetMin = new Vector2(panelPaddingLeft * widthScale, panelPaddingBottom * heightScale);
+            windowRoot.offsetMax = new Vector2(-(panelPaddingRight * widthScale), -(panelPaddingTop * heightScale));
         }
     }
 }

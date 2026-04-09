@@ -17,6 +17,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private DebugPanelUI debugPanelUI;
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private Canvas rootCanvas;
+        [SerializeField] private Sprite appIcon;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 760f);
         [SerializeField] private float panelVerticalOffset = 72f;
 
@@ -847,13 +848,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         private void CreateOpenButton()
         {
-            var button = CreateStyledButton(RuntimePanelUiUtility.GetOrCreateComputerWindowRoot(rootCanvas), "UiLabOpenButton", "UI Lab", ColSurface, Blend(ColSurface, ColBlue, 0.25f), Darken(ColSurface, 0.16f));
-            var buttonRect = button.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0f, 1f);
-            buttonRect.anchorMax = new Vector2(0f, 1f);
-            buttonRect.pivot = new Vector2(0f, 1f);
-            buttonRect.anchoredPosition = new Vector2(420f, -72f);
-            buttonRect.sizeDelta = new Vector2(180f, 44f);
+            var button = RuntimePanelUiUtility.CreateDesktopAppButton(RuntimePanelUiUtility.GetOrCreateComputerDesktopIconRoot(rootCanvas), defaultFont, "UiLabOpenButton", "UI Lab", appIcon, "LAB", ColPurple);
             button.onClick.AddListener(OpenPanel);
         }
 
