@@ -74,6 +74,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             ApplyLayout();
         }
 
+        private void LateUpdate()
+        {
+            RefreshRootOrdering();
+        }
+
         public void SetVisible(bool isVisible)
         {
             gameObject.SetActive(isVisible);
@@ -174,8 +179,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
             }
 
-            windowRoot.SetAsFirstSibling();
-            desktopIconRoot.SetAsLastSibling();
+            RefreshRootOrdering();
         }
 
         private void ApplyDesktopIconLayout(float widthScale, float heightScale)
@@ -219,6 +223,38 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             windowRoot.anchoredPosition = Vector2.zero;
             windowRoot.offsetMin = new Vector2(panelPaddingLeft * widthScale, panelPaddingBottom * heightScale);
             windowRoot.offsetMax = new Vector2(-(panelPaddingRight * widthScale), -(panelPaddingTop * heightScale));
+        }
+
+        private void RefreshRootOrdering()
+        {
+            if (desktopIconRoot == null || windowRoot == null)
+            {
+                return;
+            }
+
+            if (HasVisibleWindow())
+            {
+                desktopIconRoot.SetAsFirstSibling();
+                windowRoot.SetAsLastSibling();
+                return;
+            }
+
+            windowRoot.SetAsFirstSibling();
+            desktopIconRoot.SetAsLastSibling();
+        }
+
+        private bool HasVisibleWindow()
+        {
+            for (var i = 0; i < windowRoot.childCount; i++)
+            {
+                var child = windowRoot.GetChild(i);
+                if (child != null && child.gameObject.activeSelf)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -26,7 +26,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
         [SerializeField] private float panelVerticalOffset = 72f;
 
-        private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
+        private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 1f);
         private static readonly Color ColPanel = new Color(0.063f, 0.098f, 0.169f, 1f);
         private static readonly Color ColSurface = new Color(0.082f, 0.125f, 0.204f, 1f);
         private static readonly Color ColSurfaceAlt = new Color(0.047f, 0.078f, 0.141f, 1f);
@@ -585,7 +585,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
             scrollRectTransform.offsetMin = new Vector2(16f, 16f);
             scrollRectTransform.offsetMax = new Vector2(-16f, -86f);
-            ApplyRoundedImage(scrollRoot, new Color(ColPanel.r, ColPanel.g, ColPanel.b, 0.72f));
+            ApplyRoundedImage(scrollRoot, new Color(ColPanel.r, ColPanel.g, ColPanel.b, 0.98f));
             EnsureRoundedMask(scrollRoot);
 
             var scrollRect = scrollRoot.AddComponent<ScrollRect>();

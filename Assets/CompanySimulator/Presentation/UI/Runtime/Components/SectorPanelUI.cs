@@ -12,6 +12,7 @@ using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Investments.Runtime.Definitions;
 using CompanySimulator.Presentation.UI.Runtime.Common;
+using CompanySimulator.Features.Time.Runtime.Components;
 using CompanySimulator.Features.Projects.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Components;
@@ -43,11 +44,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private InventoryPanelUI inventoryPanelUI;
         [SerializeField] private AgentManager agentManager;
         [SerializeField] private Canvas rootCanvas;
+        [SerializeField] private TimeManager timeManager;
         [SerializeField] private Sprite appIcon;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
         [SerializeField] private float panelVerticalOffset = 72f;
 
-        private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 0.985f);
+        private static readonly Color ColBg = new Color(0.035f, 0.067f, 0.122f, 1f);
         private static readonly Color ColPanel = new Color(0.063f, 0.098f, 0.169f, 1f);
         private static readonly Color ColSurface = new Color(0.082f, 0.125f, 0.204f, 1f);
         private static readonly Color ColSurfaceAlt = new Color(0.047f, 0.078f, 0.141f, 1f);
@@ -69,6 +71,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private GameObject panelRoot;
         private RectTransform contentRoot;
         private Text balanceText;
+        private Text clockText;
         private Text dayText;
         private Text pageTitleText;
         private Text draftResultText;
@@ -118,6 +121,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
             agentManager ??= FindObjectOfType<AgentManager>();
+            timeManager ??= FindObjectOfType<TimeManager>();
+            if (timeManager == null)
+            {
+                timeManager = new GameObject("TimeManager", typeof(TimeManager)).GetComponent<TimeManager>();
+            }
 
             EnsureCanvas();
             EnsureEventSystem();
@@ -137,6 +145,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void Start()
         {
             RefreshComputerToggleButtonLabel();
+            RefreshTimeText();
             RefreshAll();
         }
 
@@ -300,16 +309,16 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 agentManager.DataChanged -= HandleAgentDataChanged;
                 agentManager.DataChanged += HandleAgentDataChanged;
             }
+
+            if (timeManager != null)
+            {
+                timeManager.TimeChanged -= HandleTimeChanged;
+                timeManager.TimeChanged += HandleTimeChanged;
+            }
         }
 
         private void UnsubscribeEvents()
         {
-            if (economyManager != null)
-            {
-                economyManager.BalanceChanged -= HandleBalanceChanged;
-                economyManager.DayAdvanced -= HandleDayAdvanced;
-            }
-
             if (sectorManager != null)
             {
                 sectorManager.DataChanged -= HandleSectorDataChanged;
@@ -324,6 +333,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             {
                 agentManager.DataChanged -= HandleAgentDataChanged;
             }
+
         }
 
         private void HandleBalanceChanged(Money _)
@@ -357,6 +367,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void HandleAgentDataChanged()
         {
             RefreshAgentButtons();
+        }
+
+        private void HandleTimeChanged(int _, int __)
+        {
+            RefreshTimeText();
         }
 
         private void EnsureCanvas()
@@ -459,6 +474,20 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void CreateDayWidget()
         {
             var hudRoot = RuntimePanelUiUtility.GetOrCreateHudRoot(rootCanvas);
+
+            var clockRoot = CreateUiObject("ClockBar", hudRoot);
+            var clockRect = clockRoot.GetComponent<RectTransform>();
+            clockRect.anchorMin = new Vector2(1f, 1f);
+            clockRect.anchorMax = new Vector2(1f, 1f);
+            clockRect.pivot = new Vector2(1f, 1f);
+            clockRect.anchoredPosition = new Vector2(-410f, -20f);
+            clockRect.sizeDelta = new Vector2(160f, 48f);
+            ApplyRoundedImage(clockRoot, ColPanel);
+
+            clockText = CreateText(clockRoot.transform, "08:00", 22, TextAnchor.MiddleCenter);
+            clockText.color = ColText;
+            StretchToParent(clockText.rectTransform, 12f, 6f, 12f, 6f);
+
             var dayRoot = CreateUiObject("DayBar", hudRoot);
             var dayRect = dayRoot.GetComponent<RectTransform>();
             dayRect.anchorMin = new Vector2(1f, 1f);
@@ -505,6 +534,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             RefreshAgentButtons();
             RefreshDayText();
+            RefreshTimeText();
         }
 
         private void CreatePanel()
@@ -568,7 +598,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
             scrollRectTransform.offsetMin = new Vector2(16f, 16f);
             scrollRectTransform.offsetMax = new Vector2(-16f, -86f);
-            ApplyRoundedImage(scrollRoot, new Color(ColPanel.r, ColPanel.g, ColPanel.b, 0.72f));
+            ApplyRoundedImage(scrollRoot, new Color(ColPanel.r, ColPanel.g, ColPanel.b, 0.98f));
             EnsureRoundedMask(scrollRoot);
 
             var scrollRect = scrollRoot.AddComponent<ScrollRect>();
@@ -2457,6 +2487,16 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             var day = economyManager != null ? economyManager.CurrentDay : 1;
             dayText.text = $"Gün: {day}";
+        }
+
+        private void RefreshTimeText()
+        {
+            if (clockText == null)
+            {
+                return;
+            }
+
+            clockText.text = timeManager != null ? timeManager.CurrentTimeLabel : "08:00";
         }
 
         private Font LoadDefaultFont()

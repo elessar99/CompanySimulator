@@ -6,6 +6,7 @@ using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Services;
+using CompanySimulator.Features.Time.Runtime.Components;
 using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
         [SerializeField] private EconomySetupDefinition setup;
         [SerializeField] private EmployeeManager employeeManager;
         [SerializeField] private CompanyBankManager companyBankManager;
+        [SerializeField] private TimeManager timeManager;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private bool runStartupProjectsOnStart = true;
         [SerializeField] private int currentDay = 1;
@@ -50,6 +52,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
         private void Awake()
         {
             employeeManager ??= FindObjectOfType<EmployeeManager>();
+            timeManager ??= FindObjectOfType<TimeManager>();
+            if (timeManager == null)
+            {
+                timeManager = new GameObject("TimeManager", typeof(TimeManager)).GetComponent<TimeManager>();
+            }
+
             if (initializeOnAwake)
             {
                 Initialize();
@@ -487,21 +495,46 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 employeeManager.Initialize();
             }
 
-            var employees = employeeManager.Employees;
-            var totalDailyPayroll = Money.Zero;
-            for (var i = 0; i < employees.Count; i++)
+            if (timeManager == null)
             {
-                totalDailyPayroll += employees[i].ExpectedDailySalary;
+                timeManager = FindObjectOfType<TimeManager>();
             }
 
-            if (totalDailyPayroll <= Money.Zero)
+            var employees = employeeManager.Employees;
+            var totalDailyPayroll = Money.Zero;
+            var totalOvertimePayroll = Money.Zero;
+            var overtimeHours = timeManager != null ? timeManager.GetOfficeOvertimeHours() : 0f;
+            var standardWorkdayHours = timeManager != null ? timeManager.WorkdayDurationHours : 8f;
+            for (var i = 0; i < employees.Count; i++)
+            {
+                var employee = employees[i];
+                if (employee == null)
+                {
+                    continue;
+                }
+
+                totalDailyPayroll += employee.ExpectedDailySalary;
+
+                if (overtimeHours <= 0f || employee.Role == null || !employee.Role.RequiresOffice)
+                {
+                    continue;
+                }
+
+                var hourlyRate = employee.ExpectedDailySalary.Amount / standardWorkdayHours;
+                var overtimeAmount = Money.From(hourlyRate * overtimeHours * 2d);
+                totalOvertimePayroll += overtimeAmount;
+            }
+
+            var totalPayrollExpense = totalDailyPayroll + totalOvertimePayroll;
+
+            if (totalPayrollExpense <= Money.Zero)
             {
                 return;
             }
 
-            if (Balance < totalDailyPayroll)
+            if (Balance < totalPayrollExpense)
             {
-                var deficit = totalDailyPayroll - Balance;
+                var deficit = totalPayrollExpense - Balance;
                 if (companyBankManager == null || !companyBankManager.TryAutoLoan(deficit))
                 {
                     lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için bakiye yetersiz.";
@@ -509,7 +542,10 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                 }
             }
 
-            ApplyExpense(totalDailyPayroll, LedgerEntryType.PayrollExpense, $"{currentDay}. gün tüm çalışan maaşları");
+            var description = totalOvertimePayroll > Money.Zero
+                ? $"{currentDay}. gün tüm çalışan maaşları ve mesai gideri"
+                : $"{currentDay}. gün tüm çalışan maaşları";
+            ApplyExpense(totalPayrollExpense, LedgerEntryType.PayrollExpense, description);
         }
 
         private void ProcessRecurringPayouts()

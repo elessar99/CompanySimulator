@@ -532,7 +532,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             var panelRect = panelRoot.GetComponent<RectTransform>();
             RuntimePanelUiUtility.ConfigureFillComputerPanelChild(panelRect, rootCanvas);
 
-            panelRoot.AddComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 0.98f);
+            panelRoot.AddComponent<Image>().color = new Color(0.08f, 0.1f, 0.14f, 1f);
 
             var headerRoot = CreateUiObject("Header", panelRoot.transform);
             var headerRect = headerRoot.GetComponent<RectTransform>();
@@ -587,7 +587,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
             scrollRectTransform.offsetMin = new Vector2(16f, 16f);
             scrollRectTransform.offsetMax = new Vector2(-16f, -130f);
-            scrollRoot.AddComponent<Image>().color = new Color(0.11f, 0.13f, 0.17f, 0.92f);
+            scrollRoot.AddComponent<Image>().color = new Color(0.11f, 0.13f, 0.17f, 1f);
 
             var scrollRect = scrollRoot.AddComponent<ScrollRect>();
             scrollRect.horizontal = false;
