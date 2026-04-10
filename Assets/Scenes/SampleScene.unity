@@ -180,6 +180,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &11679982
@@ -195,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -272,6 +273,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 717437022}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &115127326
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 115127327}
+  m_Layer: 0
+  m_Name: WindowRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &115127327
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 115127326}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1015084702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0.000002861023, y: -0.0000019073486}
+  m_SizeDelta: {x: -40.000023, y: -39.999985}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &247165540
 GameObject:
   m_ObjectHideFlags: 0
@@ -334,6 +370,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &247165543
@@ -349,7 +386,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -435,6 +472,7 @@ MonoBehaviour:
   securityPanelUI: {fileID: 247165542}
   shopPanelUI: {fileID: 1007853085}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &253775480
@@ -450,7 +488,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -722,12 +760,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.93, z: 0.489}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1833075630}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
@@ -834,6 +872,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &394443764
@@ -849,7 +888,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -933,6 +972,7 @@ MonoBehaviour:
   debugPanelUI: {fileID: 660682439}
   securityPanelUI: {fileID: 247165542}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 950}
   panelVerticalOffset: 62
 --- !u!114 &404397379
@@ -948,7 +988,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1211,6 +1251,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 950}
   panelVerticalOffset: 62
 --- !u!114 &660682440
@@ -1226,7 +1267,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1290,6 +1331,7 @@ Transform:
   - {fileID: 514144011}
   - {fileID: 1129450516}
   - {fileID: 1394059647}
+  - {fileID: 1345917187}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &832575517
@@ -1389,6 +1431,81 @@ MonoBehaviour:
   economyManager: {fileID: 1129450515}
   inventoryManager: {fileID: 972695287}
   initializeOnAwake: 1
+--- !u!1 &888991834
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 888991835}
+  - component: {fileID: 888991837}
+  - component: {fileID: 888991836}
+  m_Layer: 0
+  m_Name: DesktopIconRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &888991835
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888991834}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1015084702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 18, y: -18}
+  m_SizeDelta: {x: -36, y: -36}
+  m_Pivot: {x: 0, y: 1}
+--- !u!114 &888991836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888991834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
+  m_HorizontalFit: 0
+  m_VerticalFit: 0
+--- !u!114 &888991837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888991834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a8695521f0d02e499659fee002a26c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GridLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 0
+  m_StartCorner: 0
+  m_StartAxis: 1
+  m_CellSize: {x: 96, y: 112}
+  m_Spacing: {x: 18, y: 16}
+  m_Constraint: 2
+  m_ConstraintCount: 7
 --- !u!1 &972695285
 GameObject:
   m_ObjectHideFlags: 0
@@ -1479,6 +1596,7 @@ MonoBehaviour:
   securityPanelUI: {fileID: 247165542}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &1007853086
@@ -1494,7 +1612,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1570,6 +1688,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 115127327}
   - {fileID: 1052629707}
   - {fileID: 1311983859}
   - {fileID: 11679980}
@@ -1581,6 +1700,7 @@ RectTransform:
   - {fileID: 660682438}
   - {fileID: 1007853088}
   - {fileID: 253775478}
+  - {fileID: 888991835}
   m_Father: {fileID: 1362092757}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
@@ -1608,7 +1728,13 @@ MonoBehaviour:
   panelPaddingTop: 20
   panelPaddingBottom: 20
   borderThickness: 4
-  startVisible: 1
+  startVisible: 0
+  desktopIconCellSize: {x: 96, y: 112}
+  desktopIconSpacing: {x: 18, y: 16}
+  desktopIconPaddingLeft: 18
+  desktopIconPaddingRight: 18
+  desktopIconPaddingTop: 18
+  desktopIconPaddingBottom: 18
 --- !u!114 &1015084704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1855,6 +1981,8 @@ MonoBehaviour:
   inventoryPanelUI: {fileID: 253775479}
   agentManager: {fileID: 1020124916}
   rootCanvas: {fileID: 1362092756}
+  timeManager: {fileID: 1345917188}
+  appIcon: {fileID: 0}
   panelSize: {x: 1000, y: 600}
   panelVerticalOffset: 0
 --- !u!114 &1052629709
@@ -1870,7 +1998,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1927,6 +2055,7 @@ MonoBehaviour:
   setup: {fileID: 11400000, guid: 7058338d44ef69744933f88e6808c4dc, type: 2}
   employeeManager: {fileID: 1959420496}
   companyBankManager: {fileID: 1394059646}
+  timeManager: {fileID: 1345917188}
   initializeOnAwake: 1
   runStartupProjectsOnStart: 1
   currentDay: 1
@@ -1976,7 +2105,7 @@ Transform:
   m_GameObject: {fileID: 1292286619}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2123,6 +2252,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &1311983861
@@ -2138,7 +2268,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2163,6 +2293,59 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1311983858}
   m_CullTransparentMesh: 1
+--- !u!1 &1345917186
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1345917187}
+  - component: {fileID: 1345917188}
+  m_Layer: 0
+  m_Name: TimeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1345917187
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1345917186}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 717437022}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1345917188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1345917186}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bce379f3f13599468a60bcaf841c730, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Time.Runtime.Components.TimeManager
+  economyManager: {fileID: 1129450515}
+  workdayStartHour: 8
+  workdayStartMinute: 0
+  workdayEndHour: 16
+  workdayEndMinute: 0
+  realMinutesPerGameHour: 0.1
+  autoAdvanceAtMidnight: 1
+  runClock: 1
+  currentTotalMinutes: 0
 --- !u!1 &1362092753
 GameObject:
   m_ObjectHideFlags: 0
@@ -2312,143 +2495,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 717437022}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1444993876
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1444993877}
-  - component: {fileID: 1444993880}
-  - component: {fileID: 1444993879}
-  - component: {fileID: 1444993878}
-  m_Layer: 0
-  m_Name: Camera
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1444993877
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1444993876}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.635, z: 0.278}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1833075630}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1444993878
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1444993876}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
-  m_RenderShadows: 1
-  m_RequiresDepthTextureOption: 2
-  m_RequiresOpaqueTextureOption: 2
-  m_CameraType: 0
-  m_Cameras: []
-  m_RendererIndex: -1
-  m_VolumeLayerMask:
-    serializedVersion: 2
-    m_Bits: 1
-  m_VolumeTrigger: {fileID: 0}
-  m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
-  m_AntialiasingQuality: 2
-  m_StopNaN: 0
-  m_Dithering: 0
-  m_ClearDepth: 1
-  m_AllowXRRendering: 1
-  m_AllowHDROutput: 1
-  m_UseScreenCoordOverride: 0
-  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
-  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
-  m_RequiresDepthTexture: 0
-  m_RequiresColorTexture: 0
-  m_TaaSettings:
-    m_Quality: 3
-    m_FrameInfluence: 0.1
-    m_JitterScale: 1
-    m_MipBias: 0
-    m_VarianceClampScale: 0.9
-    m_ContrastAdaptiveSharpening: 0
-  m_Version: 2
---- !u!81 &1444993879
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1444993876}
-  m_Enabled: 1
---- !u!20 &1444993880
-Camera:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1444993876}
-  m_Enabled: 1
-  serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
-  m_GateFitMode: 2
-  m_FOVAxisMode: 0
-  m_Iso: 200
-  m_ShutterSpeed: 0.005
-  m_Aperture: 16
-  m_FocusDistance: 10
-  m_FocalLength: 50
-  m_BladeCount: 5
-  m_Curvature: {x: 2, y: 11}
-  m_BarrelClipping: 0.25
-  m_Anamorphism: 0
-  m_SensorSize: {x: 36, y: 24}
-  m_LensShift: {x: 0, y: 0}
-  m_NormalizedViewPortRect:
-    serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
-  near clip plane: 0.3
-  far clip plane: 1000
-  field of view: 60
-  orthographic: 0
-  orthographic size: 5
-  m_Depth: 0
-  m_CullingMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
-  m_TargetDisplay: 0
-  m_TargetEye: 3
-  m_HDR: 1
-  m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
-  m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
-  m_StereoConvergence: 10
-  m_StereoSeparation: 0.022
 --- !u!1 &1566646481
 GameObject:
   m_ObjectHideFlags: 0
@@ -2670,6 +2716,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &1741238399
@@ -2685,7 +2732,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2720,6 +2767,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1833075630}
   - component: {fileID: 1833075629}
+  - component: {fileID: 1833075631}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2761,14 +2809,43 @@ Transform:
   m_GameObject: {fileID: 1833075628}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0.07}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1292286620}
-  - {fileID: 1444993877}
+  - {fileID: 330585546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1833075631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1833075628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8acd69fbdf61ca84aad4ba6afb4b98e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Player.Runtime.Components.PlayerMovementController
+  playerCamera: {fileID: 330585545}
+  cameraRoot: {fileID: 330585546}
+  rootCanvas: {fileID: 1362092756}
+  economyManager: {fileID: 1129450515}
+  walkSpeed: 10
+  runSpeed: 15
+  acceleration: 25
+  airControl: 0.35
+  gravity: 20
+  groundedForce: 2
+  lookSensitivity: 8
+  maxLookAngle: 80
+  lockCursorOnStart: 1
+  runKey: 304
+  cursorToggleKey: 27
+  computerToggleKey: 114
+  advanceDayKey: 103
 --- !u!1 &1959420495
 GameObject:
   m_ObjectHideFlags: 0
@@ -2799,7 +2876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Employees.Runtime.Components.EmployeeManager
   setup: {fileID: 11400000, guid: f3f168dd3d4a02945b1c580c15a25530, type: 2}
-  economyManager: {fileID: 0}
+  economyManager: {fileID: 1129450515}
   initializeOnAwake: 1
   employeeCount: 0
   applicantCount: 0
@@ -2880,6 +2957,7 @@ MonoBehaviour:
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
   rootCanvas: {fileID: 1362092756}
+  appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
   panelVerticalOffset: 0
 --- !u!114 &2069532658
@@ -2895,7 +2973,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2924,7 +3002,6 @@ CanvasRenderer:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1362092757}

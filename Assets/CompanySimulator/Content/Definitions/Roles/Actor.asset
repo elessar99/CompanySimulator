@@ -17,7 +17,7 @@ MonoBehaviour:
   baseDailySalary: 100
   qualityWeight: 1
   profitWeight: 1
-  requiresOffice: 1
+  requiresOffice: 0
   applicantRefreshIntervalDays: 1
   maxConcurrentAssignmentsPerEmployee: 1
   allowedSectors: []
@@ -27,8 +27,8 @@ MonoBehaviour:
     incomeMultiplier: 0.5
     spawnChanceWeight: 35
   ortalamaSettings:
-    minimumExpectedSalary: 1
-    maximumExpectedSalary: 1
+    minimumExpectedSalary: 1000
+    maximumExpectedSalary: 1000
     incomeMultiplier: 1
     spawnChanceWeight: 4000
   iyiSettings:

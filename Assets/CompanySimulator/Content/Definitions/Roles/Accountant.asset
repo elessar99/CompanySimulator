@@ -18,6 +18,7 @@ MonoBehaviour:
   qualityWeight: 1
   profitWeight: 1
   requiresOffice: 1
+  applicantRefreshIntervalDays: 3
   maxConcurrentAssignmentsPerEmployee: 1
   allowedSectors: []
   kotuSettings:
@@ -36,7 +37,7 @@ MonoBehaviour:
     incomeMultiplier: 6
     spawnChanceWeight: 20
   profesyonelSettings:
-    minimumExpectedSalary: 726
-    maximumExpectedSalary: 800
+    minimumExpectedSalary: 2000
+    maximumExpectedSalary: 2000
     incomeMultiplier: 10
-    spawnChanceWeight: 100
+    spawnChanceWeight: 1000000
