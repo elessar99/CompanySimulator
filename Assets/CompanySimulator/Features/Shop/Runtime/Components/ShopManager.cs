@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Inventory.Runtime.Components;
@@ -86,6 +87,16 @@ namespace CompanySimulator.Features.Shop.Runtime.Components
         public int GetOwnedQuantity(ShopProductDefinition product)
         {
             return inventoryManager != null ? inventoryManager.GetOwnedQuantity(product) : 0;
+        }
+
+        public int GetOwnedFurnitureQuantity(PlaceableFurnitureDefinition furnitureDefinition, int tier = 0)
+        {
+            return inventoryManager != null ? inventoryManager.GetOwnedFurnitureQuantity(furnitureDefinition, tier) : 0;
+        }
+
+        public bool HasPurchasedFurniture(PlaceableFurnitureDefinition furnitureDefinition, int tier = 0)
+        {
+            return inventoryManager != null && inventoryManager.HasOwnedFurniture(furnitureDefinition, tier);
         }
 
         public bool CanPurchaseProduct(ShopProductDefinition product, out string validationMessage)

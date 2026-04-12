@@ -35,6 +35,12 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         private float pitch;
         private bool cursorLocked;
         private bool wantsCursorLocked;
+        private bool externalMovementLock;
+        private bool externalCursorUnlock;
+
+        public Camera PlayerCamera => playerCamera;
+        public Transform LookOrigin => playerCamera != null ? playerCamera.transform : cameraRoot;
+        public Canvas RootCanvas => rootCanvas;
 
         private void Awake()
         {
@@ -67,15 +73,19 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
 
             HandleCursorToggle(computerOpen);
-            SetCursorLocked(computerOpen ? false : wantsCursorLocked);
+            SetCursorLocked(computerOpen || externalCursorUnlock ? false : wantsCursorLocked);
 
-            if (computerOpen || !cursorLocked)
+            if (!computerOpen && cursorLocked)
+            {
+                HandleLook();
+            }
+
+            if (computerOpen || externalMovementLock || !cursorLocked)
             {
                 HandleStationaryMovement();
                 return;
             }
 
-            HandleLook();
             HandleMovement();
         }
 
@@ -180,6 +190,41 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             cursorLocked = isLocked;
             Cursor.lockState = isLocked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !isLocked;
+        }
+
+        public void SetInteractionLock(bool isLocked, bool unlockCursor)
+        {
+            externalMovementLock = isLocked;
+            externalCursorUnlock = isLocked && unlockCursor;
+        }
+
+        public void SnapToPose(Vector3 worldPosition, Quaternion worldRotation, bool resetLookPitch)
+        {
+            var wasEnabled = characterController != null && characterController.enabled;
+            if (wasEnabled)
+            {
+                characterController.enabled = false;
+            }
+
+            transform.SetPositionAndRotation(worldPosition, worldRotation);
+
+            if (cameraRoot != null)
+            {
+                if (resetLookPitch)
+                {
+                    pitch = 0f;
+                    cameraRoot.localRotation = Quaternion.identity;
+                }
+                else
+                {
+                    pitch = NormalizePitch(cameraRoot.localEulerAngles.x);
+                }
+            }
+
+            if (wasEnabled)
+            {
+                characterController.enabled = true;
+            }
         }
 
         private bool IsComputerOpen()

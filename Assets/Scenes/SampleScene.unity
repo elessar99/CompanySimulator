@@ -285,6 +285,7 @@ GameObject:
   - component: {fileID: 83721626}
   - component: {fileID: 83721625}
   - component: {fileID: 83721624}
+  - component: {fileID: 83721627}
   m_Layer: 0
   m_Name: pc
   m_TagString: Untagged
@@ -385,6 +386,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 83721622}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &83721627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 83721622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f5a744baa490f47a3486c617bdcdd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.CeoDeskInteractionPoint
+  controller: {fileID: 2022092836}
+  interactionMode: 1
 --- !u!1 &115127326
 GameObject:
   m_ObjectHideFlags: 0
@@ -858,6 +873,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 285982714}
+  - component: {fileID: 285982715}
   m_Layer: 0
   m_Name: desk
   m_TagString: Untagged
@@ -882,6 +898,20 @@ Transform:
   - {fileID: 862441864}
   m_Father: {fileID: 2022092835}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &285982715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 285982713}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4f5a744baa490f47a3486c617bdcdd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.CeoDeskInteractionPoint
+  controller: {fileID: 2022092836}
+  interactionMode: 0
 --- !u!1 &293546315
 GameObject:
   m_ObjectHideFlags: 0
@@ -1780,6 +1810,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 717437022}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &529876968
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 529876969}
+  m_Layer: 0
+  m_Name: exit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &529876969
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 529876968}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.73, y: 0, z: -0.53}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 623994490}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &623994489
 GameObject:
   m_ObjectHideFlags: 0
@@ -1792,6 +1853,8 @@ GameObject:
   - component: {fileID: 623994493}
   - component: {fileID: 623994492}
   - component: {fileID: 623994491}
+  - component: {fileID: 623994495}
+  - component: {fileID: 623994494}
   m_Layer: 0
   m_Name: CEO chair
   m_TagString: Untagged
@@ -1808,10 +1871,12 @@ Transform:
   m_GameObject: {fileID: 623994489}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.009, y: 0.328, z: -1.258}
-  m_LocalScale: {x: 0.5, y: 0.8, z: 0.5}
+  m_LocalPosition: {x: 0.009, y: 0.25, z: -1.258}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1514458148}
+  - {fileID: 529876969}
   m_Father: {fileID: 2022092835}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &623994491
@@ -1831,7 +1896,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
@@ -1892,6 +1957,34 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 623994489}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &623994494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623994489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c4fd4157840e424991a1246b4986924, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatController
+  seatPoint: {fileID: 623994495}
+--- !u!114 &623994495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623994489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d709d9e2c091cfd48a7d27bd96a70e94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatPoint
+  allowedOccupantType: 1
+  seatAnchor: {fileID: 1514458148}
+  exitAnchor: {fileID: 529876969}
 --- !u!1 &660682437
 GameObject:
   m_ObjectHideFlags: 0
@@ -3146,8 +3239,8 @@ Transform:
   m_GameObject: {fileID: 1292286619}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1833075630}
@@ -3569,6 +3662,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 717437022}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1514458147
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1514458148}
+  m_Layer: 0
+  m_Name: seat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1514458148
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1514458147}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 623994490}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1545143903
 GameObject:
   m_ObjectHideFlags: 0
@@ -3581,6 +3705,8 @@ GameObject:
   - component: {fileID: 1545143907}
   - component: {fileID: 1545143906}
   - component: {fileID: 1545143905}
+  - component: {fileID: 1545143909}
+  - component: {fileID: 1545143908}
   m_Layer: 0
   m_Name: chair
   m_TagString: Untagged
@@ -3681,6 +3807,34 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1545143903}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1545143908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545143903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c4fd4157840e424991a1246b4986924, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatController
+  seatPoint: {fileID: 1545143909}
+--- !u!114 &1545143909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545143903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d709d9e2c091cfd48a7d27bd96a70e94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatPoint
+  allowedOccupantType: 3
+  seatAnchor: {fileID: 1545143904}
+  exitAnchor: {fileID: 1545143904}
 --- !u!1 &1566646481
 GameObject:
   m_ObjectHideFlags: 0
@@ -3954,6 +4108,7 @@ GameObject:
   - component: {fileID: 1833075630}
   - component: {fileID: 1833075629}
   - component: {fileID: 1833075631}
+  - component: {fileID: 1833075632}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -4032,6 +4187,28 @@ MonoBehaviour:
   cursorToggleKey: 27
   computerToggleKey: 114
   advanceDayKey: 103
+--- !u!114 &1833075632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1833075628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35a57b1b486e50241a42b804ad6fcbd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Player.Runtime.Components.PlayerInteractor
+  interactionCamera: {fileID: 330585545}
+  movementController: {fileID: 1833075631}
+  rootCanvas: {fileID: 1362092756}
+  interactionDistance: 3
+  interactionMask:
+    serializedVersion: 2
+    m_Bits: 51
+  interactKey: 101
+  standUpKey: 113
+  includeTriggerColliders: 1
 --- !u!1 &1959420495
 GameObject:
   m_ObjectHideFlags: 0
@@ -4090,6 +4267,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2022092835}
+  - component: {fileID: 2022092837}
+  - component: {fileID: 2022092836}
   m_Layer: 0
   m_Name: CEO desk
   m_TagString: Untagged
@@ -4117,6 +4296,36 @@ Transform:
   - {fileID: 83721623}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2022092836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2022092834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8157f1a55ae3a69418a7bf988c86b6cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.CeoDeskController
+  rootCanvas: {fileID: 1362092756}
+  furnitureInstance: {fileID: 2022092837}
+  playerSeat: {fileID: 623994494}
+  interviewSeat: {fileID: 1545143908}
+--- !u!114 &2022092837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2022092834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76b3280c9c748c349a1b8045a84bc8ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.FurnitureInstance
+  definition: {fileID: 0}
+  tier: 1
 --- !u!1 &2069532655
 GameObject:
   m_ObjectHideFlags: 0

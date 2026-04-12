@@ -1,3 +1,4 @@
+using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Features.Shop.Runtime.Definitions;
 
 namespace CompanySimulator.Features.Inventory.Runtime.Models
@@ -13,6 +14,9 @@ namespace CompanySimulator.Features.Inventory.Runtime.Models
         }
 
         public ShopProductDefinition Product { get; }
+        public PlaceableFurnitureDefinition FurnitureDefinition => Product != null ? Product.FurnitureDefinition : null;
+        public int FurnitureTier => Product != null ? Product.FurnitureTier : 1;
+        public bool IsFurnitureItem => FurnitureDefinition != null;
         public int Quantity { get; private set; }
         public int FirstAcquiredDay { get; }
         public int LastAcquiredDay { get; private set; }

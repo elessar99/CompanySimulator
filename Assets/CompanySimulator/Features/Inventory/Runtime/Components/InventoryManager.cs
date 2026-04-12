@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Features.Inventory.Runtime.Models;
 using CompanySimulator.Features.Shop.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Economy;
@@ -81,6 +82,58 @@ namespace CompanySimulator.Features.Inventory.Runtime.Components
             }
 
             return false;
+        }
+
+        public IReadOnlyList<InventoryItemRuntimeData> GetOwnedFurnitureItems()
+        {
+            if (!EnsureInitialized())
+            {
+                return Array.Empty<InventoryItemRuntimeData>();
+            }
+
+            var result = new List<InventoryItemRuntimeData>(ownedItems.Count);
+            for (var i = 0; i < ownedItems.Count; i++)
+            {
+                var item = ownedItems[i];
+                if (item != null && item.IsFurnitureItem)
+                {
+                    result.Add(item);
+                }
+            }
+
+            return result;
+        }
+
+        public int GetOwnedFurnitureQuantity(PlaceableFurnitureDefinition furnitureDefinition, int tier = 0)
+        {
+            if (!EnsureInitialized() || furnitureDefinition == null)
+            {
+                return 0;
+            }
+
+            var total = 0;
+            for (var i = 0; i < ownedItems.Count; i++)
+            {
+                var item = ownedItems[i];
+                if (item == null || item.FurnitureDefinition != furnitureDefinition)
+                {
+                    continue;
+                }
+
+                if (tier > 0 && item.FurnitureTier != tier)
+                {
+                    continue;
+                }
+
+                total += item.Quantity;
+            }
+
+            return total;
+        }
+
+        public bool HasOwnedFurniture(PlaceableFurnitureDefinition furnitureDefinition, int tier = 0)
+        {
+            return GetOwnedFurnitureQuantity(furnitureDefinition, tier) > 0;
         }
 
         public bool RecordPurchase(ShopProductDefinition product, int quantity, int purchaseDay, Money totalPrice)

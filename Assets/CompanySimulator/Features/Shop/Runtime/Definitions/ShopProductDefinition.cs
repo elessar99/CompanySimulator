@@ -1,3 +1,4 @@
+using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
@@ -14,6 +15,8 @@ namespace CompanySimulator.Features.Shop.Runtime.Definitions
         [SerializeField] private bool allowMultiplePurchases = true;
         [SerializeField] private string inventoryCategory = "Genel";
         [SerializeField] private string futureUsageHint;
+        [SerializeField] private PlaceableFurnitureDefinition furnitureDefinition;
+        [SerializeField, Min(1)] private int furnitureTier = 1;
 
         public string Description => description ?? string.Empty;
         public Money PurchasePrice => Money.From(purchasePrice);
@@ -23,5 +26,8 @@ namespace CompanySimulator.Features.Shop.Runtime.Definitions
         public string InventoryCategory => string.IsNullOrWhiteSpace(inventoryCategory) ? "Genel" : inventoryCategory;
         public string FutureUsageHint => futureUsageHint ?? string.Empty;
         public bool GoesToInventory => deliveryType == ShopProductDeliveryType.AddToInventory;
+        public PlaceableFurnitureDefinition FurnitureDefinition => furnitureDefinition;
+        public int FurnitureTier => Mathf.Max(1, furnitureTier);
+        public bool IsFurnitureProduct => furnitureDefinition != null;
     }
 }
