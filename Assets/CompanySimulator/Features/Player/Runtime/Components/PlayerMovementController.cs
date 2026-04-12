@@ -21,7 +21,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField, Min(0f)] private float airControl = 0.35f;
         [SerializeField, Min(0f)] private float gravity = 25f;
         [SerializeField, Min(0f)] private float groundedForce = 2f;
-        [SerializeField, Range(0.01f, 10f)] private float lookSensitivity = 2f;
+        [SerializeField, Range(0.01f, 20f)] private float lookSensitivity = 2f;
         [SerializeField, Range(0f, 89f)] private float maxLookAngle = 80f;
         [SerializeField] private bool lockCursorOnStart = true;
         [SerializeField] private KeyCode runKey = KeyCode.LeftShift;
