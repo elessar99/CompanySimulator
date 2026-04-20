@@ -31,5 +31,16 @@ namespace CompanySimulator.Features.Inventory.Runtime.Models
             Quantity += amount;
             LastAcquiredDay = acquisitionDay;
         }
+
+        public bool RemoveQuantity(int amount)
+        {
+            if (amount <= 0 || Quantity < amount)
+            {
+                return false;
+            }
+
+            Quantity -= amount;
+            return true;
+        }
     }
 }

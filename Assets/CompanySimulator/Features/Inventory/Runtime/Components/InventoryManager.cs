@@ -136,6 +136,29 @@ namespace CompanySimulator.Features.Inventory.Runtime.Components
             return GetOwnedFurnitureQuantity(furnitureDefinition, tier) > 0;
         }
 
+        public bool TryConsumeOwnedItem(ShopProductDefinition product, int quantity = 1)
+        {
+            if (!EnsureInitialized() || product == null || quantity <= 0)
+            {
+                return false;
+            }
+
+            var existingItem = FindOwnedItem(product);
+            if (existingItem == null || !existingItem.RemoveQuantity(quantity))
+            {
+                return false;
+            }
+
+            if (existingItem.Quantity <= 0)
+            {
+                ownedItems.Remove(existingItem);
+            }
+
+            UpdateSnapshot();
+            DataChanged?.Invoke();
+            return true;
+        }
+
         public bool RecordPurchase(ShopProductDefinition product, int quantity, int purchaseDay, Money totalPrice)
         {
             if (!EnsureInitialized() || product == null || quantity <= 0)

@@ -1,5 +1,6 @@
 using CompanySimulator.Features.Inventory.Runtime.Components;
 using CompanySimulator.Features.Inventory.Runtime.Models;
+using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,6 +21,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private DebugPanelUI debugPanelUI;
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private ShopPanelUI shopPanelUI;
+        [SerializeField] private FurniturePlacementManager furniturePlacementManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Sprite appIcon;
         [SerializeField] private Vector2 panelSize = new Vector2(1100f, 760f);
@@ -56,6 +58,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             debugPanelUI ??= FindObjectOfType<DebugPanelUI>();
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
             shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
+            furniturePlacementManager ??= FindObjectOfType<FurniturePlacementManager>();
+            if (furniturePlacementManager == null)
+            {
+                furniturePlacementManager = new GameObject("FurniturePlacementManager", typeof(FurniturePlacementManager)).GetComponent<FurniturePlacementManager>();
+            }
+
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -169,9 +177,10 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         {
             var accent = ColCyan;
             var cardColor = Blend(ColPanel, accent, 0.08f);
-            var card = CreateSurface(parent, "InventoryItem_" + item.Product.Id, 196f, cardColor);
+            var cardHeight = item.IsFurnitureItem ? 244f : 196f;
+            var card = CreateSurface(parent, "InventoryItem_" + item.Product.Id, cardHeight, cardColor);
             var rect = card.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(380f, 196f);
+            rect.sizeDelta = new Vector2(380f, cardHeight);
             var layout = card.GetComponent<LayoutElement>();
             layout.preferredWidth = 380f;
             layout.minWidth = 380f;
@@ -227,6 +236,30 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 hint.color = new Color(ColText.r, ColText.g, ColText.b, 0.72f);
                 hint.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
             }
+
+            if (item.IsFurnitureItem)
+            {
+                var placeButton = CreateStyledButton(content.transform, "PlaceButton_" + item.Product.Id, "Yerleştir", new Color(ColBlue.r, ColBlue.g, ColBlue.b, 0.18f), new Color(ColBlue.r, ColBlue.g, ColBlue.b, 0.3f), new Color(ColBlue.r, ColBlue.g, ColBlue.b, 0.42f), ColBlue, TextAnchor.MiddleCenter);
+                var placeLayout = placeButton.GetComponent<LayoutElement>() ?? placeButton.gameObject.AddComponent<LayoutElement>();
+                placeLayout.preferredHeight = 38f;
+                placeButton.onClick.AddListener(() => StartFurniturePlacement(item));
+            }
+        }
+
+        private void StartFurniturePlacement(InventoryItemRuntimeData item)
+        {
+            if (item == null || !item.IsFurnitureItem || furniturePlacementManager == null)
+            {
+                return;
+            }
+
+            if (!furniturePlacementManager.BeginPlacement(item.Product, out _))
+            {
+                return;
+            }
+
+            ClosePanel();
+            RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, false);
         }
 
         private void CreateNonInventoryPurchaseCard(Transform parent, NonInventoryPurchaseRuntimeData purchase)

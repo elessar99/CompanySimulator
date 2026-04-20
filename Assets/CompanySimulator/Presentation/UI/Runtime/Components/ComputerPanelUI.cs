@@ -91,6 +91,31 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             return nextState;
         }
 
+        public bool HasVisibleWindowOpen()
+        {
+            return HasVisibleWindow();
+        }
+
+        public bool TryCloseTopWindow()
+        {
+            if (windowRoot == null)
+            {
+                return false;
+            }
+
+            for (var i = windowRoot.childCount - 1; i >= 0; i--)
+            {
+                var child = windowRoot.GetChild(i);
+                if (child != null && child.gameObject.activeSelf)
+                {
+                    child.gameObject.SetActive(false);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void ApplyLayout()
         {
             if (rectTransform == null)

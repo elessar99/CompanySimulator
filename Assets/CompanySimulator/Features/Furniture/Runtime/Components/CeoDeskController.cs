@@ -16,8 +16,15 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         public SeatController PlayerSeat => playerSeat;
         public SeatController InterviewSeat => interviewSeat;
 
+        private void Awake()
+        {
+            ResolveReferences();
+        }
+
         public bool CanInteract(PlayerInteractor interactor, CeoDeskInteractionMode interactionMode)
         {
+            ResolveReferences();
+
             if (interactor == null)
             {
                 return false;
@@ -36,6 +43,8 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
 
         public string GetInteractionText(PlayerInteractor interactor, CeoDeskInteractionMode interactionMode)
         {
+            ResolveReferences();
+
             switch (interactionMode)
             {
                 case CeoDeskInteractionMode.Seat:
@@ -49,6 +58,8 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
 
         public void Interact(PlayerInteractor interactor, CeoDeskInteractionMode interactionMode)
         {
+            ResolveReferences();
+
             if (!CanInteract(interactor, interactionMode))
             {
                 return;
@@ -65,9 +76,40 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
                         return;
                     }
 
+                    rootCanvas ??= interactor.RootCanvas;
                     rootCanvas ??= FindObjectOfType<Canvas>();
                     RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, true);
                     break;
+            }
+        }
+
+        private void ResolveReferences()
+        {
+            furnitureInstance ??= GetComponent<FurnitureInstance>();
+
+            if (playerSeat != null && interviewSeat != null)
+            {
+                return;
+            }
+
+            var seats = GetComponentsInChildren<SeatController>(true);
+            for (var i = 0; i < seats.Length; i++)
+            {
+                var seat = seats[i];
+                if (seat == null || seat.SeatPoint == null)
+                {
+                    continue;
+                }
+
+                switch (seat.SeatPoint.AllowedOccupantType)
+                {
+                    case SeatOccupantType.Player:
+                        playerSeat ??= seat;
+                        break;
+                    case SeatOccupantType.InterviewNpc:
+                        interviewSeat ??= seat;
+                        break;
+                }
             }
         }
     }

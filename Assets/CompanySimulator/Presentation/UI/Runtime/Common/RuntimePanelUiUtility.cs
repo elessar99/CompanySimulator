@@ -305,26 +305,48 @@ namespace CompanySimulator.Presentation.UI.Runtime.Common
             return computerPanel != null && computerPanel.ToggleVisible();
         }
 
+        public static bool HasVisibleComputerWindow(Canvas canvas)
+        {
+            var computerPanel = GetComputerPanelUi(canvas);
+            return computerPanel != null && computerPanel.HasVisibleWindowOpen();
+        }
+
+        public static bool TryCloseTopComputerWindow(Canvas canvas)
+        {
+            var computerPanel = GetComputerPanelUi(canvas);
+            return computerPanel != null && computerPanel.TryCloseTopWindow();
+        }
+
         public static ComputerPanelUI GetComputerPanelUi(Canvas canvas)
         {
-            if (canvas == null)
+            if (canvas != null)
             {
-                return null;
-            }
-
-            var panels = canvas.GetComponentsInChildren<ComputerPanelUI>(true);
-            for (var i = 0; i < panels.Length; i++)
-            {
-                if (panels[i] != null)
+                var panels = canvas.GetComponentsInChildren<ComputerPanelUI>(true);
+                for (var i = 0; i < panels.Length; i++)
                 {
-                    return panels[i];
+                    if (panels[i] != null)
+                    {
+                        return panels[i];
+                    }
                 }
             }
 
-            var existingPanel = canvas.transform.Find("ComputerPanel");
-            if (existingPanel != null)
+            var allPanels = Object.FindObjectsOfType<ComputerPanelUI>(true);
+            for (var i = 0; i < allPanels.Length; i++)
             {
-                return existingPanel.gameObject.AddComponent<ComputerPanelUI>();
+                if (allPanels[i] != null)
+                {
+                    return allPanels[i];
+                }
+            }
+
+            if (canvas != null)
+            {
+                var existingPanel = canvas.transform.Find("ComputerPanel");
+                if (existingPanel != null)
+                {
+                    return existingPanel.gameObject.AddComponent<ComputerPanelUI>();
+                }
             }
 
             return null;

@@ -1,4 +1,5 @@
 using CompanySimulator.Features.Finance.Runtime.Components;
+using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -15,6 +16,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private Transform cameraRoot;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private FurniturePlacementManager furniturePlacementManager;
         [SerializeField, Min(0.1f)] private float walkSpeed = 3.5f;
         [SerializeField, Min(0.1f)] private float runSpeed = 6f;
         [SerializeField, Min(0f)] private float acceleration = 14f;
@@ -26,7 +28,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private bool lockCursorOnStart = true;
         [SerializeField] private KeyCode runKey = KeyCode.LeftShift;
         [SerializeField] private KeyCode cursorToggleKey = KeyCode.Escape;
-        [SerializeField] private KeyCode computerToggleKey = KeyCode.R;
+        [SerializeField] private KeyCode computerToggleKey = KeyCode.T;
         [SerializeField] private KeyCode advanceDayKey = KeyCode.G;
 
         private CharacterController characterController;
@@ -48,7 +50,13 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             playerCamera ??= GetComponentInChildren<Camera>(true);
             cameraRoot ??= playerCamera != null ? playerCamera.transform : null;
             economyManager ??= FindObjectOfType<EconomyManager>();
+            furniturePlacementManager ??= FindObjectOfType<FurniturePlacementManager>();
             rootCanvas ??= FindObjectOfType<Canvas>();
+
+            if (computerToggleKey == KeyCode.R)
+            {
+                computerToggleKey = KeyCode.T;
+            }
 
             if (cameraRoot != null)
             {
@@ -72,7 +80,6 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                 wantsCursorLocked = false;
             }
 
-            HandleCursorToggle(computerOpen);
             SetCursorLocked(computerOpen || externalCursorUnlock ? false : wantsCursorLocked);
 
             if (!computerOpen && cursorLocked)
@@ -91,7 +98,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
         private void HandleHotkeys()
         {
-            if (WasKeyPressed(computerToggleKey))
+            if (WasKeyPressed(computerToggleKey) && (furniturePlacementManager == null || !furniturePlacementManager.IsBuildModeActive))
             {
                 rootCanvas ??= FindObjectOfType<Canvas>();
                 var isOpen = RuntimePanelUiUtility.ToggleComputerPanel(rootCanvas);
@@ -106,16 +113,6 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     economyManager.AdvanceDay();
                 }
             }
-        }
-
-        private void HandleCursorToggle(bool computerOpen)
-        {
-            if (computerOpen || !WasKeyPressed(cursorToggleKey))
-            {
-                return;
-            }
-
-            wantsCursorLocked = !wantsCursorLocked;
         }
 
         private void HandleLook()
@@ -182,20 +179,38 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
         private void SetCursorLocked(bool isLocked)
         {
-            if (cursorLocked == isLocked)
+            var expectedLockState = isLocked ? CursorLockMode.Locked : CursorLockMode.None;
+            var expectedVisibility = !isLocked;
+            if (cursorLocked == isLocked && Cursor.lockState == expectedLockState && Cursor.visible == expectedVisibility)
             {
                 return;
             }
 
             cursorLocked = isLocked;
-            Cursor.lockState = isLocked ? CursorLockMode.Locked : CursorLockMode.None;
-            Cursor.visible = !isLocked;
+            Cursor.lockState = expectedLockState;
+            Cursor.visible = expectedVisibility;
         }
 
         public void SetInteractionLock(bool isLocked, bool unlockCursor)
         {
             externalMovementLock = isLocked;
             externalCursorUnlock = isLocked && unlockCursor;
+        }
+
+        public void SetCursorUnlockOverride(bool unlockCursor)
+        {
+            externalCursorUnlock = unlockCursor;
+        }
+
+        public void RestoreGameplayCursorLock()
+        {
+            wantsCursorLocked = true;
+            externalCursorUnlock = false;
+
+            if (!IsComputerOpen())
+            {
+                SetCursorLocked(true);
+            }
         }
 
         public void SnapToPose(Vector3 worldPosition, Quaternion worldRotation, bool resetLookPitch)
@@ -253,8 +268,10 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             {
                 return Mouse.current.delta.ReadValue() * 0.01f;
             }
-#endif
+            return Vector2.zero;
+#else
             return new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
+#endif
         }
 
         private bool IsRunHeld()
@@ -282,11 +299,14 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     case KeyCode.RightShift: return keyboard.rightShiftKey.wasPressedThisFrame;
                     case KeyCode.Escape: return keyboard.escapeKey.wasPressedThisFrame;
                     case KeyCode.R: return keyboard.rKey.wasPressedThisFrame;
+                    case KeyCode.T: return keyboard.tKey.wasPressedThisFrame;
                     case KeyCode.G: return keyboard.gKey.wasPressedThisFrame;
                 }
             }
-#endif
+            return false;
+#else
             return Input.GetKeyDown(key);
+#endif
         }
 
         private static bool IsKeyHeld(KeyCode key)
@@ -309,11 +329,14 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     case KeyCode.RightShift: return keyboard.rightShiftKey.isPressed;
                     case KeyCode.Escape: return keyboard.escapeKey.isPressed;
                     case KeyCode.R: return keyboard.rKey.isPressed;
+                    case KeyCode.T: return keyboard.tKey.isPressed;
                     case KeyCode.G: return keyboard.gKey.isPressed;
                 }
             }
-#endif
+            return false;
+#else
             return Input.GetKey(key);
+#endif
         }
 
         private static float NormalizePitch(float angle)

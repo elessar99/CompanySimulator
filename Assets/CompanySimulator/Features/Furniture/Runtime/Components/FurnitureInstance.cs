@@ -17,5 +17,11 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         {
             return ActiveTier != null && (ActiveTier.InteractionTypes & interactionType) == interactionType;
         }
+
+        public void Configure(PlaceableFurnitureDefinition furnitureDefinition, int furnitureTier)
+        {
+            definition = furnitureDefinition;
+            tier = Mathf.Max(1, furnitureTier);
+        }
     }
 }
