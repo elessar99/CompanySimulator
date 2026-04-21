@@ -1,6 +1,7 @@
 using CompanySimulator.Features.Employees.Runtime.Components;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
+using CompanySimulator.Features.Npcs.Runtime.Interview;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -21,6 +22,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private ShopPanelUI shopPanelUI;
         [SerializeField] private InventoryPanelUI inventoryPanelUI;
+        [SerializeField] private InterviewSessionManager interviewSessionManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Sprite appIcon;
         [SerializeField] private Vector2 panelSize = new Vector2(980f, 720f);
@@ -64,6 +66,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
             shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
             inventoryPanelUI ??= FindObjectOfType<InventoryPanelUI>();
+            interviewSessionManager ??= FindObjectOfType<InterviewSessionManager>();
+            if (interviewSessionManager == null)
+            {
+                interviewSessionManager = new GameObject("InterviewSessionManager", typeof(InterviewSessionManager)).GetComponent<InterviewSessionManager>();
+            }
+
             EnsureCanvas();
             EnsureEventSystem();
             defaultFont = LoadDefaultFont();
@@ -391,11 +399,17 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
             CreateFlexibleSpacer(content.transform);
 
-            var button = CreateStyledButton(content.transform, $"Hire_{applicant.Id}", "İşe Al", ColBlue, Blend(ColBlue, ColCyan, 0.28f), Darken(ColBlue, 0.22f), ColText, TextAnchor.MiddleCenter);
+            var button = CreateStyledButton(content.transform, $"Interview_{applicant.Id}", "Görüşme Başlat", ColBlue, Blend(ColBlue, ColCyan, 0.28f), Darken(ColBlue, 0.22f), ColText, TextAnchor.MiddleCenter);
             button.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
             button.onClick.AddListener(() =>
             {
-                employeeManager.TryHireApplicant(applicant);
+                if (interviewSessionManager != null && interviewSessionManager.TryStartInterview(applicant))
+                {
+                    ClosePanel();
+                    RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, false);
+                    return;
+                }
+
                 ShowApplicationsForRole(selectedRole);
             });
         }

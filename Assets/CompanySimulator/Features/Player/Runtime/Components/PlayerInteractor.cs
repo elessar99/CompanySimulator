@@ -29,6 +29,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         public bool IsSeated => currentSeat != null;
         public SeatController CurrentSeat => currentSeat;
         public Canvas RootCanvas => rootCanvas;
+        public PlayerMovementController MovementController => movementController;
 
         private void Awake()
         {

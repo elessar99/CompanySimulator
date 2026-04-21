@@ -213,6 +213,32 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
         }
 
+        public void FocusViewAt(Vector3 worldTarget)
+        {
+            if (cameraRoot == null)
+            {
+                return;
+            }
+
+            var lookOrigin = LookOrigin != null ? LookOrigin.position : transform.position;
+            var toTarget = worldTarget - lookOrigin;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var planarDirection = Vector3.ProjectOnPlane(toTarget, Vector3.up);
+            if (planarDirection.sqrMagnitude > 0.0001f)
+            {
+                transform.rotation = Quaternion.LookRotation(planarDirection.normalized, Vector3.up);
+            }
+
+            var horizontalDistance = planarDirection.magnitude;
+            pitch = -Mathf.Atan2(toTarget.y, Mathf.Max(0.001f, horizontalDistance)) * Mathf.Rad2Deg;
+            pitch = Mathf.Clamp(pitch, -maxLookAngle, maxLookAngle);
+            cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        }
+
         public void SnapToPose(Vector3 worldPosition, Quaternion worldRotation, bool resetLookPitch)
         {
             var wasEnabled = characterController != null && characterController.enabled;

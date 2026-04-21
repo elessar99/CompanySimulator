@@ -16,6 +16,11 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         public SeatController PlayerSeat => playerSeat;
         public SeatController InterviewSeat => interviewSeat;
 
+        public void SetRootCanvas(Canvas canvas)
+        {
+            rootCanvas = canvas;
+        }
+
         private void Awake()
         {
             ResolveReferences();

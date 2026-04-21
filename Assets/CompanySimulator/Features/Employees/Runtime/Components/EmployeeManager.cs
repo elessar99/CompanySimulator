@@ -163,6 +163,23 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public bool TryRejectApplicant(EmployeeRuntimeData applicant)
+        {
+            if (!EnsureInitialized() || applicant == null)
+            {
+                return false;
+            }
+
+            if (!applicants.Remove(applicant))
+            {
+                return false;
+            }
+
+            UpdateSnapshot();
+            DataChanged?.Invoke();
+            return true;
+        }
+
         public bool TryClearAssignment(EmployeeRuntimeData employee, string expectedAssignmentName = null)
         {
             if (!EnsureInitialized() || employee == null || !employees.Contains(employee) || !employee.IsAssigned)
