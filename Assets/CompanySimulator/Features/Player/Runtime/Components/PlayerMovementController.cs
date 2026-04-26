@@ -1,5 +1,6 @@
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Furniture.Runtime.Components;
+using CompanySimulator.Features.Npcs.Runtime.Agents;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -30,6 +31,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private KeyCode cursorToggleKey = KeyCode.Escape;
         [SerializeField] private KeyCode computerToggleKey = KeyCode.T;
         [SerializeField] private KeyCode advanceDayKey = KeyCode.G;
+        [SerializeField] private KeyCode testSendAgentKey = KeyCode.J;
 
         private CharacterController characterController;
         private Vector3 planarVelocity;
@@ -112,6 +114,12 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                 {
                     economyManager.AdvanceDay();
                 }
+            }
+
+            if (WasKeyPressed(testSendAgentKey))
+            {
+                var detectedAgentManager = FindObjectOfType<DetectedAgentManager>();
+                detectedAgentManager?.TriggerTestAgent();
             }
         }
 
@@ -324,6 +332,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     case KeyCode.LeftShift: return keyboard.leftShiftKey.wasPressedThisFrame;
                     case KeyCode.RightShift: return keyboard.rightShiftKey.wasPressedThisFrame;
                     case KeyCode.Escape: return keyboard.escapeKey.wasPressedThisFrame;
+                    case KeyCode.J: return keyboard.jKey.wasPressedThisFrame;
                     case KeyCode.R: return keyboard.rKey.wasPressedThisFrame;
                     case KeyCode.T: return keyboard.tKey.wasPressedThisFrame;
                     case KeyCode.G: return keyboard.gKey.wasPressedThisFrame;
@@ -354,6 +363,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     case KeyCode.LeftShift: return keyboard.leftShiftKey.isPressed;
                     case KeyCode.RightShift: return keyboard.rightShiftKey.isPressed;
                     case KeyCode.Escape: return keyboard.escapeKey.isPressed;
+                    case KeyCode.J: return keyboard.jKey.isPressed;
                     case KeyCode.R: return keyboard.rKey.isPressed;
                     case KeyCode.T: return keyboard.tKey.isPressed;
                     case KeyCode.G: return keyboard.gKey.isPressed;

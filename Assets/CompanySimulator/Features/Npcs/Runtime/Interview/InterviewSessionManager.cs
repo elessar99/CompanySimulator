@@ -3,6 +3,7 @@ using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Features.Npcs.Runtime.Actors;
 using CompanySimulator.Features.Npcs.Runtime.Models;
+using CompanySimulator.Features.Npcs.Runtime.Office;
 using CompanySimulator.Features.Player.Runtime.Components;
 using CompanySimulator.Presentation.UI.Runtime.Components;
 using CompanySimulator.Shared.Runtime.Economy;
@@ -34,6 +35,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             employeeManager ??= FindObjectOfType<EmployeeManager>();
             rootCanvas ??= FindObjectOfType<Canvas>();
             EnsureActorRoot();
+            EnsureOfficeWorkerManager();
         }
 
         public bool TryStartInterview(EmployeeRuntimeData applicant)
@@ -266,6 +268,16 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             new GameObject("InterviewDialoguePanelUI", typeof(InterviewDialoguePanelUI));
+        }
+
+        private void EnsureOfficeWorkerManager()
+        {
+            if (FindObjectOfType<OfficeWorkerManager>() != null)
+            {
+                return;
+            }
+
+            new GameObject("OfficeWorkerManager", typeof(OfficeWorkerManager));
         }
 
         private void FocusPlayerOnInterviewNpc(CeoDeskController desk, InterviewNpcRuntimeData interviewNpc)

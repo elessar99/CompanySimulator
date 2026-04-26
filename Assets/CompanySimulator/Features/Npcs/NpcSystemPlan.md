@@ -137,6 +137,8 @@ This allows replacing animator controllers without rewriting NPC logic.
 ### Iteration 4
 - add point-of-interest abstraction for future office props
 - connect worker wandering to optional office targets
+- replace simple direct movement with navmesh-backed movement
+- complete office worker test slice before starting agent work
 
 ### Iteration 5
 - add detected agent NPC flow
@@ -149,21 +151,25 @@ Current checkpoint order:
 1. test core NPC + interview session flow
 2. fix interview issues if found
 3. only after interview is stable, continue with office worker implementation
-4. after office worker is stable, continue with agent NPC implementation
+4. finish office worker sit/wander behavior
+5. finish point-of-interest integration
+6. finish navmesh movement integration
+7. test the full office worker slice in-game
+8. fix office worker issues if found
+9. only after office worker is stable, continue with agent NPC implementation
 
 If a phase is partially implemented and not yet tested, do not begin the next phase.
 
 ## Current Resume Point
-Do not continue with office worker NPCs yet.
+Interview checkpoint passed.
+Office worker core loop checkpoint passed as temporary baseline.
 
-Resume from here after current testing is complete:
-1. verify applicant -> interview spawn flow
-2. verify CEO desk interview seat usage
-3. verify interview dialogue open/close flow
-4. verify `Kabul Et` result
-5. verify `Reddet` result
-6. fix any interview bugs found during testing
-7. then start office worker capacity and spawn/despawn phase
+Resume from here:
+1. implement detected agent NPC flow
+2. spawn visible agent actors only for detected player-targeted agents
+3. add simple player interact -> dismiss flow
+4. test detected spawn and dismissal loop
+5. fix agent baseline issues found during testing
 
 ## Deferred Systems
 These are intentionally deferred but must stay compatible:
@@ -188,10 +194,65 @@ These are intentionally deferred but must stay compatible:
 - Interview foundation added: `InterviewSessionManager`, `InterviewSessionRuntimeData`, `InterviewNpcRuntimeData`
 - Applicant selection now starts an interview session instead of hiring instantly
 - Simple interview dialogue panel added with requested salary text and `Kabul Et` / `Reddet` actions
-- Next active development phase is paused until interview flow is tested and stabilized
+- Interview flow tested and accepted as current baseline
+- Office worker groundwork started: `OfficeDeskCapacityService`, `OfficeWorkerNpcRuntimeData`, `OfficeWorkerManager`
+- Multi-seat office desk discovery now resolves every `EmployeeNpc` seat under `OfficeDeskController`
+- Current desk setup preference: one `OfficeDeskController` per chair slot
+- Next office worker milestone must include `Point of Interest` support and `NavMesh` movement before the next test checkpoint
+- Office worker sit/wander loop implemented as current baseline
+- Office point-of-interest groundwork added: `OfficePointOfInterest`, `OfficePointOfInterestService`, `OfficePointOfInterestType`
+- `NpcActor` movement now prefers `NavMeshAgent` when present and falls back to direct movement otherwise
+- Office worker core loop accepted for now; polish will be deferred until model/animation integration
+- Agent groundwork started: `AgentNpcRuntimeData`, `DetectedAgentManager`, `DetectedAgentInteractable`
 
 ## Next Start Point
-After testing and bug fixes, next implementation pass should begin with:
-1. office worker seat capacity service
-2. office worker runtime data and manager
-3. office worker spawn/despawn flow for office-required roles
+Current next implementation pass should begin with:
+1. detected agent runtime data
+2. detected agent manager
+3. player interaction dismissal flow
+4. then stop for agent testing and fixes
+
+## Planned Office Worker Test Setup
+After `Point of Interest` and `NavMesh` work is implemented, test with this setup:
+
+1. `OfficeDeskController`
+- one controller per chair slot
+- each controller must have one `SeatController`
+- that seat must use `SeatPoint.AllowedOccupantType = EmployeeNpc`
+
+2. worker roles
+- use at least one `EmployeeRoleDefinition` with `RequiresOffice = true`
+- use at least one role with `RequiresOffice = false` to confirm no office NPC is spawned for that role
+
+3. office worker manager scene objects
+- `EmployeeManager`
+- `OfficeWorkerManager`
+- `OfficeDeskCapacityService`
+- worker NPC prefab if you want model testing; otherwise fallback capsule is acceptable for logic testing
+
+4. navmesh setup
+- bake a walkable navmesh for the office floor
+- ensure desks and blockers affect navigation as intended
+- ensure worker start seat and optional visit targets are on reachable walkable areas
+
+5. point-of-interest setup
+- add at least two visit targets such as coffee machine or vending area
+- verify each target has the future point-of-interest component/config required by the implementation
+- place targets far enough from desks that walking behavior is visible
+
+6. test checklist
+- hire an office-required worker and confirm NPC spawns
+- confirm worker initially sits in its own desk slot
+- confirm worker leaves seat after a delay
+- confirm worker walks through navmesh instead of straight-line clipping
+- confirm worker can choose a point-of-interest target when available
+- confirm worker returns to a valid seat afterward
+- confirm firing despawns the worker NPC
+- confirm non-office roles never spawn office NPCs
+
+7. bug triage order
+- wrong seat selection
+- unreachable navmesh path
+- point-of-interest target selection
+- return-to-seat failures
+- fire/despawn cleanup

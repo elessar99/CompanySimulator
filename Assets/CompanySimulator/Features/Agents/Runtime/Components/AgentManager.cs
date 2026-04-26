@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CompanySimulator.Features.Agents.Runtime.Definitions;
 using CompanySimulator.Features.Agents.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
@@ -327,6 +328,38 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             }
 
             return "Kovulacak tespit edilmiş ajan bulunamadı.";
+        }
+
+        public bool DismissDetectedAgent(PlayerTargetedAgentRuntimeData targetAgent)
+        {
+            if (targetAgent == null)
+            {
+                return false;
+            }
+
+            var index = playerTargetedAgents.IndexOf(targetAgent);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            var agent = playerTargetedAgents[index];
+            if (!agent.IsDetected || !agent.IsActive)
+            {
+                return false;
+            }
+
+            agent.Dismiss();
+            dismissedPlayerAgents.Add(agent);
+            playerTargetedAgents.RemoveAt(index);
+
+            if (rivalCompanyManager != null)
+            {
+                rivalCompanyManager.ForceRebuildCompetitionCache();
+            }
+
+            DataChanged?.Invoke();
+            return true;
         }
 
         public string ForceRivalSendAgent(RivalCompanyRuntimeData rival)

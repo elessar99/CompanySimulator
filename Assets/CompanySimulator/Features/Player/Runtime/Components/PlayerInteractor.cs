@@ -1,5 +1,6 @@
 using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Features.Furniture.Runtime.Interactions;
+using CompanySimulator.Features.Npcs.Runtime.Agents;
 using CompanySimulator.Presentation.UI.Runtime.Common;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -15,13 +16,14 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private PlayerMovementController movementController;
         [SerializeField] private FurniturePlacementManager furniturePlacementManager;
         [SerializeField] private Canvas rootCanvas;
-        [SerializeField, Min(0.5f)] private float interactionDistance = 3f;
+        [SerializeField, Min(0.5f)] private float interactionDistance = 4f;
         [SerializeField] private LayerMask interactionMask = Physics.DefaultRaycastLayers;
         [SerializeField] private KeyCode interactKey = KeyCode.E;
         [SerializeField] private KeyCode standUpKey = KeyCode.Q;
         [SerializeField] private KeyCode buildModeKey = KeyCode.B;
         [SerializeField] private KeyCode rotatePlacementKey = KeyCode.R;
         [SerializeField] private KeyCode cancelKey = KeyCode.Escape;
+        [SerializeField, Min(0.5f)] private float agentDismissDistance = 2f;
         [SerializeField] private bool includeTriggerColliders = true;
 
         private SeatController currentSeat;
@@ -194,13 +196,32 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                 return;
             }
 
-            var interactable = FindInteractable(hit.transform);
-            if (interactable == null || !interactable.CanInteract(this))
+            var agentInteractable = FindDetectedAgentInteractable(hit.transform);
+            if (agentInteractable != null && hit.distance <= agentDismissDistance && agentInteractable.CanInteract(this))
             {
+                agentInteractable.Interact(this);
                 return;
             }
 
-            interactable.Interact(this);
+            var interactable = FindInteractable(hit.transform);
+            if (interactable != null && interactable.CanInteract(this))
+            {
+                interactable.Interact(this);
+                return;
+            }
+
+            var playerSeat = FindPlayerSeat(hit.transform);
+            if (playerSeat != null && !IsSeatedAt(playerSeat))
+            {
+                TrySit(playerSeat);
+                return;
+            }
+
+            var ceoDesk = hit.transform.GetComponentInParent<CeoDeskController>();
+            if (ceoDesk != null && ceoDesk.PlayerSeat != null && !IsSeatedAt(ceoDesk.PlayerSeat))
+            {
+                TrySit(ceoDesk.PlayerSeat);
+            }
         }
 
         private void TryPlaceFurniture()
@@ -302,6 +323,40 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             return null;
         }
 
+        private static SeatController FindPlayerSeat(Transform target)
+        {
+            var current = target;
+            while (current != null)
+            {
+                var seat = current.GetComponent<SeatController>();
+                if (seat != null && seat.SeatPoint != null && seat.SeatPoint.AllowedOccupantType == SeatOccupantType.Player)
+                {
+                    return seat;
+                }
+
+                current = current.parent;
+            }
+
+            return null;
+        }
+
+        private static DetectedAgentInteractable FindDetectedAgentInteractable(Transform target)
+        {
+            var current = target;
+            while (current != null)
+            {
+                var interactable = current.GetComponent<DetectedAgentInteractable>();
+                if (interactable != null)
+                {
+                    return interactable;
+                }
+
+                current = current.parent;
+            }
+
+            return null;
+        }
+
         private static bool WasKeyPressed(KeyCode key)
         {
 #if ENABLE_INPUT_SYSTEM
@@ -313,6 +368,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
                     case KeyCode.B: return keyboard.bKey.wasPressedThisFrame;
                     case KeyCode.E: return keyboard.eKey.wasPressedThisFrame;
                     case KeyCode.Escape: return keyboard.escapeKey.wasPressedThisFrame;
+                    case KeyCode.J: return keyboard.jKey.wasPressedThisFrame;
                     case KeyCode.Q: return keyboard.qKey.wasPressedThisFrame;
                     case KeyCode.R: return keyboard.rKey.wasPressedThisFrame;
                 }

@@ -10,6 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 8000551832633737256}
   - component: {fileID: 177391881941980796}
+  - component: {fileID: 6523567680294539042}
+  - component: {fileID: 8073339911103324860}
+  - component: {fileID: -5025941390536273557}
   m_Layer: 0
   m_Name: NPC1
   m_TagString: Untagged
@@ -46,8 +49,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fefd6185decc23347aef8e8dbfc0c70d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Npcs.Runtime.Actors.NpcActor
-  animationBridge: {fileID: 0}
+  animationBridge: {fileID: 8073339911103324860}
+  navMeshAgent: {fileID: 6523567680294539042}
   visualRoot: {fileID: 8000551832633737256}
+--- !u!195 &6523567680294539042
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6466080059994377494}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 1.6
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 360
+  m_StoppingDistance: 0.05
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &8073339911103324860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6466080059994377494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e81ae2e332efe70418eb3c1520b54587, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Npcs.Runtime.Animation.NpcAnimationBridge
+  animator: {fileID: -5025941390536273557}
+  moveSpeedParameter: MoveSpeed
+  isMovingParameter: IsMoving
+  isSeatedParameter: IsSeated
+  isTalkingParameter: IsTalking
+  isInterviewingParameter: IsInterviewing
+  isAgentParameter: IsAgent
+  stateIndexParameter: StateIndex
+--- !u!95 &-5025941390536273557
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6466080059994377494}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &7640430598145033866
 GameObject:
   m_ObjectHideFlags: 0

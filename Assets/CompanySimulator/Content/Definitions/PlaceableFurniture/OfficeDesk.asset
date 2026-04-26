@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3dd12e0bc0833a14088754a3561a177c, type: 3}
-  m_Name: "\u2022CEODeskFurnitureDefinition"
+  m_Name: OfficeDesk
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Definitions.PlaceableFurnitureDefinition
-  id: ceo_desk_1
-  displayName: CEO Desk
-  furnitureFamilyId: ceo_desk
+  id: officeDesk
+  displayName: OfficeDesk
+  furnitureFamilyId: office_desk
   category: Masa
   requiresPlacement: 1
   allowsComputerAttachment: 0
-  uniqueInOffice: 1
+  uniqueInOffice: 0
   tiers:
   - tier: 1
-    purchasePrice: 1000
-    prefab: {fileID: 6041451811270028017, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
-    footprint: {x: 3, y: 2}
-    interactionTypes: 13
+    purchasePrice: 0
+    prefab: {fileID: 9211046991549170156, guid: 43e4f26a366228f49b7ac9dc7af4880c, type: 3}
+    footprint: {x: 0, y: 0}
+    interactionTypes: 2
     effects: []
     notes: 
   designerNotes: 
