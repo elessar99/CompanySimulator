@@ -1632,6 +1632,17 @@ MonoBehaviour:
   m_Spacing: {x: 18, y: 16}
   m_Constraint: 2
   m_ConstraintCount: 7
+--- !u!114 &922471664 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 920668063559894953, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+  m_PrefabInstance: {fileID: 1714692773}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c4fd4157840e424991a1246b4986924, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatController
 --- !u!1 &972695285
 GameObject:
   m_ObjectHideFlags: 0
@@ -2957,6 +2968,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1579071910232859583, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5104120133774593335, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
       propertyPath: m_LocalPosition.x
       value: 16.15483
@@ -3001,10 +3016,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: CEO desk
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 6827104638989239846, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+      propertyPath: controller
+      value: 
+      objectReference: {fileID: 1938882191}
+    - target: {fileID: 8755110448378669041, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+      propertyPath: controller
+      value: 
+      objectReference: {fileID: 1938882191}
+    m_RemovedComponents:
+    - {fileID: 1375796422060587202, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8296763941106312888, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1938882191}
   m_SourcePrefab: {fileID: 100100000, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
 --- !u!1 &1741238396
 GameObject:
@@ -3108,6 +3135,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1741238396}
   m_CullTransparentMesh: 1
+--- !u!114 &1750064014 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5125364210893186263, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+  m_PrefabInstance: {fileID: 1714692773}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c4fd4157840e424991a1246b4986924, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.SeatController
 --- !u!1 &1833075628
 GameObject:
   m_ObjectHideFlags: 0
@@ -3414,6 +3452,27 @@ MonoBehaviour:
     maxWanderDuration: 4
     wanderRadius: 2.25
     moveSpeed: 1.6
+--- !u!1 &1938882189 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8296763941106312888, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+  m_PrefabInstance: {fileID: 1714692773}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1938882191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1938882189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8157f1a55ae3a69418a7bf988c86b6cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.CeoDeskController
+  rootCanvas: {fileID: 0}
+  furnitureInstance: {fileID: 2135221151}
+  playerSeat: {fileID: 922471664}
+  interviewSeat: {fileID: 1750064014}
 --- !u!1 &1941404164
 GameObject:
   m_ObjectHideFlags: 0
@@ -3557,9 +3616,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Npcs.Runtime.Agents.DetectedAgentManager
   agentManager: {fileID: 1020124916}
-  detectedAgentPrefab: {fileID: 177391881941980796, guid: bd0b4cb0bf73aa64f8eaa75ba93c0dfd, type: 3}
-  detectedAgentRoot: {fileID: 8000551832633737256, guid: bd0b4cb0bf73aa64f8eaa75ba93c0dfd, type: 3}
-  fallbackSpawnOrigin: {fileID: 8000551832633737256, guid: bd0b4cb0bf73aa64f8eaa75ba93c0dfd, type: 3}
+  detectedAgentPrefab: {fileID: 0}
+  detectedAgentRoot: {fileID: 0}
+  fallbackSpawnOrigin: {fileID: 0}
   spawnRadius: 3
   pointOfInterestService: {fileID: 506893256}
   rivalCompanyManager: {fileID: 1566646482}
@@ -3846,6 +3905,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2135221151 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7482375136816920290, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
+  m_PrefabInstance: {fileID: 1714692773}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76b3280c9c748c349a1b8045a84bc8ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.FurnitureInstance
 --- !u!1001 &8061283248481355989
 PrefabInstance:
   m_ObjectHideFlags: 0
