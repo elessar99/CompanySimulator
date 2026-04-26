@@ -305,8 +305,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.000002861023, y: -0.0000009536743}
-  m_SizeDelta: {x: -40.000023, y: -39.99999}
+  m_AnchoredPosition: {x: 0.0000019073486, y: -0.0000009536743}
+  m_SizeDelta: {x: -40.000015, y: -39.99999}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &247165540
 GameObject:
@@ -3616,9 +3616,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Npcs.Runtime.Agents.DetectedAgentManager
   agentManager: {fileID: 1020124916}
-  detectedAgentPrefab: {fileID: 0}
-  detectedAgentRoot: {fileID: 0}
-  fallbackSpawnOrigin: {fileID: 0}
+  detectedAgentPrefab: {fileID: 177391881941980796, guid: c00e2d2aed566654da7c06896345a376, type: 3}
+  detectedAgentRoot: {fileID: 8000551832633737256, guid: c00e2d2aed566654da7c06896345a376, type: 3}
+  fallbackSpawnOrigin: {fileID: 8000551832633737256, guid: c00e2d2aed566654da7c06896345a376, type: 3}
   spawnRadius: 3
   pointOfInterestService: {fileID: 506893256}
   rivalCompanyManager: {fileID: 1566646482}
