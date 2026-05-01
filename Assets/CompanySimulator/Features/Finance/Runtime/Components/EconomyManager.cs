@@ -513,14 +513,14 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                     continue;
                 }
 
-                totalDailyPayroll += employee.ExpectedDailySalary;
+                totalDailyPayroll += employee.EffectiveDailySalary;
 
                 if (overtimeHours <= 0f || employee.Role == null || !employee.Role.RequiresOffice)
                 {
                     continue;
                 }
 
-                var hourlyRate = employee.ExpectedDailySalary.Amount / standardWorkdayHours;
+                var hourlyRate = employee.EffectiveDailySalary.Amount / standardWorkdayHours;
                 var overtimeAmount = Money.From(hourlyRate * overtimeHours * 2d);
                 totalOvertimePayroll += overtimeAmount;
             }

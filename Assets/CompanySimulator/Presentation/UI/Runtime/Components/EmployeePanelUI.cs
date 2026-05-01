@@ -48,6 +48,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private RectTransform contentRoot;
         private Text pageTitleText;
         private Button backButton;
+        private Button interviewDebugButton;
         private EmployeeRoleDefinition selectedRole;
         private Transform roleGridParent;
         private Transform employeeGridParent;
@@ -472,7 +473,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             statGrid.constraintCount = 2;
             statGrid.childAlignment = TextAnchor.MiddleCenter;
 
-            CreateMiniStat(statRow.transform, employee.ExpectedDailySalary.Amount.ToString("N0"), "Günlük Maaş");
+            CreateMiniStat(statRow.transform, employee.EffectiveDailySalary.Amount.ToString("N0"), employee.AgreedDailySalary.Amount > 0 ? "Anlaşılan Maaş" : "Günlük Maaş");
             CreateMiniStat(statRow.transform, "x" + employee.IncomeMultiplier.ToString("0.0"), "Katkı");
 
             CreateFlexibleSpacer(content.transform);
@@ -583,6 +584,22 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             backRect.anchoredPosition = new Vector2(-72f, 0f);
             backRect.sizeDelta = new Vector2(50f, 40f);
             backButton.onClick.AddListener(GoBack);
+
+            interviewDebugButton = CreateStyledButton(headerRoot.transform, "InterviewDebugButton", "Debug", new Color(ColPurple.r, ColPurple.g, ColPurple.b, 0.18f), new Color(ColPurple.r, ColPurple.g, ColPurple.b, 0.28f), new Color(ColPurple.r, ColPurple.g, ColPurple.b, 0.4f), ColText, TextAnchor.MiddleCenter);
+            var interviewDebugRect = interviewDebugButton.GetComponent<RectTransform>();
+            interviewDebugRect.anchorMin = new Vector2(1f, 0.5f);
+            interviewDebugRect.anchorMax = new Vector2(1f, 0.5f);
+            interviewDebugRect.pivot = new Vector2(1f, 0.5f);
+            interviewDebugRect.anchoredPosition = new Vector2(-130f, 0f);
+            interviewDebugRect.sizeDelta = new Vector2(90f, 40f);
+            interviewDebugButton.onClick.AddListener(() =>
+            {
+                var dialoguePanel = FindObjectOfType<InterviewDialoguePanelUI>(true);
+                if (dialoguePanel != null)
+                {
+                    dialoguePanel.SendMessage("ToggleDebugPanel", SendMessageOptions.DontRequireReceiver);
+                }
+            });
 
             var closeButton = CreateStyledButton(headerRoot.transform, "CloseButton", "×", new Color(ColRed.r, ColRed.g, ColRed.b, 0.16f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.28f), new Color(ColRed.r, ColRed.g, ColRed.b, 0.4f), ColRed, TextAnchor.MiddleCenter);
             var closeRect = closeButton.GetComponent<RectTransform>();
@@ -1061,6 +1078,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (backButton != null)
             {
                 backButton.gameObject.SetActive(currentPage != EmployeePageState.RoleList);
+            }
+
+            if (interviewDebugButton != null)
+            {
+                interviewDebugButton.gameObject.SetActive(currentPage == EmployeePageState.Applications || currentPage == EmployeePageState.RoleEmployees);
             }
         }
 

@@ -212,6 +212,23 @@ Current next implementation pass should begin with:
 3. player interaction dismissal flow
 4. then stop for agent testing and fixes
 
+## Interview Negotiation Planning
+The detailed negotiation design is tracked in:
+- `Assets/CompanySimulator/Features/Npcs/InterviewNegotiationPlan.md`
+
+That document should be used as the implementation source of truth for:
+- negotiation state machine
+- note1 and note2 branch rules
+- configurable salary decision settings
+- dialogue variation strategy
+- localization-ready dialogue content design
+
+Current interview negotiation progress:
+- negotiation core runtime and services started
+- temporary multi-step negotiation panel started
+- final counter-offer branch restrictions added
+- full playtest checkpoint is now the next negotiation milestone
+
 ## Planned Office Worker Test Setup
 After `Point of Interest` and `NavMesh` work is implemented, test with this setup:
 

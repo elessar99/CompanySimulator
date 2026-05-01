@@ -263,7 +263,7 @@ namespace CompanySimulator.Features.FinanceOverview.Runtime.Components
             var total = Money.Zero;
             for (var i = 0; i < employees.Count; i++)
             {
-                total += employees[i].ExpectedDailySalary;
+                total += employees[i].EffectiveDailySalary;
             }
 
             return total;

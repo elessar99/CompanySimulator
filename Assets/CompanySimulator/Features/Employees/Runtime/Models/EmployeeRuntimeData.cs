@@ -37,11 +37,13 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public EmployeeRoleDefinition Role { get; }
         public float Quality { get; }
         public Money ExpectedDailySalary { get; }
+        public Money AgreedDailySalary { get; private set; }
         public EmployeeQualityTier QualityTier { get; }
         public float IncomeMultiplier { get; }
         public int ApplicantRemainingDays { get; private set; }
         public string CurrentAssignmentName { get; private set; }
         public bool IsAssigned => !string.IsNullOrWhiteSpace(CurrentAssignmentName);
+        public Money EffectiveDailySalary => AgreedDailySalary.Amount > 0 ? AgreedDailySalary : ExpectedDailySalary;
 
         public bool TryAssign(string assignmentName)
         {
@@ -78,6 +80,11 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public void MarkAsEmployee()
         {
             ApplicantRemainingDays = 0;
+        }
+
+        public void SetAgreedDailySalary(Money agreedDailySalary)
+        {
+            AgreedDailySalary = agreedDailySalary.Amount > 0 ? agreedDailySalary : ExpectedDailySalary;
         }
 
         private static EmployeeQualityTier ResolveQualityTier(float quality)

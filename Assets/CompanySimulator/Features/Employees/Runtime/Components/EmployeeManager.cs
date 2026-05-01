@@ -163,6 +163,18 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public bool TryHireApplicant(EmployeeRuntimeData applicant, CompanySimulator.Shared.Runtime.Economy.Money agreedDailySalary)
+        {
+            if (!TryHireApplicant(applicant))
+            {
+                return false;
+            }
+
+            applicant.SetAgreedDailySalary(agreedDailySalary);
+            DataChanged?.Invoke();
+            return true;
+        }
+
         public bool TryRejectApplicant(EmployeeRuntimeData applicant)
         {
             if (!EnsureInitialized() || applicant == null)
