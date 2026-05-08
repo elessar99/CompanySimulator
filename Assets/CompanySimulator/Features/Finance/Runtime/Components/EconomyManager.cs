@@ -540,6 +540,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                     lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için bakiye yetersiz.";
                     return;
                 }
+
+                if (Balance < totalPayrollExpense)
+                {
+                    lastExecutionSummary = $"{currentDay}. günde günlük maaş gideri için alınan kredi gideri karşılamadı.";
+                    return;
+                }
             }
 
             var description = totalOvertimePayroll > Money.Zero
@@ -562,6 +568,12 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
                         if (companyBankManager == null || !companyBankManager.TryAutoLoan(deficit))
                         {
                             lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde döngü gideri için bakiye yetersiz.";
+                            break;
+                        }
+
+                        if (Balance < cycleCosts)
+                        {
+                            lastExecutionSummary = $"{activeProject.DisplayName}: {currentDay}. günde alınan kredi döngü giderini karşılamadı.";
                             break;
                         }
                     }

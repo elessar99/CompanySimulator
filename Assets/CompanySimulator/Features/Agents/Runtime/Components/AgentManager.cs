@@ -29,6 +29,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
         private readonly List<PlayerTargetedAgentRuntimeData> failedPlayerTargetedAgents = new List<PlayerTargetedAgentRuntimeData>(4);
         private readonly List<PlayerTargetedAgentRuntimeData> dismissedPlayerAgents = new List<PlayerTargetedAgentRuntimeData>(4);
         private int daysSinceLastRefresh;
+        private int playerTargetedAgentSequence;
 
         public event Action DataChanged;
 
@@ -464,7 +465,8 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
                     rival,
                     targetSector,
                     cost,
-                    economyManager.CurrentDay);
+                    economyManager.CurrentDay,
+                    $"player_targeted_agent_{++playerTargetedAgentSequence}");
 
                 agent.ApplySabotage(playerProjects);
 

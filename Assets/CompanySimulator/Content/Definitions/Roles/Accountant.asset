@@ -22,7 +22,7 @@ MonoBehaviour:
   maxConcurrentAssignmentsPerEmployee: 1
   allowedSectors: []
   kotuSettings:
-    minimumExpectedSalary: 300
+    minimumExpectedSalary: 100
     maximumExpectedSalary: 450
     incomeMultiplier: 2
     spawnChanceWeight: 35
@@ -37,7 +37,7 @@ MonoBehaviour:
     incomeMultiplier: 6
     spawnChanceWeight: 20
   profesyonelSettings:
-    minimumExpectedSalary: 2000
-    maximumExpectedSalary: 2000
+    minimumExpectedSalary: 1000
+    maximumExpectedSalary: 1000
     incomeMultiplier: 10
     spawnChanceWeight: 1000000

@@ -316,6 +316,11 @@ namespace CompanySimulator.Features.Npcs.Runtime.Agents
                 return string.Empty;
             }
 
+            if (!string.IsNullOrWhiteSpace(sourceAgent.RuntimeId))
+            {
+                return sourceAgent.RuntimeId;
+            }
+
             return $"{sourceAgent.DeployDay}_{sourceAgent.Definition?.Id}_{sourceAgent.SourceRival?.Definition?.Id}_{sourceAgent.TargetSector?.Id}";
         }
 
@@ -333,18 +338,11 @@ namespace CompanySimulator.Features.Npcs.Runtime.Agents
                 return false;
             }
 
-            var proxyWorker = new OfficeWorkerNpcRuntimeData(runtime.RuntimeId + "_proxy", null, null, null, OfficeWorkerBehaviourSettings.Default);
-            if (!pointOfInterestService.TrySelectPoint(proxyWorker, out var pointOfInterest) || pointOfInterest == null)
+            if (!pointOfInterestService.TrySelectPoint(runtime.RuntimeId, out var pointOfInterest) || pointOfInterest == null)
             {
                 return false;
             }
 
-            if (!pointOfInterest.TryReserve(runtime.RuntimeId))
-            {
-                return false;
-            }
-
-            pointOfInterest.Release(proxyWorker.RuntimeId);
             runtime.SetCurrentPointOfInterest(pointOfInterest);
             runtime.SetCurrentTarget(pointOfInterest.VisitPosition);
             visitDuration = pointOfInterest.GetRandomVisitDuration();

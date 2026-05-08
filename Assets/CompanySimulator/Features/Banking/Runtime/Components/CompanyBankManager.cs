@@ -293,15 +293,15 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
 
             for (var i = 0; i < candidates.Count; i++)
             {
-                if (candidates[i].PrincipalAmount >= deficit)
+                if (candidates[i].PrincipalAmount < deficit)
                 {
-                    return TryAcceptOffer(candidates[i], out _);
+                    continue;
                 }
-            }
 
-            if (candidates.Count > 0)
-            {
-                return TryAcceptOffer(candidates[candidates.Count - 1], out _);
+                if (TryAcceptOffer(candidates[i], out _))
+                {
+                    return true;
+                }
             }
 
             return false;

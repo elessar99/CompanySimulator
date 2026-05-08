@@ -305,8 +305,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.0000019073486, y: -0.0000009536743}
-  m_SizeDelta: {x: -40.000015, y: -39.99999}
+  m_AnchoredPosition: {x: 0.000002861023, y: -0.0000009536743}
+  m_SizeDelta: {x: -40.000023, y: -39.99999}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &247165540
 GameObject:
@@ -471,7 +471,7 @@ MonoBehaviour:
   debugPanelUI: {fileID: 660682439}
   securityPanelUI: {fileID: 247165542}
   shopPanelUI: {fileID: 1007853085}
-  furniturePlacementManager: {fileID: 0}
+  furniturePlacementManager: {fileID: 651131969}
   rootCanvas: {fileID: 1362092756}
   appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
@@ -2196,7 +2196,7 @@ MonoBehaviour:
   initializeOnAwake: 1
   runStartupProjectsOnStart: 1
   currentDay: 1
-  currentBalance: 100000
+  currentBalance: 2000000
   executedProjectCount: 0
   lastExecutionSummary: 
 --- !u!4 &1129450516
@@ -2388,7 +2388,7 @@ MonoBehaviour:
   securityPanelUI: {fileID: 247165542}
   shopPanelUI: {fileID: 1007853085}
   inventoryPanelUI: {fileID: 253775479}
-  interviewSessionManager: {fileID: 0}
+  interviewSessionManager: {fileID: 1941404166}
   rootCanvas: {fileID: 1362092756}
   appIcon: {fileID: 0}
   panelSize: {x: 1900, y: 1000}
@@ -2480,7 +2480,7 @@ MonoBehaviour:
   workdayStartMinute: 0
   workdayEndHour: 16
   workdayEndMinute: 0
-  realMinutesPerGameHour: 0.1
+  realMinutesPerGameHour: 10
   autoAdvanceAtMidnight: 1
   runClock: 1
   currentTotalMinutes: 0
@@ -3522,6 +3522,16 @@ MonoBehaviour:
   interviewActorRoot: {fileID: 0}
   preferredDesk: {fileID: 5171906046096360607, guid: 95f7beb16c1c5dc47a2e9604368269ff, type: 3}
   rootCanvas: {fileID: 1362092756}
+  negotiationSettings:
+    npcOpensWithOfferProbability: 1
+    npcOpeningOfferMinMultiplier: 0.7
+    npcOpeningOfferMaxMultiplier: 1.5
+    lowOfferHardRejectionMultiplier: 0.5
+    guaranteedAcceptanceMultiplier: 1
+    rejectThenEndProbability: 0
+    rejectThenCounterProbability: 0
+    counterOfferMinMultiplier: 0
+    counterOfferMaxMultiplier: 0
 --- !u!1 &1959420495
 GameObject:
   m_ObjectHideFlags: 0

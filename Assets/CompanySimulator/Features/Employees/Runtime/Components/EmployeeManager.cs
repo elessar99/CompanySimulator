@@ -294,19 +294,30 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             var currentLookup = currentEmployees != null ? new HashSet<EmployeeRuntimeData>(currentEmployees) : new HashSet<EmployeeRuntimeData>();
             var newLookup = new HashSet<EmployeeRuntimeData>(newEmployees);
 
+            var assignedNow = new List<EmployeeRuntimeData>(newLookup.Count);
+            foreach (var employee in newLookup)
+            {
+                if (employee != null && !currentLookup.Contains(employee) && !employee.TryAssign(assignmentName))
+                {
+                    for (var i = 0; i < assignedNow.Count; i++)
+                    {
+                        assignedNow[i].ClearAssignment();
+                    }
+
+                    return false;
+                }
+
+                if (employee != null && !currentLookup.Contains(employee))
+                {
+                    assignedNow.Add(employee);
+                }
+            }
+
             foreach (var employee in currentLookup)
             {
                 if (employee != null && !newLookup.Contains(employee))
                 {
                     employee.ClearAssignment();
-                }
-            }
-
-            foreach (var employee in newLookup)
-            {
-                if (employee != null && !currentLookup.Contains(employee) && !employee.TryAssign(assignmentName))
-                {
-                    return false;
                 }
             }
 

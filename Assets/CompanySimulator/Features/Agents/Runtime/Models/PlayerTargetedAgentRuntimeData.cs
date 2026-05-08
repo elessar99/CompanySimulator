@@ -16,8 +16,12 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
             RivalCompanyRuntimeData sourceRival,
             SectorDefinition targetSector,
             Money cost,
-            int deployDay)
+            int deployDay,
+            string runtimeId = null)
         {
+            RuntimeId = string.IsNullOrWhiteSpace(runtimeId)
+                ? $"{deployDay}_{definition?.Id}_{sourceRival?.Definition?.Id}_{targetSector?.Id}"
+                : runtimeId;
             Definition = definition;
             SourceRival = sourceRival;
             TargetSector = targetSector;
@@ -28,6 +32,7 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
             HasFailed = false;
         }
 
+        public string RuntimeId { get; }
         public AgentDefinition Definition { get; }
         public RivalCompanyRuntimeData SourceRival { get; }
         public SectorDefinition TargetSector { get; }

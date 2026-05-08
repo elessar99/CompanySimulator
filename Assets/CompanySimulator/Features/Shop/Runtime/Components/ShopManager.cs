@@ -144,6 +144,12 @@ namespace CompanySimulator.Features.Shop.Runtime.Components
                 return false;
             }
 
+            if (inventoryManager == null)
+            {
+                resultMessage = "Envanter sistemi bulunamadı.";
+                return false;
+            }
+
             if (!economyManager.TrySpend(product.PurchasePrice, LedgerEntryType.MiscExpense, product.DisplayName + " satın alındı"))
             {
                 resultMessage = "Satın alma sırasında bakiye düşülemedi.";
@@ -151,8 +157,9 @@ namespace CompanySimulator.Features.Shop.Runtime.Components
             }
 
             var purchaseDay = economyManager != null ? economyManager.CurrentDay : 1;
-            if (inventoryManager == null || !inventoryManager.RecordPurchase(product, product.GrantedQuantity, purchaseDay, product.PurchasePrice))
+            if (!inventoryManager.RecordPurchase(product, product.GrantedQuantity, purchaseDay, product.PurchasePrice))
             {
+                economyManager.RecordIncome(product.PurchasePrice, LedgerEntryType.MiscIncome, product.DisplayName + " satın alma iadesi");
                 resultMessage = "Satın alma kaydı envantere işlenemedi.";
                 return false;
             }

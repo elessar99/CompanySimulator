@@ -14,6 +14,17 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
                 return false;
             }
 
+            return TrySelectPoint(worker.RuntimeId, out pointOfInterest);
+        }
+
+        public bool TrySelectPoint(string runtimeId, out OfficePointOfInterest pointOfInterest)
+        {
+            pointOfInterest = null;
+            if (string.IsNullOrWhiteSpace(runtimeId))
+            {
+                return false;
+            }
+
             var allPoints = FindObjectsOfType<OfficePointOfInterest>(true);
             if (allPoints == null || allPoints.Length == 0)
             {
@@ -25,7 +36,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             for (var i = 0; i < allPoints.Length; i++)
             {
                 var point = allPoints[i];
-                if (point == null || !point.isActiveAndEnabled || !point.CanReserve(worker.RuntimeId))
+                if (point == null || !point.isActiveAndEnabled || !point.CanReserve(runtimeId))
                 {
                     continue;
                 }
@@ -45,7 +56,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             {
                 var point = candidates[i];
                 cumulative += Mathf.Max(0.01f, point.SelectionWeight);
-                if (roll <= cumulative && point.TryReserve(worker.RuntimeId))
+                if (roll <= cumulative && point.TryReserve(runtimeId))
                 {
                     pointOfInterest = point;
                     return true;
@@ -54,7 +65,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
 
             for (var i = 0; i < candidates.Count; i++)
             {
-                if (candidates[i].TryReserve(worker.RuntimeId))
+                if (candidates[i].TryReserve(runtimeId))
                 {
                     pointOfInterest = candidates[i];
                     return true;
