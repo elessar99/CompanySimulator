@@ -22,6 +22,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         [SerializeField] private SecurityPanelUI securityPanelUI;
         [SerializeField] private ShopPanelUI shopPanelUI;
         [SerializeField] private InventoryPanelUI inventoryPanelUI;
+        [SerializeField] private EmployeeDevelopmentPanelUI employeeDevelopmentPanelUI;
         [SerializeField] private InterviewSessionManager interviewSessionManager;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private Sprite appIcon;
@@ -67,6 +68,12 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             securityPanelUI ??= FindObjectOfType<SecurityPanelUI>();
             shopPanelUI ??= FindObjectOfType<ShopPanelUI>();
             inventoryPanelUI ??= FindObjectOfType<InventoryPanelUI>();
+            employeeDevelopmentPanelUI ??= FindObjectOfType<EmployeeDevelopmentPanelUI>();
+            if (employeeDevelopmentPanelUI == null)
+            {
+                employeeDevelopmentPanelUI = new GameObject("EmployeeDevelopmentPanelUI", typeof(EmployeeDevelopmentPanelUI)).GetComponent<EmployeeDevelopmentPanelUI>();
+            }
+
             interviewSessionManager ??= FindObjectOfType<InterviewSessionManager>();
             if (interviewSessionManager == null)
             {
@@ -148,6 +155,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             if (inventoryPanelUI != null && inventoryPanelUI.IsOpen)
             {
                 inventoryPanelUI.ClosePanel();
+            }
+
+            if (employeeDevelopmentPanelUI != null && employeeDevelopmentPanelUI.IsOpen)
+            {
+                employeeDevelopmentPanelUI.ClosePanel();
             }
 
             panelRoot.SetActive(true);

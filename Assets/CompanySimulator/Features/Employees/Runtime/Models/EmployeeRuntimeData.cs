@@ -15,6 +15,8 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             ExpectedDailySalary = sourceDefinition != null ? sourceDefinition.ExpectedDailySalary : Money.Zero;
             QualityTier = sourceDefinition != null ? sourceDefinition.QualityTier : EmployeeQualityTier.Kotu;
             IncomeMultiplier = sourceDefinition != null ? sourceDefinition.IncomeMultiplier : 0.5f;
+            QualityUpgradeSourceTier = QualityTier;
+            PendingQualityUpgradeTier = QualityTier;
             ApplicantRemainingDays = applicantRemainingDays > 0 ? applicantRemainingDays : 0;
         }
 
@@ -28,6 +30,8 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             ExpectedDailySalary = expectedDailySalary;
             QualityTier = role != null ? role.GetQualityTier(quality) : ResolveQualityTier(quality);
             IncomeMultiplier = role != null ? role.GetIncomeMultiplier(QualityTier) : ResolveIncomeMultiplier(QualityTier);
+            QualityUpgradeSourceTier = QualityTier;
+            PendingQualityUpgradeTier = QualityTier;
             ApplicantRemainingDays = applicantRemainingDays > 0 ? applicantRemainingDays : 0;
         }
 
@@ -35,12 +39,19 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public EmployeeProfileDefinition SourceDefinition { get; }
         public string DisplayName { get; }
         public EmployeeRoleDefinition Role { get; }
-        public float Quality { get; }
+        public float Quality { get; private set; }
         public Money ExpectedDailySalary { get; }
         public Money AgreedDailySalary { get; private set; }
-        public EmployeeQualityTier QualityTier { get; }
-        public float IncomeMultiplier { get; }
+        public EmployeeQualityTier QualityTier { get; private set; }
+        public float IncomeMultiplier { get; private set; }
         public int ApplicantRemainingDays { get; private set; }
+        public int EmploymentDays { get; private set; }
+        public int QualityProgressDays { get; private set; }
+        public bool HasPendingQualityUpgrade { get; private set; }
+        public bool IsQualityUpgradeNegotiationActive { get; private set; }
+        public EmployeeQualityTier QualityUpgradeSourceTier { get; private set; }
+        public EmployeeQualityTier PendingQualityUpgradeTier { get; private set; }
+        public int QualityUpgradeRequestRemainingDays { get; private set; }
         public string CurrentAssignmentName { get; private set; }
         public bool IsAssigned => !string.IsNullOrWhiteSpace(CurrentAssignmentName);
         public Money EffectiveDailySalary => AgreedDailySalary.Amount > 0 ? AgreedDailySalary : ExpectedDailySalary;
@@ -80,11 +91,108 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
         public void MarkAsEmployee()
         {
             ApplicantRemainingDays = 0;
+            EmploymentDays = 0;
+            QualityProgressDays = 0;
+            HasPendingQualityUpgrade = false;
+            IsQualityUpgradeNegotiationActive = false;
+            QualityUpgradeSourceTier = QualityTier;
+            PendingQualityUpgradeTier = QualityTier;
+            QualityUpgradeRequestRemainingDays = 0;
         }
 
         public void SetAgreedDailySalary(Money agreedDailySalary)
         {
             AgreedDailySalary = agreedDailySalary.Amount > 0 ? agreedDailySalary : ExpectedDailySalary;
+        }
+
+        public void AdvanceEmploymentDay()
+        {
+            EmploymentDays++;
+        }
+
+        public void AdvanceQualityProgressDay()
+        {
+            QualityProgressDays++;
+        }
+
+        public void StartQualityUpgradeRequest(EmployeeQualityTier nextTier, int responseDays)
+        {
+            if (HasPendingQualityUpgrade || IsQualityUpgradeNegotiationActive || nextTier <= QualityTier)
+            {
+                return;
+            }
+
+            HasPendingQualityUpgrade = true;
+            QualityUpgradeSourceTier = QualityTier;
+            PendingQualityUpgradeTier = nextTier;
+            QualityUpgradeRequestRemainingDays = responseDays > 0 ? responseDays : 1;
+        }
+
+        public bool AdvanceQualityUpgradeRequestDay()
+        {
+            if (!HasPendingQualityUpgrade || IsQualityUpgradeNegotiationActive)
+            {
+                return true;
+            }
+
+            QualityUpgradeRequestRemainingDays--;
+            return QualityUpgradeRequestRemainingDays > 0;
+        }
+
+        public void BeginQualityUpgradeNegotiation()
+        {
+            if (!HasPendingQualityUpgrade || IsQualityUpgradeNegotiationActive)
+            {
+                return;
+            }
+
+            ApplyQualityTier(PendingQualityUpgradeTier);
+            IsQualityUpgradeNegotiationActive = true;
+            HasPendingQualityUpgrade = false;
+            QualityUpgradeRequestRemainingDays = 0;
+        }
+
+        public void CompleteQualityUpgradeNegotiation(Money agreedDailySalary)
+        {
+            SetAgreedDailySalary(agreedDailySalary);
+            IsQualityUpgradeNegotiationActive = false;
+            QualityProgressDays = 0;
+            QualityUpgradeSourceTier = QualityTier;
+            PendingQualityUpgradeTier = QualityTier;
+        }
+
+        public Money GetQualityUpgradeRequestedSalary()
+        {
+            var targetTier = IsQualityUpgradeNegotiationActive ? QualityTier : PendingQualityUpgradeTier;
+            if (Role == null)
+            {
+                return EffectiveDailySalary;
+            }
+
+            var minimumForTier = Money.From(Role.GetMinimumExpectedSalary(targetTier));
+            return minimumForTier > EffectiveDailySalary ? minimumForTier : EffectiveDailySalary + Money.From(1);
+        }
+
+        private void ApplyQualityTier(EmployeeQualityTier qualityTier)
+        {
+            QualityTier = qualityTier;
+            Quality = ResolveMinimumQualityForTier(qualityTier);
+            IncomeMultiplier = Role != null ? Role.GetIncomeMultiplier(QualityTier) : ResolveIncomeMultiplier(QualityTier);
+        }
+
+        private static float ResolveMinimumQualityForTier(EmployeeQualityTier qualityTier)
+        {
+            switch (qualityTier)
+            {
+                case EmployeeQualityTier.Kotu:
+                    return 10f;
+                case EmployeeQualityTier.Ortalama:
+                    return 25f;
+                case EmployeeQualityTier.Iyi:
+                    return 50f;
+                default:
+                    return 75f;
+            }
         }
 
         private static EmployeeQualityTier ResolveQualityTier(float quality)

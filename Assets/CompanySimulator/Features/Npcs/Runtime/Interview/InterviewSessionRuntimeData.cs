@@ -6,16 +6,35 @@ using System.Collections.Generic;
 
 namespace CompanySimulator.Features.Npcs.Runtime.Interview
 {
+    public enum InterviewSessionPurpose
+    {
+        Hiring = 0,
+        QualityUpgrade = 1
+    }
+
     public sealed class InterviewSessionRuntimeData
     {
         public InterviewSessionRuntimeData(string sessionId, EmployeeRuntimeData applicant, CeoDeskController desk, InterviewNpcRuntimeData interviewNpc, int startDay)
+            : this(sessionId, applicant, desk, interviewNpc, startDay, InterviewSessionPurpose.Hiring, applicant != null ? applicant.ExpectedDailySalary : Money.Zero)
+        {
+        }
+
+        public InterviewSessionRuntimeData(
+            string sessionId,
+            EmployeeRuntimeData applicant,
+            CeoDeskController desk,
+            InterviewNpcRuntimeData interviewNpc,
+            int startDay,
+            InterviewSessionPurpose purpose,
+            Money baseExpectation)
         {
             SessionId = sessionId;
             Applicant = applicant;
             Desk = desk;
             InterviewNpc = interviewNpc;
             StartDay = startDay;
-            BaseExpectation = applicant != null ? applicant.ExpectedDailySalary : Money.Zero;
+            Purpose = purpose;
+            BaseExpectation = baseExpectation.Amount > 0 ? baseExpectation : applicant != null ? applicant.ExpectedDailySalary : Money.Zero;
             CurrentSalaryOffer = BaseExpectation;
             HighestPlayerOffer = Money.Zero;
             LastPlayerOffer = Money.Zero;
@@ -38,6 +57,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         public CeoDeskController Desk { get; }
         public InterviewNpcRuntimeData InterviewNpc { get; }
         public int StartDay { get; }
+        public InterviewSessionPurpose Purpose { get; }
         public Money BaseExpectation { get; }
         public Money CurrentSalaryOffer { get; private set; }
         public Money HighestPlayerOffer { get; private set; }

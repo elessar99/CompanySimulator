@@ -72,6 +72,46 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             return true;
         }
 
+        public bool TryStartQualityUpgradeInterview(EmployeeRuntimeData employee)
+        {
+            if (!CanStartQualityUpgradeInterview(employee, out var desk))
+            {
+                return false;
+            }
+
+            var requestedSalary = employee.GetQualityUpgradeRequestedSalary();
+            var runtimeId = $"interview_npc_{++sessionSequence}";
+            var interviewNpc = new InterviewNpcRuntimeData(runtimeId, employee, requestedSalary);
+            currentSession = new InterviewSessionRuntimeData(
+                $"interview_session_{sessionSequence}",
+                employee,
+                desk,
+                interviewNpc,
+                0,
+                InterviewSessionPurpose.QualityUpgrade,
+                requestedSalary);
+            lastInterviewDebugSnapshot = string.Empty;
+            if (!SpawnInterviewActor(desk, interviewNpc))
+            {
+                currentSession = null;
+                return false;
+            }
+
+            if (employeeManager == null || !employeeManager.TryBeginQualityUpgradeNegotiation(employee))
+            {
+                EndCurrentSession();
+                return false;
+            }
+
+            currentSession.MarkCandidateSeated();
+            currentSession.MarkNegotiationReady();
+            BeginNegotiation();
+            EnsureDialoguePanel();
+            SessionChanged?.Invoke();
+            NegotiationUpdated?.Invoke(currentSession);
+            return true;
+        }
+
         public bool TryHireCurrentApplicant(Money agreedDailySalary)
         {
             if (currentSession == null || employeeManager == null)
@@ -79,7 +119,29 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
                 return false;
             }
 
+            if (currentSession.Purpose == InterviewSessionPurpose.QualityUpgrade)
+            {
+                return TryCompleteCurrentQualityUpgrade(agreedDailySalary);
+            }
+
             if (!employeeManager.TryHireApplicant(currentSession.Applicant, agreedDailySalary))
+            {
+                return false;
+            }
+
+            currentSession.MarkHired(agreedDailySalary);
+            EndCurrentSession();
+            return true;
+        }
+
+        private bool TryCompleteCurrentQualityUpgrade(Money agreedDailySalary)
+        {
+            if (currentSession == null || employeeManager == null)
+            {
+                return false;
+            }
+
+            if (!employeeManager.TryAcceptQualityUpgradeSalary(currentSession.Applicant, agreedDailySalary))
             {
                 return false;
             }
@@ -112,9 +174,18 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
                 return false;
             }
 
+            if (currentSession.Purpose == InterviewSessionPurpose.QualityUpgrade
+                && (employeeManager == null || !employeeManager.TryRejectQualityUpgradeNegotiation(currentSession.Applicant)))
+            {
+                return false;
+            }
+
             negotiationOrchestrator.RejectByPlayer(currentSession);
             NegotiationUpdated?.Invoke(currentSession);
-            employeeManager?.TryRejectApplicant(currentSession.Applicant);
+            if (currentSession.Purpose == InterviewSessionPurpose.Hiring)
+            {
+                employeeManager?.TryRejectApplicant(currentSession.Applicant);
+            }
             currentSession.MarkRejectedByPlayer();
             EndCurrentSession();
             return true;
@@ -140,6 +211,13 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             if (currentSession.NegotiationState == InterviewNegotiationState.RejectedByNpc)
             {
                 NegotiationUpdated?.Invoke(currentSession);
+                if (currentSession.Purpose == InterviewSessionPurpose.QualityUpgrade
+                    && (employeeManager == null || !employeeManager.TryRejectQualityUpgradeNegotiation(currentSession.Applicant)))
+                {
+                    currentSession.AddDebugLog("Tazminat ödenemediği için çalışan ayrılışı tamamlanamadı.");
+                    return false;
+                }
+
                 currentSession.MarkRejected();
                 EndCurrentSession();
                 return false;
@@ -154,6 +232,13 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         {
             if (currentSession == null)
             {
+                return;
+            }
+
+            if (currentSession.Purpose == InterviewSessionPurpose.QualityUpgrade
+                && (employeeManager == null || !employeeManager.TryRejectQualityUpgradeNegotiation(currentSession.Applicant)))
+            {
+                currentSession.AddDebugLog("Görüşme iptal edildi ancak tazminat ödenemediği için çalışan ayrılışı tamamlanamadı.");
                 return;
             }
 
@@ -175,6 +260,22 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             return ContainsApplicant(applicant);
+        }
+
+        private bool CanStartQualityUpgradeInterview(EmployeeRuntimeData employee, out CeoDeskController desk)
+        {
+            desk = ResolveDesk();
+            if (employeeManager == null || employee == null || currentSession != null || desk == null || desk.InterviewSeat == null)
+            {
+                return false;
+            }
+
+            if (desk.InterviewSeat.IsOccupied)
+            {
+                return false;
+            }
+
+            return employee.HasPendingQualityUpgrade;
         }
 
         private bool SpawnInterviewActor(CeoDeskController desk, InterviewNpcRuntimeData interviewNpc)
@@ -392,7 +493,10 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
 
             debugBuilder.Clear();
             debugBuilder.Append("<b>Interview Debug</b>");
-            debugBuilder.Append("\nAday: ");
+            debugBuilder.Append("\nGörüşme Tipi: ");
+            debugBuilder.Append(session.Purpose == InterviewSessionPurpose.QualityUpgrade ? "Maaş Düzenleme" : "İşe Alım");
+            debugBuilder.Append("\n");
+            debugBuilder.Append(session.Purpose == InterviewSessionPurpose.QualityUpgrade ? "Çalışan: " : "Aday: ");
             debugBuilder.Append(session.Applicant != null ? session.Applicant.DisplayName : "-");
             debugBuilder.Append("\nRol: ");
             debugBuilder.Append(session.Applicant != null && session.Applicant.Role != null ? session.Applicant.Role.DisplayName : "-");

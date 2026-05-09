@@ -43,6 +43,10 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         [SerializeField] private EmployeeQualityTierSettings ortalamaSettings = new EmployeeQualityTierSettings(451, 600, 1f, 35f);
         [SerializeField] private EmployeeQualityTierSettings iyiSettings = new EmployeeQualityTierSettings(601, 725, 1.5f, 20f);
         [SerializeField] private EmployeeQualityTierSettings profesyonelSettings = new EmployeeQualityTierSettings(726, 800, 3f, 10f);
+        [Header("Quality Growth")]
+        [SerializeField, Min(1)] private int kotuQualityUpgradeDays = 10;
+        [SerializeField, Min(1)] private int ortalamaQualityUpgradeDays = 15;
+        [SerializeField, Min(1)] private int iyiQualityUpgradeDays = 20;
 
         public Money BaseDailySalary => Money.From(baseDailySalary);
         public float QualityWeight => Mathf.Max(0f, qualityWeight);
@@ -57,6 +61,9 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         public EmployeeQualityTierSettings OrtalamaSettings => ortalamaSettings;
         public EmployeeQualityTierSettings IyiSettings => iyiSettings;
         public EmployeeQualityTierSettings ProfesyonelSettings => profesyonelSettings;
+        public int KotuQualityUpgradeDays => Mathf.Max(1, kotuQualityUpgradeDays);
+        public int OrtalamaQualityUpgradeDays => Mathf.Max(1, ortalamaQualityUpgradeDays);
+        public int IyiQualityUpgradeDays => Mathf.Max(1, iyiQualityUpgradeDays);
 
         public EmployeeQualityTier GetQualityTier(float quality)
         {
@@ -96,6 +103,21 @@ namespace CompanySimulator.Features.Employees.Runtime.Definitions
         public float GetSpawnChanceWeight(EmployeeQualityTier qualityTier)
         {
             return GetSettings(qualityTier).SpawnChanceWeight;
+        }
+
+        public int GetQualityUpgradeDays(EmployeeQualityTier qualityTier)
+        {
+            switch (qualityTier)
+            {
+                case EmployeeQualityTier.Kotu:
+                    return KotuQualityUpgradeDays;
+                case EmployeeQualityTier.Ortalama:
+                    return OrtalamaQualityUpgradeDays;
+                case EmployeeQualityTier.Iyi:
+                    return IyiQualityUpgradeDays;
+                default:
+                    return 0;
+            }
         }
 
         public bool CanWorkInSector(SectorDefinition sector)

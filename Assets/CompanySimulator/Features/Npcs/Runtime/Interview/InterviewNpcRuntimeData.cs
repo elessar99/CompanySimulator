@@ -6,11 +6,13 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
 {
     public sealed class InterviewNpcRuntimeData : NpcRuntimeData
     {
-        public InterviewNpcRuntimeData(string runtimeId, EmployeeRuntimeData applicant)
+        public InterviewNpcRuntimeData(string runtimeId, EmployeeRuntimeData applicant, Money? expectedDailySalaryOverride = null)
             : base(runtimeId, NpcKind.InterviewCandidate, applicant != null ? applicant.DisplayName : string.Empty)
         {
             Applicant = applicant;
-            ExpectedDailySalary = applicant != null ? applicant.ExpectedDailySalary : Money.Zero;
+            ExpectedDailySalary = expectedDailySalaryOverride.HasValue
+                ? expectedDailySalaryOverride.Value
+                : applicant != null ? applicant.ExpectedDailySalary : Money.Zero;
         }
 
         public EmployeeRuntimeData Applicant { get; }

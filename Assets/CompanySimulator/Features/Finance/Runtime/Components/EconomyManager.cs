@@ -226,6 +226,44 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             return true;
         }
 
+        public bool TrySpendWithAutoLoan(Money amount, LedgerEntryType expenseType, string description)
+        {
+            if (!EnsureInitialized())
+            {
+                return false;
+            }
+
+            if (amount < Money.Zero)
+            {
+                return false;
+            }
+
+            if (amount == Money.Zero)
+            {
+                return true;
+            }
+
+            if (Balance < amount)
+            {
+                var deficit = amount - Balance;
+                companyBankManager ??= FindObjectOfType<CompanyBankManager>();
+                if (companyBankManager == null || !companyBankManager.TryAutoLoan(deficit))
+                {
+                    return false;
+                }
+
+                if (Balance < amount)
+                {
+                    return false;
+                }
+            }
+
+            ApplyExpense(amount, expenseType, description);
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            return true;
+        }
+
         public bool TryExecuteProject(ProjectExecutionDefinition executionDefinition, out ProjectEconomyResult result)
         {
             result = default;

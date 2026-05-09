@@ -246,7 +246,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             panelRoot.SetActive(session != null);
             if (session != null)
             {
-                titleText.text = "İş Görüşmesi";
+                titleText.text = session.Purpose == InterviewSessionPurpose.QualityUpgrade ? "Maaş Görüşmesi" : "İş Görüşmesi";
                 bodyText.text = $"{session.Applicant.DisplayName}: {BuildDialogueLine(session)}";
                 RefreshControls(session);
             }

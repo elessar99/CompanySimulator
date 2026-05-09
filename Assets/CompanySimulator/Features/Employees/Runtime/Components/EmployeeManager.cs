@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
+using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -23,6 +24,7 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
         private readonly Dictionary<EmployeeRoleDefinition, int> nextApplicantSpawnDayByRole = new Dictionary<EmployeeRoleDefinition, int>(32);
         private int generatedApplicantSequence;
         private bool isInitialized;
+        private const int QualityUpgradeResponseDays = 3;
 
         private static readonly string[] FirstNames =
         {
@@ -224,6 +226,131 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             if (!CanFireEmployee(employee))
             {
                 return false;
+            }
+
+            return TryTerminateEmployeeWithSeverance(employee, "Çalışan kovma tazminatı");
+        }
+
+        public IReadOnlyList<EmployeeRuntimeData> GetEmployeesWithQualityUpgradeRequests()
+        {
+            if (!EnsureInitialized())
+            {
+                return Array.Empty<EmployeeRuntimeData>();
+            }
+
+            var result = new List<EmployeeRuntimeData>(8);
+            for (var i = 0; i < employees.Count; i++)
+            {
+                var employee = employees[i];
+                if (employee != null && (employee.HasPendingQualityUpgrade || employee.IsQualityUpgradeNegotiationActive))
+                {
+                    result.Add(employee);
+                }
+            }
+
+            return result;
+        }
+
+        public bool TryBeginQualityUpgradeNegotiation(EmployeeRuntimeData employee)
+        {
+            if (!EnsureInitialized() || employee == null || !employees.Contains(employee) || !employee.HasPendingQualityUpgrade)
+            {
+                return false;
+            }
+
+            employee.BeginQualityUpgradeNegotiation();
+            DataChanged?.Invoke();
+            return true;
+        }
+
+        public bool TryAcceptQualityUpgradeSalary(EmployeeRuntimeData employee, Money agreedDailySalary)
+        {
+            if (!EnsureInitialized() || employee == null || !employees.Contains(employee) || !employee.IsQualityUpgradeNegotiationActive)
+            {
+                return false;
+            }
+
+            employee.CompleteQualityUpgradeNegotiation(agreedDailySalary);
+            DataChanged?.Invoke();
+            return true;
+        }
+
+        public bool TryRejectQualityUpgradeNegotiation(EmployeeRuntimeData employee)
+        {
+            if (!EnsureInitialized() || employee == null || !employees.Contains(employee))
+            {
+                return false;
+            }
+
+            return TryTerminateEmployeeWithSeverance(employee, "Maaş düzenlemesi reddi tazminatı");
+        }
+
+        public Money CalculateSeverancePay(EmployeeRuntimeData employee)
+        {
+            if (employee == null || employee.EffectiveDailySalary <= Money.Zero || employee.EmploymentDays <= 0)
+            {
+                return Money.Zero;
+            }
+
+            var salary = employee.EffectiveDailySalary.Amount;
+            var calculatedAmount = employee.EmploymentDays * salary * 0.1d;
+            var cappedAmount = salary * 10d;
+            return Money.From(Math.Min(calculatedAmount, cappedAmount));
+        }
+
+        public string GetEmployeeAssignedSectorName(EmployeeRuntimeData employee)
+        {
+            if (!EnsureInitialized() || employee == null || economyManager == null)
+            {
+                return "Boşta";
+            }
+
+            var activeProjects = economyManager.ActiveProjects;
+            for (var i = 0; i < activeProjects.Count; i++)
+            {
+                var activeProject = activeProjects[i];
+                if (activeProject == null)
+                {
+                    continue;
+                }
+
+                var assignedEmployees = activeProject.AssignedEmployees;
+                for (var j = 0; j < assignedEmployees.Count; j++)
+                {
+                    if (assignedEmployees[j] != employee)
+                    {
+                        continue;
+                    }
+
+                    return activeProject.Sector != null ? activeProject.Sector.DisplayName : "Sektör Yok";
+                }
+            }
+
+            return employee.IsAssigned ? "Bilinmiyor" : "Boşta";
+        }
+
+        public bool TryTerminateEmployeeWithSeverance(EmployeeRuntimeData employee, string reason)
+        {
+            if (!EnsureInitialized() || employee == null || !employees.Contains(employee))
+            {
+                return false;
+            }
+
+            var severancePay = CalculateSeverancePay(employee);
+            if (economyManager != null && severancePay > Money.Zero)
+            {
+                var description = string.IsNullOrWhiteSpace(reason)
+                    ? $"{employee.DisplayName} tazminat ödemesi"
+                    : $"{employee.DisplayName}: {reason}";
+                if (!economyManager.TrySpendWithAutoLoan(severancePay, LedgerEntryType.PayrollExpense, description))
+                {
+                    return false;
+                }
+            }
+
+            if (employee.IsAssigned)
+            {
+                employee.ClearAssignment();
             }
 
             if (!employees.Remove(employee))
@@ -454,6 +581,10 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             }
 
             var hasChanges = AdvanceApplicantPool(currentDay);
+            if (AdvanceEmployeeDevelopment())
+            {
+                hasChanges = true;
+            }
             if (!hasChanges)
             {
                 return;
@@ -578,6 +709,72 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             }
 
             return removedAny;
+        }
+
+        private bool AdvanceEmployeeDevelopment()
+        {
+            var hasChanges = false;
+            for (var i = employees.Count - 1; i >= 0; i--)
+            {
+                var employee = employees[i];
+                if (employee == null)
+                {
+                    continue;
+                }
+
+                employee.AdvanceEmploymentDay();
+                hasChanges = true;
+
+                if (employee.HasPendingQualityUpgrade)
+                {
+                    var stillWaitingForResponse = employee.AdvanceQualityUpgradeRequestDay();
+                    if (!stillWaitingForResponse)
+                    {
+                        if (TryTerminateEmployeeWithSeverance(employee, "Maaş düzenlemesi talebi süresi doldu"))
+                        {
+                            hasChanges = true;
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (employee.IsQualityUpgradeNegotiationActive)
+                {
+                    continue;
+                }
+
+                employee.AdvanceQualityProgressDay();
+                var nextTier = GetNextQualityTier(employee.QualityTier);
+                if (nextTier == employee.QualityTier || employee.Role == null)
+                {
+                    continue;
+                }
+
+                var requiredDays = employee.Role.GetQualityUpgradeDays(employee.QualityTier);
+                if (requiredDays > 0 && employee.QualityProgressDays >= requiredDays)
+                {
+                    employee.StartQualityUpgradeRequest(nextTier, QualityUpgradeResponseDays);
+                    hasChanges = true;
+                }
+            }
+
+            return hasChanges;
+        }
+
+        private static EmployeeQualityTier GetNextQualityTier(EmployeeQualityTier qualityTier)
+        {
+            switch (qualityTier)
+            {
+                case EmployeeQualityTier.Kotu:
+                    return EmployeeQualityTier.Ortalama;
+                case EmployeeQualityTier.Ortalama:
+                    return EmployeeQualityTier.Iyi;
+                case EmployeeQualityTier.Iyi:
+                    return EmployeeQualityTier.Profesyonel;
+                default:
+                    return qualityTier;
+            }
         }
 
         private void InitializeApplicantSpawnSchedule(int currentDay)
