@@ -416,6 +416,24 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             debugBuilder.Append(session.HighestPlayerOffer.Amount.ToString("N0"));
             debugBuilder.Append(" | Anlaşılan: ");
             debugBuilder.Append(session.CurrentSalaryOffer.Amount.ToString("N0"));
+            if (session.LastNpcOfferRoll.HasRange)
+            {
+                debugBuilder.Append("\nNPC Teklif Aralığı: ");
+                debugBuilder.Append(FormatNpcOfferRollType(session.LastNpcOfferRoll.RollType));
+                debugBuilder.Append(" | ");
+                debugBuilder.Append(session.LastNpcOfferRoll.MinimumOffer.Amount.ToString("N0"));
+                debugBuilder.Append(" - ");
+                debugBuilder.Append(session.LastNpcOfferRoll.MaximumOffer.Amount.ToString("N0"));
+                if (session.LastNpcOfferRoll.CanOffer)
+                {
+                    debugBuilder.Append(" | Seçilen: ");
+                    debugBuilder.Append(session.LastNpcOfferRoll.Offer.Amount.ToString("N0"));
+                }
+                else
+                {
+                    debugBuilder.Append(" | Geçerli teklif yok");
+                }
+            }
             debugBuilder.Append("\nTeklif Oranı: ");
             debugBuilder.Append(session.LastPlayerOfferRatio.ToString("F2"));
             debugBuilder.Append(" | Açılış/ Beklenti: ");
@@ -451,6 +469,18 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             debugBuilder.Append("\nNeden: ");
             debugBuilder.Append(string.IsNullOrWhiteSpace(session.DebugReason) ? "-" : session.DebugReason);
 
+            if (session.DebugLogEntries != null && session.DebugLogEntries.Count > 0)
+            {
+                debugBuilder.Append("\n\n<b>Karar Logları</b>");
+                for (var i = 0; i < session.DebugLogEntries.Count; i++)
+                {
+                    debugBuilder.Append("\n");
+                    debugBuilder.Append(i + 1);
+                    debugBuilder.Append(") ");
+                    debugBuilder.Append(session.DebugLogEntries[i]);
+                }
+            }
+
             if (session.NegotiationHistory != null && session.NegotiationHistory.Count > 0)
             {
                 debugBuilder.Append("\n\n<b>Geçmiş</b>");
@@ -471,6 +501,19 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             return debugBuilder.ToString();
+        }
+
+        private static string FormatNpcOfferRollType(InterviewNpcOfferRollType rollType)
+        {
+            switch (rollType)
+            {
+                case InterviewNpcOfferRollType.OpeningOffer:
+                    return "Açılış";
+                case InterviewNpcOfferRollType.CounterOffer:
+                    return "Counter";
+                default:
+                    return "-";
+            }
         }
     }
 }

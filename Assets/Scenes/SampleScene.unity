@@ -3527,11 +3527,11 @@ MonoBehaviour:
     npcOpeningOfferMinMultiplier: 0.7
     npcOpeningOfferMaxMultiplier: 1.5
     lowOfferHardRejectionMultiplier: 0.5
-    guaranteedAcceptanceMultiplier: 1
+    guaranteedAcceptanceMultiplier: 1.8
     rejectThenEndProbability: 0
-    rejectThenCounterProbability: 0
-    counterOfferMinMultiplier: 0
-    counterOfferMaxMultiplier: 0
+    rejectThenCounterProbability: 1
+    counterOfferMinMultiplier: 0.7
+    counterOfferMaxMultiplier: 1
 --- !u!1 &1959420495
 GameObject:
   m_ObjectHideFlags: 0

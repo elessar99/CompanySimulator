@@ -25,11 +25,13 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             NegotiationState = InterviewNegotiationState.NotStarted;
             NegotiationOutcome = InterviewNegotiationOutcome.None;
             LatestDialogue = new InterviewDialoguePayload(InterviewDialogueIntent.None, string.Empty, Money.Zero);
+            LastNpcOfferRoll = default;
             DebugReason = string.Empty;
             State = InterviewSessionState.WaitingForCandidateSpawn;
         }
 
         private readonly List<InterviewNegotiationHistoryEntry> negotiationHistory = new List<InterviewNegotiationHistoryEntry>(16);
+        private readonly List<string> debugLogEntries = new List<string>(32);
 
         public string SessionId { get; }
         public EmployeeRuntimeData Applicant { get; }
@@ -52,8 +54,10 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         public float LastPlayerOfferRatio { get; private set; }
         public float LastAcceptanceProbability { get; private set; }
         public float LastAcceptanceRoll { get; private set; }
+        public InterviewNpcOfferRollResult LastNpcOfferRoll { get; private set; }
         public string DebugReason { get; private set; }
         public IReadOnlyList<InterviewNegotiationHistoryEntry> NegotiationHistory => negotiationHistory;
+        public IReadOnlyList<string> DebugLogEntries => debugLogEntries;
 
         public void MarkCandidateSeated()
         {
@@ -115,6 +119,11 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             LatestDialogue = payload;
         }
 
+        public void SetLastNpcOfferRoll(InterviewNpcOfferRollResult offerRoll)
+        {
+            LastNpcOfferRoll = offerRoll;
+        }
+
         public void AddHistoryEntry(InterviewNegotiationHistoryEntry entry)
         {
             negotiationHistory.Add(entry);
@@ -131,6 +140,16 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         public void SetDebugReason(string debugReason)
         {
             DebugReason = debugReason ?? string.Empty;
+        }
+
+        public void AddDebugLog(string debugLog)
+        {
+            if (string.IsNullOrWhiteSpace(debugLog))
+            {
+                return;
+            }
+
+            debugLogEntries.Add(debugLog);
         }
 
         public void MarkHired(Money agreedSalary)

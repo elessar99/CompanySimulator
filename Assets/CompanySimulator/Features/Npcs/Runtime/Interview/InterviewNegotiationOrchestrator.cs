@@ -19,7 +19,10 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
 
             if (openingOfferService.ShouldNpcOpenWithOffer(settings))
             {
-                var openingOffer = openingOfferService.CreateNpcOpeningOffer(session.BaseExpectation, settings);
+                var openingOfferRoll = openingOfferService.CreateNpcOpeningOffer(session.BaseExpectation, settings);
+                var openingOffer = openingOfferRoll.Offer;
+                session.SetLastNpcOfferRoll(openingOfferRoll);
+                session.AddDebugLog(CreateNpcOfferLog("NPC açılış teklifi", openingOfferRoll));
                 session.SetDebugReason("NPC açılışı kendi maaş talebiyle yaptı.");
                 session.SetNpcOpeningOffer(openingOffer);
                 Transition(session, InterviewNegotiationState.WaitingForPlayerDecisionOnNpcOffer, InterviewNegotiationTurn.Player, InterviewDialogueIntent.NpcOpeningOffer, openingOffer, false);
@@ -27,6 +30,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             session.SetDebugReason("NPC açılışı oyuncudan teklif isteyerek başladı.");
+            session.AddDebugLog("NPC açılışı: NPC ilk teklifi oyuncudan istedi.");
             Transition(session, InterviewNegotiationState.WaitingForPlayerOpeningOffer, InterviewNegotiationTurn.Player, InterviewDialogueIntent.NpcRequestsPlayerOffer, Money.Zero, false);
         }
 
@@ -39,6 +43,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             agreedSalary = session.CurrentSalaryOffer;
+            session.AddDebugLog($"Oyuncu NPC teklifini kabul etti: {FormatMoney(agreedSalary)}.");
             session.SetDebugReason(session.IsFinalDecisionStage
                 ? "Oyuncu NPC son karşı teklifini kabul etti."
                 : "Oyuncu aktif NPC teklifini kabul etti.");
@@ -54,6 +59,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             session.SetDebugReason("Oyuncu görüşmeyi kendi isteğiyle reddetti.");
+            session.AddDebugLog($"Oyuncu görüşmeyi reddetti. Aktif NPC teklifi: {FormatMoney(session.CurrentSalaryOffer)}.");
             Transition(session, InterviewNegotiationState.RejectedByPlayer, InterviewNegotiationTurn.System, InterviewDialogueIntent.PlayerRejectedNpcOffer, session.CurrentSalaryOffer, true);
         }
 
@@ -65,17 +71,31 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             }
 
             session.SetPlayerOffer(playerOffer);
+            session.AddDebugLog($"Oyuncu teklifi: {FormatMoney(playerOffer)}. En yüksek oyuncu teklifi: {FormatMoney(session.HighestPlayerOffer)}.");
             var accepted = acceptanceService.TryEvaluateOffer(playerOffer, session.BaseExpectation, settings, out var ratio, out var probability, out var roll);
             session.SetLatestOfferEvaluation(ratio, probability, roll, string.Empty);
             if (accepted)
             {
                 session.UpdateSalaryOffer(playerOffer);
+                session.AddDebugLog($"Kabul testi: kabul ihtimali {FormatPercent(probability)}, red ihtimali {FormatPercent(1f - probability)}, zar {roll:F2}. Sonuç: kabul.");
                 session.SetDebugReason($"Oyuncu teklifi kabul edildi. Oran={ratio:F2}, olasılık={probability:P0}, zar={roll:F2}.");
                 Transition(session, InterviewNegotiationState.Accepted, InterviewNegotiationTurn.System, InterviewDialogueIntent.NpcAcceptsOffer, playerOffer, session.IsFinalDecisionStage);
                 return true;
             }
 
-            var shouldEnd = ratio <= settings.LowOfferHardRejectionMultiplier || ShouldNpcEndAfterReject(settings);
+            session.AddDebugLog($"Kabul testi: kabul ihtimali {FormatPercent(probability)}, red ihtimali {FormatPercent(1f - probability)}, zar {roll:F2}. Sonuç: red.");
+            var hardRejected = ratio <= settings.LowOfferHardRejectionMultiplier;
+            var shouldEnd = hardRejected;
+            if (hardRejected)
+            {
+                session.AddDebugLog($"Hard red eşiği: teklif oranı {ratio:F2}, eşik {settings.LowOfferHardRejectionMultiplier:F2}. Sonuç: görüşme kapanır.");
+            }
+            else
+            {
+                shouldEnd = ShouldNpcEndAfterReject(settings, out var endProbability, out var counterProbability, out var endRoll);
+                session.AddDebugLog($"Red sonrası karar: bitirme ihtimali {FormatPercent(endProbability)}, karşı teklif ihtimali {FormatPercent(counterProbability)}, zar {endRoll:F2}. Sonuç: {(shouldEnd ? "görüşme kapanır" : "NPC teklif verir")}.");
+            }
+
             if (shouldEnd)
             {
                 session.SetDebugReason($"Teklif reddedildi ve görüşme kapandı. Oran={ratio:F2}, olasılık={probability:P0}, zar={roll:F2}.");
@@ -83,7 +103,19 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
                 return false;
             }
 
-            var npcCounterOffer = ResolveNpcResponseOffer(session, playerOffer, settings, ratio);
+            var npcCounterOfferRoll = ResolveNpcResponseOffer(session, settings, ratio);
+            var npcCounterOffer = npcCounterOfferRoll.Offer;
+            session.SetLastNpcOfferRoll(npcCounterOfferRoll);
+            if (!npcCounterOfferRoll.CanOffer)
+            {
+                session.UpdateSalaryOffer(playerOffer);
+                session.AddDebugLog($"Geçerli NPC teklif aralığı yok: gerekli minimum {FormatMoney(npcCounterOfferRoll.MinimumOffer)}, tavan {FormatMoney(npcCounterOfferRoll.MaximumOffer)}. NPC oyuncudan düşük teklif vermedi ve oyuncu teklifini kabul etti.");
+                session.SetDebugReason($"NPC oyuncu teklifinden yüksek ve tavanı aşmayan teklif üretemedi. Oyuncu teklifi kabul edildi. Oran={ratio:F2}, olasılık={probability:P0}, zar={roll:F2}.");
+                Transition(session, InterviewNegotiationState.Accepted, InterviewNegotiationTurn.System, InterviewDialogueIntent.NpcAcceptsOffer, playerOffer, session.IsFinalDecisionStage);
+                return true;
+            }
+
+            session.AddDebugLog(CreateNpcOfferLog("NPC karşı teklifi", npcCounterOfferRoll));
             var entersFullNpcOfferBranch = !session.WasNpcOpeningOfferBranch && ratio < settings.CounterOfferMinMultiplier;
             if (entersFullNpcOfferBranch)
             {
@@ -106,11 +138,11 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             return false;
         }
 
-        private Money ResolveNpcResponseOffer(InterviewSessionRuntimeData session, Money playerOffer, InterviewNegotiationSettings settings, float ratio)
+        private InterviewNpcOfferRollResult ResolveNpcResponseOffer(InterviewSessionRuntimeData session, InterviewNegotiationSettings settings, float ratio)
         {
             if (!session.WasNpcOpeningOfferBranch && ratio < settings.CounterOfferMinMultiplier)
             {
-                return openingOfferService.CreateNpcOpeningOffer(session.BaseExpectation, settings);
+                return openingOfferService.CreateNpcOpeningOffer(session.BaseExpectation, settings, session.HighestPlayerOffer.Amount + 1);
             }
 
             var npcReference = session.NpcLastOffer.Amount > 0 ? session.NpcLastOffer : session.BaseExpectation;
@@ -128,18 +160,43 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
                 || session.NegotiationState == InterviewNegotiationState.WaitingForPlayerDecisionOnNpcOffer;
         }
 
-        private static bool ShouldNpcEndAfterReject(InterviewNegotiationSettings settings)
+        private static bool ShouldNpcEndAfterReject(InterviewNegotiationSettings settings, out float endProbability, out float counterProbability, out float roll)
         {
             var endWeight = Mathf.Clamp01(settings.RejectThenEndProbability);
             var counterWeight = Mathf.Clamp01(settings.RejectThenCounterProbability);
             var total = endWeight + counterWeight;
             if (total <= 0f)
             {
+                endProbability = 1f;
+                counterProbability = 0f;
+                roll = 0f;
                 return true;
             }
 
-            var roll = Random.value * total;
-            return roll < endWeight;
+            endProbability = endWeight / total;
+            counterProbability = counterWeight / total;
+            roll = Random.value;
+            return roll < endProbability;
+        }
+
+        private static string CreateNpcOfferLog(string label, InterviewNpcOfferRollResult offerRoll)
+        {
+            if (!offerRoll.CanOffer)
+            {
+                return $"{label}: geçerli aralık yok. Gerekli minimum {FormatMoney(offerRoll.MinimumOffer)}, tavan {FormatMoney(offerRoll.MaximumOffer)}.";
+            }
+
+            return $"{label}: {FormatMoney(offerRoll.Offer)} teklif etti. {FormatMoney(offerRoll.MinimumOffer)} - {FormatMoney(offerRoll.MaximumOffer)} aralığından seçildi.";
+        }
+
+        private static string FormatMoney(Money money)
+        {
+            return money.Amount.ToString("N0");
+        }
+
+        private static string FormatPercent(float value)
+        {
+            return (Mathf.Clamp01(value) * 100f).ToString("F1") + "%";
         }
 
         private void Transition(
