@@ -2,6 +2,7 @@ using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Features.Furniture.Runtime.Interactions;
 using CompanySimulator.Features.Npcs.Runtime.Agents;
 using CompanySimulator.Presentation.UI.Runtime.Common;
+using CompanySimulator.Presentation.UI.Runtime.Components;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -15,6 +16,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private Camera interactionCamera;
         [SerializeField] private PlayerMovementController movementController;
         [SerializeField] private FurniturePlacementManager furniturePlacementManager;
+        [SerializeField] private InteractionPromptUI interactionPromptUi;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField, Min(0.5f)] private float interactionDistance = 4f;
         [SerializeField] private LayerMask interactionMask = Physics.DefaultRaycastLayers;
@@ -44,11 +46,13 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
 
             rootCanvas ??= movementController != null ? movementController.RootCanvas : FindObjectOfType<Canvas>();
+            EnsureInteractionPromptUi();
         }
 
         private void Update()
         {
             rootCanvas ??= movementController != null ? movementController.RootCanvas : FindObjectOfType<Canvas>();
+            EnsureInteractionPromptUi();
             var computerOpen = RuntimePanelUiUtility.IsComputerPanelOpen(rootCanvas);
 
             if (WasKeyPressed(cancelKey))
@@ -79,6 +83,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
             if (computerOpen)
             {
+                ClearInteractionPrompt();
                 if (furniturePlacementManager != null && furniturePlacementManager.IsBuildModeActive)
                 {
                     furniturePlacementManager.SetBuildMode(false);
@@ -90,6 +95,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
             if (furniturePlacementManager != null && furniturePlacementManager.IsBuildModeActive)
             {
+                ClearInteractionPrompt();
                 if (IsSeated)
                 {
                     furniturePlacementManager.SetBuildMode(false);
@@ -123,6 +129,8 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
                 return;
             }
+
+            UpdateInteractionPrompt();
 
             if (WasKeyPressed(interactKey))
             {
@@ -186,6 +194,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             interactionCamera ??= movementController != null ? movementController.PlayerCamera : GetComponentInChildren<Camera>(true);
             if (interactionCamera == null)
             {
+                ClearInteractionPrompt();
                 return;
             }
 
@@ -193,6 +202,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             var triggerMode = includeTriggerColliders ? QueryTriggerInteraction.Collide : QueryTriggerInteraction.Ignore;
             if (!Physics.Raycast(ray, out var hit, interactionDistance, interactionMask, triggerMode))
             {
+                ClearInteractionPrompt();
                 return;
             }
 
@@ -248,6 +258,33 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             furniturePlacementManager.UpdatePreviewFromRay(ray, transform.forward, out _);
         }
 
+        private void UpdateInteractionPrompt()
+        {
+            interactionCamera ??= movementController != null ? movementController.PlayerCamera : GetComponentInChildren<Camera>(true);
+            if (interactionCamera == null)
+            {
+                ClearInteractionPrompt();
+                return;
+            }
+
+            var ray = interactionCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            var triggerMode = includeTriggerColliders ? QueryTriggerInteraction.Collide : QueryTriggerInteraction.Ignore;
+            if (!Physics.Raycast(ray, out var hit, interactionDistance, interactionMask, triggerMode))
+            {
+                ClearInteractionPrompt();
+                return;
+            }
+
+            var interactable = ResolveFocusedInteractable(hit);
+            if (interactable == null)
+            {
+                ClearInteractionPrompt();
+                return;
+            }
+
+            SetInteractionPrompt(interactable.GetInteractionText(this));
+        }
+
         private void ToggleBuildMode(bool computerOpen)
         {
             if (IsSeated || computerOpen || furniturePlacementManager == null)
@@ -290,6 +327,48 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             RuntimePanelUiUtility.SetComputerPanelActive(rootCanvas, false);
             movementController?.RestoreGameplayCursorLock();
             return true;
+        }
+
+        private IInteractable ResolveFocusedInteractable(RaycastHit hit)
+        {
+            var agentInteractable = FindDetectedAgentInteractable(hit.transform);
+            if (agentInteractable != null && hit.distance <= agentDismissDistance)
+            {
+                return agentInteractable;
+            }
+
+            return FindInteractable(hit.transform);
+        }
+
+        private void EnsureInteractionPromptUi()
+        {
+            if (rootCanvas == null)
+            {
+                return;
+            }
+
+            if (interactionPromptUi == null)
+            {
+                interactionPromptUi = FindObjectOfType<InteractionPromptUI>();
+            }
+
+            if (interactionPromptUi == null)
+            {
+                interactionPromptUi = new GameObject("InteractionPromptUI", typeof(InteractionPromptUI)).GetComponent<InteractionPromptUI>();
+            }
+
+            interactionPromptUi.SetRootCanvas(rootCanvas);
+        }
+
+        private void SetInteractionPrompt(string message)
+        {
+            EnsureInteractionPromptUi();
+            interactionPromptUi?.SetPrompt(message);
+        }
+
+        private void ClearInteractionPrompt()
+        {
+            interactionPromptUi?.SetPrompt(string.Empty);
         }
 
         private void Teleport(Vector3 worldPosition, Quaternion worldRotation, bool resetLookPitch)

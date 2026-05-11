@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Features.Furniture.Runtime.Models;
 using CompanySimulator.Features.Inventory.Runtime.Components;
+using CompanySimulator.Features.Office.Runtime.Components;
 using CompanySimulator.Features.Shop.Runtime.Definitions;
 using CompanySimulator.Presentation.UI.Runtime.Components;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
     public sealed class FurniturePlacementManager : MonoBehaviour
     {
         [SerializeField] private InventoryManager inventoryManager;
+        [SerializeField] private OfficeManager officeManager;
         [SerializeField] private Transform placedFurnitureRoot;
         [SerializeField] private LayerMask placementSurfaceMask = Physics.DefaultRaycastLayers;
         [SerializeField] private LayerMask overlapBlockingMask = Physics.DefaultRaycastLayers;
@@ -35,6 +37,7 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         private bool previewCanPlace;
         private readonly List<Transform> previewLayerTransforms = new List<Transform>(32);
         private readonly List<int> previewOriginalLayers = new List<int>(32);
+        private bool searchedForOfficeManager;
 
         public event Action PlacementChanged;
         public event Action PlacementModeChanged;
@@ -49,6 +52,8 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         private void Awake()
         {
             inventoryManager ??= FindObjectOfType<InventoryManager>();
+            officeManager ??= FindObjectOfType<OfficeManager>();
+            searchedForOfficeManager = officeManager != null;
         }
 
         private void Start()
@@ -256,6 +261,13 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
             previewFurnitureInstance.Configure(product.FurnitureDefinition, product.FurnitureTier);
             SetPreviewVisible(true);
 
+            if (!CanPlaceInOfficeArea(position, hitCollider, out validationMessage))
+            {
+                previewCanPlace = false;
+                ApplyPreviewColor(previewInvalidColor);
+                return false;
+            }
+
             previewCanPlace = !HasBlockingOverlap(previewInstanceObject, hitCollider);
             ApplyPreviewColor(previewCanPlace ? previewValidColor : previewInvalidColor);
 
@@ -265,6 +277,19 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
             }
 
             return previewCanPlace;
+        }
+
+        private bool CanPlaceInOfficeArea(Vector3 worldPosition, Collider hitCollider, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+
+            if (officeManager == null && !searchedForOfficeManager)
+            {
+                officeManager = FindObjectOfType<OfficeManager>();
+                searchedForOfficeManager = true;
+            }
+
+            return officeManager == null || officeManager.CanPlaceFurnitureAt(worldPosition, hitCollider, out validationMessage);
         }
 
         private bool CommitPreviewPlacement(out string validationMessage)
