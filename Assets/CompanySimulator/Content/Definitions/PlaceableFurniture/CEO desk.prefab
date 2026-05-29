@@ -92,7 +92,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.CeoDeskController
   rootCanvas: {fileID: 0}
-  furnitureInstance: {fileID: 7482375136816920290}
+  furnitureInstance: {fileID: 0}
   playerSeat: {fileID: 920668063559894953}
   interviewSeat: {fileID: 5125364210893186263}
 --- !u!1 &1624521689710287180
@@ -754,7 +754,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5104120133774593335}
-  - component: {fileID: 7482375136816920290}
+  - component: {fileID: 7965579716227704358}
   m_Layer: 0
   m_Name: CEO desk
   m_TagString: Untagged
@@ -783,7 +783,7 @@ Transform:
   - {fileID: 2526820575279744089}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7482375136816920290
+--- !u!114 &7965579716227704358
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -795,7 +795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76b3280c9c748c349a1b8045a84bc8ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CompanySimulator.Features.Furniture.Runtime.Components.FurnitureInstance
-  definition: {fileID: 11400000, guid: f37772a32c25e1045a8fd416c18d3a4b, type: 2}
+  definition: {fileID: 0}
   tier: 1
 --- !u!1 &6767660915280781647
 GameObject:

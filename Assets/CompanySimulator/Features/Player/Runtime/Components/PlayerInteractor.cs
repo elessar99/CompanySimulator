@@ -167,7 +167,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
             currentSeat = seatController;
             movementController?.SetInteractionLock(true, false);
-            Teleport(seatController.GetSeatPosition(), seatController.GetSeatRotation(), true);
+            Teleport(seatController.GetSeatPosition(SeatOccupantType.Player), seatController.GetSeatRotation(SeatOccupantType.Player), true);
             return true;
         }
 

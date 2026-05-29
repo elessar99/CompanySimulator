@@ -10,6 +10,7 @@ using CompanySimulator.Shared.Runtime.Economy;
 using System;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace CompanySimulator.Features.Npcs.Runtime.Interview
 {
@@ -22,6 +23,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         [SerializeField] private CeoDeskController preferredDesk;
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private InterviewNegotiationSettings negotiationSettings = default;
+        [SerializeField, Min(0f)] private float navMeshSpawnSampleRadius = 2f;
 
         private InterviewSessionRuntimeData currentSession;
         private string lastInterviewDebugSnapshot;
@@ -37,6 +39,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
         public NpcActor CurrentActor => currentActor;
         public bool HasActiveSession => currentSession != null;
         public string LastInterviewDebugSnapshot => lastInterviewDebugSnapshot;
+        public string LastStartFailureReason { get; private set; }
 
         private void Awake()
         {
@@ -48,8 +51,10 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
 
         public bool TryStartInterview(EmployeeRuntimeData applicant)
         {
-            if (!CanStartInterview(applicant, out var desk))
+            LastStartFailureReason = string.Empty;
+            if (!CanStartInterview(applicant, out var desk, out var failureReason))
             {
+                LogStartFailure(failureReason);
                 return false;
             }
 
@@ -60,6 +65,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             if (!SpawnInterviewActor(desk, interviewNpc))
             {
                 currentSession = null;
+                LogStartFailure("Interview NPC could not be created or seated.");
                 return false;
             }
 
@@ -74,8 +80,10 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
 
         public bool TryStartQualityUpgradeInterview(EmployeeRuntimeData employee)
         {
-            if (!CanStartQualityUpgradeInterview(employee, out var desk))
+            LastStartFailureReason = string.Empty;
+            if (!CanStartQualityUpgradeInterview(employee, out var desk, out var failureReason))
             {
+                LogStartFailure(failureReason);
                 return false;
             }
 
@@ -94,6 +102,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             if (!SpawnInterviewActor(desk, interviewNpc))
             {
                 currentSession = null;
+                LogStartFailure("Quality upgrade interview NPC could not be created or seated.");
                 return false;
             }
 
@@ -246,55 +255,124 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             EndCurrentSession();
         }
 
-        private bool CanStartInterview(EmployeeRuntimeData applicant, out CeoDeskController desk)
+        private bool CanStartInterview(EmployeeRuntimeData applicant, out CeoDeskController desk, out string failureReason)
         {
+            failureReason = string.Empty;
             desk = ResolveDesk();
-            if (employeeManager == null || applicant == null || currentSession != null || desk == null || desk.InterviewSeat == null)
+            if (employeeManager == null)
             {
+                failureReason = "EmployeeManager not found.";
+                return false;
+            }
+
+            if (applicant == null)
+            {
+                failureReason = "Applicant data is empty.";
+                return false;
+            }
+
+            if (currentSession != null)
+            {
+                failureReason = "An interview session is already active.";
+                return false;
+            }
+
+            if (desk == null)
+            {
+                failureReason = "No CEO desk was found for the interview.";
+                return false;
+            }
+
+            if (desk.InterviewSeat == null)
+            {
+                failureReason = "The CEO desk has no InterviewNpc seat.";
                 return false;
             }
 
             if (desk.InterviewSeat.IsOccupied)
             {
+                failureReason = "The InterviewNpc seat is already occupied.";
                 return false;
             }
 
-            return ContainsApplicant(applicant);
+            if (!ContainsApplicant(applicant))
+            {
+                failureReason = "The applicant is no longer in the applicant list.";
+                return false;
+            }
+
+            return true;
         }
 
-        private bool CanStartQualityUpgradeInterview(EmployeeRuntimeData employee, out CeoDeskController desk)
+        private bool CanStartQualityUpgradeInterview(EmployeeRuntimeData employee, out CeoDeskController desk, out string failureReason)
         {
+            failureReason = string.Empty;
             desk = ResolveDesk();
-            if (employeeManager == null || employee == null || currentSession != null || desk == null || desk.InterviewSeat == null)
+            if (employeeManager == null)
             {
+                failureReason = "EmployeeManager not found.";
+                return false;
+            }
+
+            if (employee == null)
+            {
+                failureReason = "Employee data is empty.";
+                return false;
+            }
+
+            if (currentSession != null)
+            {
+                failureReason = "An interview session is already active.";
+                return false;
+            }
+
+            if (desk == null)
+            {
+                failureReason = "No CEO desk was found for the salary interview.";
+                return false;
+            }
+
+            if (desk.InterviewSeat == null)
+            {
+                failureReason = "The CEO desk has no InterviewNpc seat.";
                 return false;
             }
 
             if (desk.InterviewSeat.IsOccupied)
             {
+                failureReason = "The InterviewNpc seat is already occupied.";
                 return false;
             }
 
-            return employee.HasPendingQualityUpgrade;
+            if (!employee.HasPendingQualityUpgrade)
+            {
+                failureReason = "The employee has no pending quality upgrade interview request.";
+                return false;
+            }
+
+            return true;
         }
 
         private bool SpawnInterviewActor(CeoDeskController desk, InterviewNpcRuntimeData interviewNpc)
         {
             EnsureActorRoot();
-            var actor = CreateActorInstance();
+            var seat = desk.InterviewSeat;
+            var seatPosition = seat.GetSeatPosition(SeatOccupantType.InterviewNpc);
+            var seatRotation = seat.GetSeatRotation(SeatOccupantType.InterviewNpc);
+            var actor = CreateActorInstance(ResolveSpawnPosition(seatPosition), seatRotation);
             if (actor == null)
             {
                 return false;
             }
 
-            var seat = desk.InterviewSeat;
             if (!seat.TryOccupy(actor, SeatOccupantType.InterviewNpc))
             {
                 Destroy(actor.gameObject);
+                LogStartFailure("InterviewNpc seat cannot be occupied by this NPC. " + FormatSeatInfo(seat));
                 return false;
             }
 
-            interviewNpc.SetPose(seat.GetSeatPosition(), seat.GetSeatRotation());
+            interviewNpc.SetPose(seatPosition, seatRotation);
             interviewNpc.SetLifecycleState(NpcLifecycleState.Seated);
             actor.Bind(interviewNpc);
             actor.SetSeatedPresentation(true, false, true);
@@ -388,16 +466,25 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             return false;
         }
 
-        private NpcActor CreateActorInstance()
+        private NpcActor CreateActorInstance(Vector3 spawnPosition, Quaternion spawnRotation)
         {
+            EnsureActorRoot();
+
             if (interviewNpcPrefab != null)
             {
-                return Instantiate(interviewNpcPrefab, interviewActorRoot);
+                var actor = Instantiate(interviewNpcPrefab, spawnPosition, spawnRotation);
+                if (interviewActorRoot != null)
+                {
+                    actor.transform.SetParent(interviewActorRoot, true);
+                }
+
+                return actor;
             }
 
             var primitive = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             primitive.name = "InterviewNpcActor";
-            primitive.transform.SetParent(interviewActorRoot, false);
+            primitive.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+            primitive.transform.SetParent(interviewActorRoot, true);
             primitive.transform.localScale = new Vector3(0.6f, 1.8f, 0.6f);
             var primitiveCollider = primitive.GetComponent<Collider>();
             if (primitiveCollider != null)
@@ -408,15 +495,26 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             return primitive.AddComponent<NpcActor>();
         }
 
+        private Vector3 ResolveSpawnPosition(Vector3 desiredPosition)
+        {
+            if (navMeshSpawnSampleRadius > 0f &&
+                NavMesh.SamplePosition(desiredPosition, out var hit, navMeshSpawnSampleRadius, NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+
+            return desiredPosition;
+        }
+
         private void EnsureActorRoot()
         {
-            if (interviewActorRoot != null)
+            if (IsSceneTransform(interviewActorRoot))
             {
                 return;
             }
 
             var existing = transform.Find("InterviewActorRoot");
-            if (existing != null)
+            if (IsSceneTransform(existing))
             {
                 interviewActorRoot = existing;
                 return;
@@ -426,14 +524,33 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
             interviewActorRoot.SetParent(transform, false);
         }
 
+        private static bool IsSceneTransform(Transform candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            var scene = candidate.gameObject.scene;
+            return scene.IsValid() && scene.isLoaded;
+        }
+
         private void EnsureDialoguePanel()
         {
-            if (FindObjectOfType<InterviewDialoguePanelUI>() != null)
+            var existingPanel = FindObjectOfType<InterviewDialoguePanelUI>(true);
+            if (existingPanel != null)
             {
+                if (!existingPanel.gameObject.activeSelf)
+                {
+                    existingPanel.gameObject.SetActive(true);
+                }
+
+                existingPanel.BindSessionManager(this);
                 return;
             }
 
-            new GameObject("InterviewDialoguePanelUI", typeof(InterviewDialoguePanelUI));
+            var panel = new GameObject("InterviewDialoguePanelUI", typeof(InterviewDialoguePanelUI)).GetComponent<InterviewDialoguePanelUI>();
+            panel.BindSessionManager(this);
         }
 
         private void EnsureOfficeWorkerManager()
@@ -473,6 +590,24 @@ namespace CompanySimulator.Features.Npcs.Runtime.Interview
                 ? negotiationSettings
                 : InterviewNegotiationSettings.Default;
             negotiationOrchestrator.BeginNegotiation(currentSession, settings);
+        }
+
+        private void LogStartFailure(string reason)
+        {
+            LastStartFailureReason = string.IsNullOrWhiteSpace(reason) ? "Unknown interview start failure." : reason;
+            lastInterviewDebugSnapshot = LastStartFailureReason;
+            UnityEngine.Debug.LogWarning($"Interview start failed: {LastStartFailureReason}", this);
+        }
+
+        private static string FormatSeatInfo(SeatController seat)
+        {
+            if (seat == null)
+            {
+                return "Seat is null.";
+            }
+
+            var allowedType = seat.SeatPoint != null ? seat.SeatPoint.AllowedOccupantType.ToString() : "No SeatPoint";
+            return $"Seat: {seat.name}, Allowed Occupant Type: {allowedType}.";
         }
 
         public string GetInterviewDebugSnapshot()

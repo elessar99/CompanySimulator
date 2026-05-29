@@ -13,8 +13,23 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         [SerializeField] private SeatController interviewSeat;
 
         public FurnitureInstance FurnitureInstance => furnitureInstance != null ? furnitureInstance : GetComponent<FurnitureInstance>();
-        public SeatController PlayerSeat => playerSeat;
-        public SeatController InterviewSeat => interviewSeat;
+        public SeatController PlayerSeat
+        {
+            get
+            {
+                ResolveReferences();
+                return playerSeat;
+            }
+        }
+
+        public SeatController InterviewSeat
+        {
+            get
+            {
+                ResolveReferences();
+                return interviewSeat;
+            }
+        }
 
         public void SetRootCanvas(Canvas canvas)
         {
@@ -22,6 +37,11 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         }
 
         private void Awake()
+        {
+            ResolveReferences();
+        }
+
+        private void OnValidate()
         {
             ResolveReferences();
         }
@@ -92,6 +112,16 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         {
             furnitureInstance ??= GetComponent<FurnitureInstance>();
 
+            if (!IsSeatCompatible(playerSeat, SeatOccupantType.Player))
+            {
+                playerSeat = null;
+            }
+
+            if (!IsSeatCompatible(interviewSeat, SeatOccupantType.InterviewNpc))
+            {
+                interviewSeat = null;
+            }
+
             if (playerSeat != null && interviewSeat != null)
             {
                 return;
@@ -106,16 +136,27 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
                     continue;
                 }
 
-                switch (seat.SeatPoint.AllowedOccupantType)
+                if (playerSeat == null && IsSeatCompatible(seat, SeatOccupantType.Player))
                 {
-                    case SeatOccupantType.Player:
-                        playerSeat ??= seat;
-                        break;
-                    case SeatOccupantType.InterviewNpc:
-                        interviewSeat ??= seat;
-                        break;
+                    playerSeat = seat;
+                    continue;
+                }
+
+                if (interviewSeat == null && IsSeatCompatible(seat, SeatOccupantType.InterviewNpc) && seat != playerSeat)
+                {
+                    interviewSeat = seat;
                 }
             }
+        }
+
+        private static bool IsSeatCompatible(SeatController seat, SeatOccupantType expectedType)
+        {
+            if (seat == null || seat.SeatPoint == null)
+            {
+                return false;
+            }
+
+            return seat.SeatPoint.AllowedOccupantType == expectedType || seat.SeatPoint.AllowedOccupantType == SeatOccupantType.Any;
         }
     }
 }

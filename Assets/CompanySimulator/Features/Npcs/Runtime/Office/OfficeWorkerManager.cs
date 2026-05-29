@@ -5,6 +5,7 @@ using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Features.Npcs.Runtime.Actors;
 using CompanySimulator.Features.Npcs.Runtime.Models;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace CompanySimulator.Features.Npcs.Runtime.Office
 {
@@ -17,6 +18,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
         [SerializeField] private NpcActor officeWorkerPrefab;
         [SerializeField] private Transform workerActorRoot;
         [SerializeField] private OfficeWorkerBehaviourSettings behaviourSettings = default;
+        [SerializeField, Min(0f)] private float navMeshSpawnSampleRadius = 2f;
 
         private readonly Dictionary<EmployeeRuntimeData, OfficeWorkerNpcRuntimeData> runtimeByEmployee = new Dictionary<EmployeeRuntimeData, OfficeWorkerNpcRuntimeData>(32);
         private readonly Dictionary<EmployeeRuntimeData, NpcActor> actorByEmployee = new Dictionary<EmployeeRuntimeData, NpcActor>(32);
@@ -167,7 +169,9 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
                 return false;
             }
 
-            var actor = CreateActorInstance();
+            var seatPosition = seat.GetSeatPosition(SeatOccupantType.EmployeeNpc);
+            var seatRotation = seat.GetSeatRotation(SeatOccupantType.EmployeeNpc);
+            var actor = CreateActorInstance(ResolveSpawnPosition(seatPosition), seatRotation);
             if (actor == null)
             {
                 return false;
@@ -182,7 +186,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             var desk = seat.GetComponentInParent<OfficeDeskController>();
             var settings = behaviourSettings.MoveSpeed > 0f ? behaviourSettings : OfficeWorkerBehaviourSettings.Default;
             var runtime = new OfficeWorkerNpcRuntimeData($"office_worker_{++workerSequence}", employee, desk, seat, settings);
-            runtime.SetPose(seat.GetSeatPosition(), seat.GetSeatRotation());
+            runtime.SetPose(seatPosition, seatRotation);
             runtime.SetLifecycleState(NpcLifecycleState.Seated);
             actor.Bind(runtime);
             actor.SetSeatedPresentation(true, false, false);
@@ -223,7 +227,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
         private void UpdateSeatedWorker(OfficeWorkerNpcRuntimeData runtime, NpcActor actor)
         {
             runtime.Tick(UnityEngine.Time.deltaTime);
-            runtime.SetPose(runtime.Seat.GetSeatPosition(), runtime.Seat.GetSeatRotation());
+            runtime.SetPose(runtime.Seat.GetSeatPosition(SeatOccupantType.EmployeeNpc), runtime.Seat.GetSeatRotation(SeatOccupantType.EmployeeNpc));
             actor.ApplyRuntimePose();
             actor.SetSeatedPresentation(true, false, false);
 
@@ -279,7 +283,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
 
         private void UpdateWalkingToSeat(OfficeWorkerNpcRuntimeData runtime, NpcActor actor)
         {
-            var seatPosition = runtime.Seat.GetSeatPosition();
+            var seatPosition = runtime.Seat.GetSeatPosition(SeatOccupantType.EmployeeNpc);
             var reached = actor.MoveTowards(seatPosition, runtime.BehaviourSettings.MoveSpeed);
             runtime.SetPose(actor.transform.position, actor.transform.rotation);
             if (!reached)
@@ -295,7 +299,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
                 return;
             }
 
-            runtime.SetPose(runtime.Seat.GetSeatPosition(), runtime.Seat.GetSeatRotation());
+            runtime.SetPose(runtime.Seat.GetSeatPosition(SeatOccupantType.EmployeeNpc), runtime.Seat.GetSeatRotation(SeatOccupantType.EmployeeNpc));
             runtime.SetLifecycleState(NpcLifecycleState.Seated);
             runtime.SetState(OfficeWorkerState.Seated, Random.Range(runtime.BehaviourSettings.MinSeatDuration, runtime.BehaviourSettings.MaxSeatDuration));
             actor.ApplyRuntimePose();
@@ -304,7 +308,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
 
         private static Vector3 ResolveWanderTarget(OfficeWorkerNpcRuntimeData runtime)
         {
-            var origin = runtime.Seat != null ? runtime.Seat.GetSeatPosition() : runtime.WorldPosition;
+            var origin = runtime.Seat != null ? runtime.Seat.GetSeatPosition(SeatOccupantType.EmployeeNpc) : runtime.WorldPosition;
             var randomOffset = Random.insideUnitSphere * runtime.BehaviourSettings.WanderRadius;
             randomOffset.y = 0f;
             return origin + randomOffset;
@@ -368,16 +372,25 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             runtimeByEmployee.Remove(employee);
         }
 
-        private NpcActor CreateActorInstance()
+        private NpcActor CreateActorInstance(Vector3 spawnPosition, Quaternion spawnRotation)
         {
+            EnsureActorRoot();
+
             if (officeWorkerPrefab != null)
             {
-                return Instantiate(officeWorkerPrefab, workerActorRoot);
+                var actor = Instantiate(officeWorkerPrefab, spawnPosition, spawnRotation);
+                if (workerActorRoot != null)
+                {
+                    actor.transform.SetParent(workerActorRoot, true);
+                }
+
+                return actor;
             }
 
             var primitive = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             primitive.name = "OfficeWorkerNpcActor";
-            primitive.transform.SetParent(workerActorRoot, false);
+            primitive.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+            primitive.transform.SetParent(workerActorRoot, true);
             primitive.transform.localScale = new Vector3(0.6f, 1.8f, 0.6f);
             var primitiveCollider = primitive.GetComponent<Collider>();
             if (primitiveCollider != null)
@@ -388,15 +401,26 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             return primitive.AddComponent<NpcActor>();
         }
 
+        private Vector3 ResolveSpawnPosition(Vector3 desiredPosition)
+        {
+            if (navMeshSpawnSampleRadius > 0f &&
+                NavMesh.SamplePosition(desiredPosition, out var hit, navMeshSpawnSampleRadius, NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+
+            return desiredPosition;
+        }
+
         private void EnsureActorRoot()
         {
-            if (workerActorRoot != null)
+            if (IsSceneTransform(workerActorRoot))
             {
                 return;
             }
 
             var existing = transform.Find("OfficeWorkerActorRoot");
-            if (existing != null)
+            if (IsSceneTransform(existing))
             {
                 workerActorRoot = existing;
                 return;
@@ -404,6 +428,17 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
 
             workerActorRoot = new GameObject("OfficeWorkerActorRoot").transform;
             workerActorRoot.SetParent(transform, false);
+        }
+
+        private static bool IsSceneTransform(Transform candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            var scene = candidate.gameObject.scene;
+            return scene.IsValid() && scene.isLoaded;
         }
     }
 }

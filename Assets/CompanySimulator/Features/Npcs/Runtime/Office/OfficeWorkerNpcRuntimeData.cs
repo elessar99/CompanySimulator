@@ -16,7 +16,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Office
             BehaviourSettings = behaviourSettings;
             State = OfficeWorkerState.Seated;
             RemainingStateTime = Random.Range(behaviourSettings.MinSeatDuration, behaviourSettings.MaxSeatDuration);
-            WanderTarget = seat != null ? seat.GetSeatPosition() : Vector3.zero;
+            WanderTarget = seat != null ? seat.GetSeatPosition(SeatOccupantType.EmployeeNpc) : Vector3.zero;
         }
 
         public EmployeeRuntimeData Employee { get; }

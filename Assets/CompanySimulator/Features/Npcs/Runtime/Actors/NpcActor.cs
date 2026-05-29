@@ -11,6 +11,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Actors
         [SerializeField] private NpcAnimationBridge animationBridge;
         [SerializeField] private NavMeshAgent navMeshAgent;
         [SerializeField] private Transform visualRoot;
+        [SerializeField] private bool preserveTransformYWithNavMeshAgent = true;
 
         private NpcRuntimeData runtimeData;
         private Vector3 lastMoveTarget;
@@ -26,6 +27,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Actors
 
             if (navMeshAgent != null)
             {
+                navMeshAgent.updatePosition = !preserveTransformYWithNavMeshAgent;
                 navMeshAgent.updateRotation = false;
             }
         }
@@ -51,6 +53,7 @@ namespace CompanySimulator.Features.Npcs.Runtime.Actors
             }
 
             transform.SetPositionAndRotation(runtimeData.WorldPosition, runtimeData.WorldRotation);
+            SyncAgentPlanarPositionToTransform();
         }
 
         public void SetSeatedPresentation(bool isSeated, bool isTalking = false, bool isInterviewing = false)
@@ -104,6 +107,8 @@ namespace CompanySimulator.Features.Npcs.Runtime.Actors
                     transform.rotation = Quaternion.LookRotation(navMeshAgent.velocity.normalized, Vector3.up);
                 }
 
+                SyncTransformPlanarPositionToAgent();
+
                 SetMovingPresentation(moveSpeed);
                 if (navMeshAgent.pathPending)
                 {
@@ -142,6 +147,28 @@ namespace CompanySimulator.Features.Npcs.Runtime.Actors
             transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
             SetMovingPresentation(moveSpeed);
             return false;
+        }
+
+        private void SyncTransformPlanarPositionToAgent()
+        {
+            if (!preserveTransformYWithNavMeshAgent || navMeshAgent == null)
+            {
+                return;
+            }
+
+            var agentPosition = navMeshAgent.nextPosition;
+            transform.position = new Vector3(agentPosition.x, transform.position.y, agentPosition.z);
+        }
+
+        private void SyncAgentPlanarPositionToTransform()
+        {
+            if (!preserveTransformYWithNavMeshAgent || !CanUseNavMesh())
+            {
+                return;
+            }
+
+            var agentPosition = navMeshAgent.nextPosition;
+            navMeshAgent.nextPosition = new Vector3(transform.position.x, agentPosition.y, transform.position.z);
         }
 
         private void StopMovement()

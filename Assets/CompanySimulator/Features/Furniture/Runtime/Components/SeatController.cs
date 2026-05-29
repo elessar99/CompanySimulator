@@ -60,12 +60,22 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
 
         public Vector3 GetSeatPosition()
         {
-            return SeatPoint != null ? SeatPoint.SeatPosition : transform.position;
+            return GetSeatPosition(SeatPoint != null ? SeatPoint.AllowedOccupantType : SeatOccupantType.Any);
+        }
+
+        public Vector3 GetSeatPosition(SeatOccupantType occupantType)
+        {
+            return SeatPoint != null ? SeatPoint.GetSeatPosition(occupantType) : transform.position;
         }
 
         public Quaternion GetSeatRotation()
         {
-            return SeatPoint != null ? SeatPoint.SeatRotation : transform.rotation;
+            return GetSeatRotation(SeatPoint != null ? SeatPoint.AllowedOccupantType : SeatOccupantType.Any);
+        }
+
+        public Quaternion GetSeatRotation(SeatOccupantType occupantType)
+        {
+            return SeatPoint != null ? SeatPoint.GetSeatRotation(occupantType) : transform.rotation;
         }
 
         public Vector3 GetExitPosition(Transform fallback)

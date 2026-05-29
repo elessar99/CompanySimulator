@@ -37,6 +37,20 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private Button submitOfferButton;
         private bool isDebugVisible = true;
 
+        public void BindSessionManager(InterviewSessionManager sessionManager)
+        {
+            if (interviewSessionManager == sessionManager)
+            {
+                Refresh();
+                return;
+            }
+
+            UnsubscribeFromManager();
+            interviewSessionManager = sessionManager;
+            SubscribeToManager();
+            Refresh();
+        }
+
         private void Awake()
         {
             interviewSessionManager ??= FindObjectOfType<InterviewSessionManager>();
@@ -48,24 +62,13 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private void OnEnable()
         {
             interviewSessionManager ??= FindObjectOfType<InterviewSessionManager>();
-            if (interviewSessionManager != null)
-            {
-                interviewSessionManager.SessionChanged -= Refresh;
-                interviewSessionManager.SessionChanged += Refresh;
-                interviewSessionManager.NegotiationUpdated -= RefreshNegotiation;
-                interviewSessionManager.NegotiationUpdated += RefreshNegotiation;
-            }
-
+            SubscribeToManager();
             Refresh();
         }
 
         private void OnDisable()
         {
-            if (interviewSessionManager != null)
-            {
-                interviewSessionManager.SessionChanged -= Refresh;
-                interviewSessionManager.NegotiationUpdated -= RefreshNegotiation;
-            }
+            UnsubscribeFromManager();
         }
 
         private void BuildUi()
@@ -305,6 +308,30 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
             }
 
             RefreshDebugPanel();
+        }
+
+        private void SubscribeToManager()
+        {
+            if (!isActiveAndEnabled || interviewSessionManager == null)
+            {
+                return;
+            }
+
+            interviewSessionManager.SessionChanged -= Refresh;
+            interviewSessionManager.SessionChanged += Refresh;
+            interviewSessionManager.NegotiationUpdated -= RefreshNegotiation;
+            interviewSessionManager.NegotiationUpdated += RefreshNegotiation;
+        }
+
+        private void UnsubscribeFromManager()
+        {
+            if (interviewSessionManager == null)
+            {
+                return;
+            }
+
+            interviewSessionManager.SessionChanged -= Refresh;
+            interviewSessionManager.NegotiationUpdated -= RefreshNegotiation;
         }
 
         private void RefreshControls(InterviewSessionRuntimeData session)
