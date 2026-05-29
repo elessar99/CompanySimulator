@@ -6,6 +6,10 @@ using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Services;
+using CompanySimulator.Features.Investments.Runtime.Definitions;
+using CompanySimulator.Features.Projects.Runtime.Definitions;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Features.Time.Runtime.Components;
 using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
@@ -479,6 +483,126 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
             return true;
         }
 
+        public EconomySaveData CaptureSaveData()
+        {
+            EnsureInitialized();
+
+            var saveData = new EconomySaveData
+            {
+                currentDay = currentDay,
+                balance = Balance.Amount,
+                executedProjectCount = executedProjectCount,
+                lastExecutionSummary = lastExecutionSummary
+            };
+
+            var entries = Entries;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                saveData.ledgerEntries.Add(new LedgerEntrySaveData
+                {
+                    day = entry.Day,
+                    type = (int)entry.Type,
+                    amount = entry.Amount.Amount,
+                    description = entry.Description
+                });
+            }
+
+            for (var i = 0; i < activeProjects.Count; i++)
+            {
+                if (activeProjects[i] != null)
+                {
+                    saveData.activeProjects.Add(CaptureActiveProject(activeProjects[i]));
+                }
+            }
+
+            for (var i = 0; i < executionHistory.Count; i++)
+            {
+                var history = executionHistory[i];
+                saveData.executionHistory.Add(new ProjectHistorySaveData
+                {
+                    sourceDefinitionId = history.SourceDefinition != null ? history.SourceDefinition.Id : string.Empty,
+                    projectTypeId = history.ProjectType != null ? history.ProjectType.Id : string.Empty,
+                    displayName = history.DisplayName,
+                    result = CaptureProjectResult(history.Result)
+                });
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(
+            EconomySaveData saveData,
+            GameSaveDefinitionResolver resolver,
+            IReadOnlyDictionary<string, EmployeeRuntimeData> employeeLookup,
+            out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Ekonomi kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            if (setup == null || setup.BalanceDefinition == null)
+            {
+                validationMessage = "Ekonomi kurulum verisi eksik.";
+                return false;
+            }
+
+            if (!ValidateEconomySaveData(saveData, resolver, employeeLookup, out validationMessage))
+            {
+                return false;
+            }
+
+            ledger ??= new CompanyLedger();
+            var restoredEntries = new List<LedgerEntry>(saveData.ledgerEntries.Count);
+            for (var i = 0; i < saveData.ledgerEntries.Count; i++)
+            {
+                var entry = saveData.ledgerEntries[i];
+                restoredEntries.Add(new LedgerEntry(
+                    Mathf.Max(1, entry.day),
+                    (LedgerEntryType)entry.type,
+                    Money.From(entry.amount),
+                    entry.description));
+            }
+
+            ledger.Restore(restoredEntries, Money.From(saveData.balance));
+            calculator = new ProjectEconomyCalculator(setup.BalanceDefinition);
+            activeProjects.Clear();
+            executionHistory.Clear();
+            currentDay = Mathf.Max(1, saveData.currentDay);
+            executedProjectCount = Mathf.Max(0, saveData.executedProjectCount);
+            lastExecutionSummary = saveData.lastExecutionSummary ?? string.Empty;
+
+            for (var i = 0; i < saveData.activeProjects.Count; i++)
+            {
+                activeProjects.Add(RestoreActiveProject(saveData.activeProjects[i], resolver, employeeLookup));
+            }
+
+            for (var i = 0; i < saveData.executionHistory.Count; i++)
+            {
+                var history = saveData.executionHistory[i];
+                resolver.TryResolve<ProjectExecutionDefinition>(history.sourceDefinitionId, out var sourceDefinition);
+                var projectType = sourceDefinition != null ? sourceDefinition.ProjectType : null;
+                if (projectType == null && !string.IsNullOrWhiteSpace(history.projectTypeId))
+                {
+                    resolver.TryResolve<ProjectTypeDefinition>(history.projectTypeId, out projectType);
+                }
+
+                executionHistory.Add(new ProjectExecutionHistoryEntry(
+                    sourceDefinition,
+                    history.displayName,
+                    projectType,
+                    RestoreProjectResult(history.result)));
+            }
+
+            isInitialized = true;
+            UpdateSnapshot();
+            BalanceChanged?.Invoke(Balance);
+            return true;
+        }
+
         private bool EnsureInitialized()
         {
             if (isInitialized)
@@ -488,6 +612,189 @@ namespace CompanySimulator.Features.Finance.Runtime.Components
 
             Initialize();
             return isInitialized;
+        }
+
+        private static ActiveProjectSaveData CaptureActiveProject(ActiveProjectRuntimeEntry activeProject)
+        {
+            var saveData = new ActiveProjectSaveData
+            {
+                sourceDefinitionId = activeProject.SourceDefinition != null ? activeProject.SourceDefinition.Id : string.Empty,
+                projectTypeId = activeProject.ProjectType != null ? activeProject.ProjectType.Id : string.Empty,
+                displayName = activeProject.DisplayName,
+                startedDay = activeProject.StartedDay,
+                nextPayoutDay = activeProject.NextPayoutDay,
+                payoutCount = activeProject.PayoutCount,
+                result = CaptureProjectResult(activeProject.CurrentResult),
+                marketDemandMultiplier = activeProject.MarketDemandMultiplier,
+                competitorPressure = activeProject.CompetitorPressure,
+                isAgentAffected = activeProject.IsAgentAffected,
+                agentRevenueReductionMultiplier = activeProject.AgentRevenueReductionMultiplier
+            };
+
+            var assignedEmployees = activeProject.AssignedEmployees;
+            for (var i = 0; i < assignedEmployees.Count; i++)
+            {
+                saveData.assignedEmployeeIds.Add(assignedEmployees[i] != null ? assignedEmployees[i].Id : string.Empty);
+            }
+
+            var assignedSlotIds = activeProject.AssignedEmployeeSlotIds;
+            for (var i = 0; i < assignedSlotIds.Count; i++)
+            {
+                saveData.assignedEmployeeSlotIds.Add(assignedSlotIds[i] ?? string.Empty);
+            }
+
+            var assignedNames = activeProject.AssignedEmployeeNames;
+            for (var i = 0; i < assignedNames.Count; i++)
+            {
+                saveData.assignedEmployeeNames.Add(assignedNames[i] ?? string.Empty);
+            }
+
+            var allocations = activeProject.CurrentInvestmentAllocations;
+            for (var i = 0; i < allocations.Count; i++)
+            {
+                var allocation = allocations[i];
+                saveData.investmentAllocations.Add(new InvestmentAllocationSaveData
+                {
+                    investmentTypeId = allocation.InvestmentType != null ? allocation.InvestmentType.Id : string.Empty,
+                    allocatedBudget = allocation.AllocatedBudgetAmount
+                });
+            }
+
+            return saveData;
+        }
+
+        private static ProjectResultSaveData CaptureProjectResult(ProjectEconomyResult result)
+        {
+            return new ProjectResultSaveData
+            {
+                durationDays = result.DurationDays,
+                revenue = result.Revenue.Amount,
+                payrollCost = result.PayrollCost.Amount,
+                upfrontInvestmentCost = result.UpfrontInvestmentCost.Amount,
+                recurringInvestmentCost = result.RecurringInvestmentCost.Amount,
+                fixedCost = result.FixedCost.Amount,
+                successScore = result.SuccessScore,
+                employeeContribution = result.EmployeeContribution,
+                investmentContribution = result.InvestmentContribution,
+                competitionMultiplier = result.CompetitionMultiplier
+            };
+        }
+
+        private static bool ValidateEconomySaveData(
+            EconomySaveData saveData,
+            GameSaveDefinitionResolver resolver,
+            IReadOnlyDictionary<string, EmployeeRuntimeData> employeeLookup,
+            out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (resolver == null)
+            {
+                validationMessage = "Tanım çözücü bulunamadı.";
+                return false;
+            }
+
+            for (var i = 0; i < saveData.activeProjects.Count; i++)
+            {
+                var activeProject = saveData.activeProjects[i];
+                if (!string.IsNullOrWhiteSpace(activeProject.sourceDefinitionId) &&
+                    !resolver.TryResolve<ProjectExecutionDefinition>(activeProject.sourceDefinitionId, out _))
+                {
+                    validationMessage = $"Aktif iş tanımı bulunamadı: {activeProject.sourceDefinitionId}";
+                    return false;
+                }
+
+                for (var employeeIndex = 0; employeeIndex < activeProject.assignedEmployeeIds.Count; employeeIndex++)
+                {
+                    var employeeId = activeProject.assignedEmployeeIds[employeeIndex];
+                    if (!string.IsNullOrWhiteSpace(employeeId) &&
+                        (employeeLookup == null || !employeeLookup.ContainsKey(employeeId)))
+                    {
+                        validationMessage = $"Aktif iş çalışanı bulunamadı: {employeeId}";
+                        return false;
+                    }
+                }
+
+                for (var allocationIndex = 0; allocationIndex < activeProject.investmentAllocations.Count; allocationIndex++)
+                {
+                    var investmentId = activeProject.investmentAllocations[allocationIndex].investmentTypeId;
+                    if (!string.IsNullOrWhiteSpace(investmentId) &&
+                        !resolver.TryResolve<InvestmentTypeDefinition>(investmentId, out _))
+                    {
+                        validationMessage = $"Yatırım tanımı bulunamadı: {investmentId}";
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static ActiveProjectRuntimeEntry RestoreActiveProject(
+            ActiveProjectSaveData saveData,
+            GameSaveDefinitionResolver resolver,
+            IReadOnlyDictionary<string, EmployeeRuntimeData> employeeLookup)
+        {
+            resolver.TryResolve<ProjectExecutionDefinition>(saveData.sourceDefinitionId, out var sourceDefinition);
+            var projectType = sourceDefinition != null ? sourceDefinition.ProjectType : null;
+            if (projectType == null && !string.IsNullOrWhiteSpace(saveData.projectTypeId))
+            {
+                resolver.TryResolve<ProjectTypeDefinition>(saveData.projectTypeId, out projectType);
+            }
+
+            var assignedEmployees = new List<EmployeeRuntimeData>(saveData.assignedEmployeeIds.Count);
+            for (var i = 0; i < saveData.assignedEmployeeIds.Count; i++)
+            {
+                var employeeId = saveData.assignedEmployeeIds[i];
+                assignedEmployees.Add(!string.IsNullOrWhiteSpace(employeeId) && employeeLookup != null && employeeLookup.TryGetValue(employeeId, out var employee) ? employee : null);
+            }
+
+            var investmentAllocations = new List<InvestmentAllocationInput>(saveData.investmentAllocations.Count);
+            for (var i = 0; i < saveData.investmentAllocations.Count; i++)
+            {
+                var savedAllocation = saveData.investmentAllocations[i];
+                resolver.TryResolve<InvestmentTypeDefinition>(savedAllocation.investmentTypeId, out var investmentType);
+                investmentAllocations.Add(new InvestmentAllocationInput(investmentType, savedAllocation.allocatedBudget));
+            }
+
+            var restoredProject = new ActiveProjectRuntimeEntry(
+                sourceDefinition,
+                saveData.displayName,
+                projectType,
+                RestoreProjectResult(saveData.result),
+                Mathf.Max(1, saveData.startedDay),
+                assignedEmployees.ToArray(),
+                saveData.assignedEmployeeSlotIds.ToArray(),
+                saveData.assignedEmployeeNames.ToArray(),
+                investmentAllocations.ToArray(),
+                saveData.marketDemandMultiplier,
+                saveData.competitorPressure);
+
+            restoredProject.RestoreProgress(
+                saveData.nextPayoutDay,
+                saveData.payoutCount,
+                saveData.isAgentAffected,
+                saveData.agentRevenueReductionMultiplier);
+            return restoredProject;
+        }
+
+        private static ProjectEconomyResult RestoreProjectResult(ProjectResultSaveData saveData)
+        {
+            if (saveData == null)
+            {
+                return default;
+            }
+
+            return new ProjectEconomyResult(
+                Mathf.Max(0, saveData.durationDays),
+                Money.From(saveData.revenue),
+                Money.From(saveData.payrollCost),
+                Money.From(saveData.upfrontInvestmentCost),
+                Money.From(saveData.recurringInvestmentCost),
+                Money.From(saveData.fixedCost),
+                saveData.successScore,
+                saveData.employeeContribution,
+                saveData.investmentContribution,
+                saveData.competitionMultiplier);
         }
 
         private void ApplyExpense(Money amount, LedgerEntryType type, string description)

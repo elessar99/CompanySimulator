@@ -1,7 +1,9 @@
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Furniture.Runtime.Components;
 using CompanySimulator.Features.Npcs.Runtime.Agents;
+using CompanySimulator.Features.Save.Runtime.Models;
 using CompanySimulator.Presentation.UI.Runtime.Common;
+using CompanySimulator.Presentation.UI.Runtime.Components;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -74,6 +76,13 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
         private void Update()
         {
+            if (GamePauseMenuUI.IsAnyOpen)
+            {
+                SetCursorLocked(false);
+                HandleStationaryMovement();
+                return;
+            }
+
             HandleHotkeys();
 
             var computerOpen = IsComputerOpen();
@@ -276,6 +285,45 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
         }
 
+        public PlayerSaveData CaptureSaveData()
+        {
+            return new PlayerSaveData
+            {
+                position = ToSaveVector3(transform.position),
+                rotation = ToSaveQuaternion(transform.rotation),
+                cameraPitch = pitch
+            };
+        }
+
+        public void RestoreFromSaveData(PlayerSaveData saveData)
+        {
+            if (saveData == null)
+            {
+                return;
+            }
+
+            var wasEnabled = characterController != null && characterController.enabled;
+            if (wasEnabled)
+            {
+                characterController.enabled = false;
+            }
+
+            transform.SetPositionAndRotation(ToVector3(saveData.position), ToQuaternion(saveData.rotation));
+            pitch = saveData.cameraPitch;
+            if (cameraRoot != null)
+            {
+                cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            }
+
+            planarVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+
+            if (wasEnabled)
+            {
+                characterController.enabled = true;
+            }
+        }
+
         private bool IsComputerOpen()
         {
             rootCanvas ??= FindObjectOfType<Canvas>();
@@ -383,6 +431,37 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
 
             return angle;
+        }
+
+        private static SaveVector3 ToSaveVector3(Vector3 value)
+        {
+            return new SaveVector3
+            {
+                x = value.x,
+                y = value.y,
+                z = value.z
+            };
+        }
+
+        private static Vector3 ToVector3(SaveVector3 value)
+        {
+            return value == null ? Vector3.zero : new Vector3(value.x, value.y, value.z);
+        }
+
+        private static SaveQuaternion ToSaveQuaternion(Quaternion value)
+        {
+            return new SaveQuaternion
+            {
+                x = value.x,
+                y = value.y,
+                z = value.z,
+                w = value.w
+            };
+        }
+
+        private static Quaternion ToQuaternion(SaveQuaternion value)
+        {
+            return value == null ? Quaternion.identity : new Quaternion(value.x, value.y, value.z, value.w);
         }
     }
 }

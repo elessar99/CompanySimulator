@@ -37,6 +37,27 @@ namespace CompanySimulator.Features.Banking.Runtime.Models
             NextDueDay = startedDay + InstallmentIntervalDays;
         }
 
+        public ActiveLoanRuntimeData(
+            string offerId,
+            string displayName,
+            bool isSpecialOffer,
+            Money principalAmount,
+            float interestRate,
+            int installmentIntervalDays,
+            int totalTermDays,
+            int startedDay,
+            int nextDueDay,
+            int remainingInstallmentCount,
+            Money remainingPrincipalAmount,
+            Money remainingDebt)
+            : this(offerId, displayName, isSpecialOffer, principalAmount, interestRate, installmentIntervalDays, totalTermDays, startedDay)
+        {
+            NextDueDay = Mathf.Max(startedDay, nextDueDay);
+            this.remainingInstallmentCount = Mathf.Max(0, remainingInstallmentCount);
+            RemainingPrincipalAmount = remainingPrincipalAmount.Amount >= 0 ? remainingPrincipalAmount : Money.Zero;
+            RemainingDebt = remainingDebt.Amount >= 0 ? remainingDebt : Money.Zero;
+        }
+
         public string OfferId { get; }
         public string DisplayName { get; }
         public bool IsSpecialOffer { get; }

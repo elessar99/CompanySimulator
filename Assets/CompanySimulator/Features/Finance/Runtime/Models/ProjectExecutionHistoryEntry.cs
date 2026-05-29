@@ -119,6 +119,20 @@ namespace CompanySimulator.Features.Finance.Runtime.Models
             NextPayoutDay += PayoutIntervalDays;
         }
 
+        public void RestoreProgress(int nextPayoutDay, int payoutCount, bool isAgentAffected, float agentRevenueReductionMultiplier)
+        {
+            NextPayoutDay = Mathf.Max(StartedDay, nextPayoutDay);
+            PayoutCount = Mathf.Max(0, payoutCount);
+            if (isAgentAffected)
+            {
+                SetAgentEffect(agentRevenueReductionMultiplier);
+            }
+            else
+            {
+                ClearAgentEffect();
+            }
+        }
+
         public void UpdateConfiguration(ProjectEconomyResult result, EmployeeRuntimeData[] employees, string[] employeeSlotIds, string[] employeeNames, InvestmentAllocationInput[] investmentAllocations, int currentDay)
         {
             currentResult = result;

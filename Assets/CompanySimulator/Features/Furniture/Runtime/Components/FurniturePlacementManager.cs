@@ -4,6 +4,8 @@ using CompanySimulator.Features.Furniture.Runtime.Definitions;
 using CompanySimulator.Features.Furniture.Runtime.Models;
 using CompanySimulator.Features.Inventory.Runtime.Components;
 using CompanySimulator.Features.Office.Runtime.Components;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Features.Shop.Runtime.Definitions;
 using CompanySimulator.Presentation.UI.Runtime.Components;
 using UnityEngine;
@@ -217,6 +219,100 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
             }
 
             return CommitPreviewPlacement(out validationMessage);
+        }
+
+        public FurniturePlacementSaveData CaptureSaveData()
+        {
+            var saveData = new FurniturePlacementSaveData
+            {
+                nextRuntimeId = nextRuntimeId
+            };
+
+            for (var i = 0; i < placedFurniture.Count; i++)
+            {
+                var placed = placedFurniture[i];
+                if (placed == null || placed.SourceProduct == null)
+                {
+                    continue;
+                }
+
+                saveData.placedFurniture.Add(new PlacedFurnitureSaveData
+                {
+                    runtimeId = placed.RuntimeId,
+                    sourceProductId = placed.SourceProduct.Id,
+                    furnitureDefinitionId = placed.FurnitureDefinition != null ? placed.FurnitureDefinition.Id : string.Empty,
+                    tier = placed.Tier,
+                    position = ToSaveVector3(placed.Position),
+                    rotation = ToSaveQuaternion(placed.Rotation)
+                });
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(FurniturePlacementSaveData saveData, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Mobilya kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            if (!ValidatePlacedFurniture(saveData, resolver, out validationMessage))
+            {
+                return false;
+            }
+
+            SetBuildMode(false);
+            ClearPreview();
+            EnsurePlacementRoot();
+
+            for (var i = placedFurniture.Count - 1; i >= 0; i--)
+            {
+                var instance = placedFurniture[i]?.Instance;
+                if (instance != null)
+                {
+                    Destroy(instance.gameObject);
+                }
+            }
+
+            placedFurniture.Clear();
+
+            var maxRuntimeId = 0;
+            for (var i = 0; i < saveData.placedFurniture.Count; i++)
+            {
+                var savedFurniture = saveData.placedFurniture[i];
+                resolver.TryResolve<ShopProductDefinition>(savedFurniture.sourceProductId, out var product);
+                var tierDefinition = product.FurnitureDefinition.GetTier(savedFurniture.tier);
+                var instanceObject = Instantiate(
+                    tierDefinition.Prefab,
+                    ToVector3(savedFurniture.position),
+                    ToQuaternion(savedFurniture.rotation),
+                    placedFurnitureRoot);
+                var furnitureInstance = instanceObject.GetComponent<FurnitureInstance>();
+                if (furnitureInstance == null)
+                {
+                    furnitureInstance = instanceObject.AddComponent<FurnitureInstance>();
+                }
+
+                furnitureInstance.Configure(product.FurnitureDefinition, savedFurniture.tier);
+                var runtimeId = Mathf.Max(1, savedFurniture.runtimeId);
+                maxRuntimeId = Mathf.Max(maxRuntimeId, runtimeId);
+                placedFurniture.Add(new PlacedFurnitureRuntimeData(
+                    runtimeId,
+                    product,
+                    product.FurnitureDefinition,
+                    savedFurniture.tier,
+                    instanceObject.transform.position,
+                    instanceObject.transform.rotation,
+                    furnitureInstance));
+            }
+
+            nextRuntimeId = Mathf.Max(Mathf.Max(1, saveData.nextRuntimeId), maxRuntimeId + 1);
+            PlacementChanged?.Invoke();
+            PlacementModeChanged?.Invoke();
+            return true;
         }
 
         private bool UpdatePreviewAt(Vector3 hitPoint, Vector3 surfaceNormal, Collider hitCollider, Vector3 forward, out string validationMessage)
@@ -520,6 +616,65 @@ namespace CompanySimulator.Features.Furniture.Runtime.Components
         private static Vector3 MaxVector(Vector3 a, Vector3 b)
         {
             return new Vector3(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));
+        }
+
+        private static bool ValidatePlacedFurniture(FurniturePlacementSaveData saveData, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (resolver == null)
+            {
+                validationMessage = "Tanım çözücü bulunamadı.";
+                return false;
+            }
+
+            for (var i = 0; i < saveData.placedFurniture.Count; i++)
+            {
+                var placed = saveData.placedFurniture[i];
+                if (!resolver.TryResolve<ShopProductDefinition>(placed.sourceProductId, out var product))
+                {
+                    validationMessage = $"Mobilya ürün tanımı bulunamadı: {placed.sourceProductId}";
+                    return false;
+                }
+
+                if (product.FurnitureDefinition == null || product.FurnitureDefinition.GetTier(placed.tier)?.Prefab == null)
+                {
+                    validationMessage = $"Mobilya prefab tanımı bulunamadı: {placed.sourceProductId}";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static SaveVector3 ToSaveVector3(Vector3 value)
+        {
+            return new SaveVector3
+            {
+                x = value.x,
+                y = value.y,
+                z = value.z
+            };
+        }
+
+        private static Vector3 ToVector3(SaveVector3 value)
+        {
+            return value == null ? Vector3.zero : new Vector3(value.x, value.y, value.z);
+        }
+
+        private static SaveQuaternion ToSaveQuaternion(Quaternion value)
+        {
+            return new SaveQuaternion
+            {
+                x = value.x,
+                y = value.y,
+                z = value.z,
+                w = value.w
+            };
+        }
+
+        private static Quaternion ToQuaternion(SaveQuaternion value)
+        {
+            return value == null ? Quaternion.identity : new Quaternion(value.x, value.y, value.z, value.w);
         }
 
         private void EnsurePlacementRoot()

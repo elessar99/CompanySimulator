@@ -100,6 +100,34 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
             return true;
         }
 
+        public void RestoreState(
+            int remainingDays,
+            bool isActive,
+            bool hasFailed,
+            bool isDetected,
+            bool isExpired,
+            IReadOnlyList<ActiveProjectRuntimeEntry> restoredAffectedProjects)
+        {
+            RemainingDays = remainingDays > 0 ? remainingDays : 0;
+            IsActive = isActive;
+            HasFailed = hasFailed;
+            IsDetected = isDetected;
+            IsExpired = isExpired;
+            affectedProjects.Clear();
+            if (restoredAffectedProjects == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < restoredAffectedProjects.Count; i++)
+            {
+                if (restoredAffectedProjects[i] != null)
+                {
+                    affectedProjects.Add(restoredAffectedProjects[i]);
+                }
+            }
+        }
+
         public void Detect()
         {
             IsDetected = true;

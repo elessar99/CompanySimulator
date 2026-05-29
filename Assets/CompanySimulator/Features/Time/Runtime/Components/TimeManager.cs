@@ -1,5 +1,6 @@
 using System;
 using CompanySimulator.Features.Finance.Runtime.Components;
+using CompanySimulator.Features.Save.Runtime.Models;
 using UnityEngine;
 
 namespace CompanySimulator.Features.Time.Runtime.Components
@@ -94,6 +95,21 @@ namespace CompanySimulator.Features.Time.Runtime.Components
         public void ResetToWorkdayStart()
         {
             currentTotalMinutes = WorkdayStartTotalMinutes;
+            minuteProgress = 0f;
+            EmitTimeChanged();
+        }
+
+        public TimeSaveData CaptureSaveData()
+        {
+            return new TimeSaveData
+            {
+                currentTotalMinutes = CurrentTotalMinutes
+            };
+        }
+
+        public void RestoreFromSaveData(TimeSaveData saveData)
+        {
+            currentTotalMinutes = saveData != null ? Mathf.Clamp(saveData.currentTotalMinutes, 0, MinutesPerDay) : WorkdayStartTotalMinutes;
             minuteProgress = 0f;
             EmitTimeChanged();
         }

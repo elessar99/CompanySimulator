@@ -7,6 +7,8 @@ using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Rivals.Runtime.Components;
 using CompanySimulator.Features.Rivals.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
@@ -499,6 +501,195 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             return result.ToString();
         }
 
+        public AgentManagerSaveData CaptureSaveData()
+        {
+            var saveData = new AgentManagerSaveData
+            {
+                daysSinceLastRefresh = daysSinceLastRefresh,
+                playerTargetedAgentSequence = playerTargetedAgentSequence
+            };
+
+            for (var i = 0; i < availablePool.Count; i++)
+            {
+                if (availablePool[i] != null)
+                {
+                    saveData.availableAgentIds.Add(availablePool[i].Id);
+                }
+            }
+
+            for (var i = 0; i < deployedAgents.Count; i++)
+            {
+                var agent = deployedAgents[i];
+                if (agent == null || agent.Definition == null || agent.TargetRival == null || agent.TargetSector == null)
+                {
+                    continue;
+                }
+
+                var savedAgent = new DeployedAgentSaveData
+                {
+                    definitionId = agent.Definition.Id,
+                    targetRivalId = agent.TargetRival.Definition != null ? agent.TargetRival.Definition.Id : string.Empty,
+                    targetSectorId = agent.TargetSector.Id,
+                    cost = agent.Cost.Amount,
+                    deployDay = agent.DeployDay,
+                    remainingDays = agent.RemainingDays,
+                    isActive = agent.IsActive,
+                    hasFailed = agent.HasFailed
+                };
+
+                var rivalJobs = agent.TargetRival.ActiveJobs;
+                for (var jobIndex = 0; jobIndex < agent.AffectedJobs.Count; jobIndex++)
+                {
+                    var index = IndexOf(rivalJobs, agent.AffectedJobs[jobIndex]);
+                    if (index >= 0)
+                    {
+                        savedAgent.affectedJobIndexes.Add(index);
+                    }
+                }
+
+                saveData.deployedAgents.Add(savedAgent);
+            }
+
+            var activeProjects = economyManager != null ? economyManager.ActiveProjects : null;
+            for (var i = 0; i < playerTargetedAgents.Count; i++)
+            {
+                var agent = playerTargetedAgents[i];
+                if (agent == null || agent.Definition == null || agent.SourceRival == null || agent.TargetSector == null)
+                {
+                    continue;
+                }
+
+                var savedAgent = new PlayerTargetedAgentSaveData
+                {
+                    runtimeId = agent.RuntimeId,
+                    definitionId = agent.Definition.Id,
+                    sourceRivalId = agent.SourceRival.Definition != null ? agent.SourceRival.Definition.Id : string.Empty,
+                    targetSectorId = agent.TargetSector.Id,
+                    cost = agent.Cost.Amount,
+                    deployDay = agent.DeployDay,
+                    remainingDays = agent.RemainingDays,
+                    isActive = agent.IsActive,
+                    hasFailed = agent.HasFailed,
+                    isDetected = agent.IsDetected,
+                    isExpired = agent.IsExpired
+                };
+
+                if (activeProjects != null)
+                {
+                    for (var projectIndex = 0; projectIndex < agent.AffectedProjects.Count; projectIndex++)
+                    {
+                        var index = IndexOf(activeProjects, agent.AffectedProjects[projectIndex]);
+                        if (index >= 0)
+                        {
+                            savedAgent.affectedProjectIndexes.Add(index);
+                        }
+                    }
+                }
+
+                saveData.playerTargetedAgents.Add(savedAgent);
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(AgentManagerSaveData saveData, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Ajan kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            deployedAgents.Clear();
+            failedAgents.Clear();
+            playerTargetedAgents.Clear();
+            failedPlayerTargetedAgents.Clear();
+            dismissedPlayerAgents.Clear();
+            availablePool.Clear();
+
+            for (var i = 0; i < saveData.availableAgentIds.Count; i++)
+            {
+                if (resolver.TryResolve<AgentDefinition>(saveData.availableAgentIds[i], out var agentDefinition))
+                {
+                    availablePool.Add(agentDefinition);
+                }
+            }
+
+            for (var i = 0; i < saveData.deployedAgents.Count; i++)
+            {
+                var savedAgent = saveData.deployedAgents[i];
+                if (!TryResolveAgentTargets(savedAgent.definitionId, savedAgent.targetRivalId, savedAgent.targetSectorId, resolver, out var definition, out var rival, out var sector, out validationMessage))
+                {
+                    return false;
+                }
+
+                var affectedJobs = new List<RivalCompanyJobRuntimeData>(savedAgent.affectedJobIndexes.Count);
+                for (var affectedIndex = 0; affectedIndex < savedAgent.affectedJobIndexes.Count; affectedIndex++)
+                {
+                    var jobIndex = savedAgent.affectedJobIndexes[affectedIndex];
+                    if (jobIndex >= 0 && jobIndex < rival.ActiveJobs.Count)
+                    {
+                        affectedJobs.Add(rival.ActiveJobs[jobIndex]);
+                    }
+                }
+
+                var restoredAgent = new DeployedAgentRuntimeData(definition, rival, sector, Money.From(savedAgent.cost), savedAgent.deployDay);
+                restoredAgent.RestoreState(savedAgent.remainingDays, savedAgent.isActive, savedAgent.hasFailed, affectedJobs);
+                deployedAgents.Add(restoredAgent);
+            }
+
+            var activeProjects = economyManager != null ? economyManager.ActiveProjects : null;
+            for (var i = 0; i < saveData.playerTargetedAgents.Count; i++)
+            {
+                var savedAgent = saveData.playerTargetedAgents[i];
+                if (!TryResolveAgentTargets(savedAgent.definitionId, savedAgent.sourceRivalId, savedAgent.targetSectorId, resolver, out var definition, out var rival, out var sector, out validationMessage))
+                {
+                    return false;
+                }
+
+                var affectedProjects = new List<ActiveProjectRuntimeEntry>(savedAgent.affectedProjectIndexes.Count);
+                if (activeProjects != null)
+                {
+                    for (var affectedIndex = 0; affectedIndex < savedAgent.affectedProjectIndexes.Count; affectedIndex++)
+                    {
+                        var projectIndex = savedAgent.affectedProjectIndexes[affectedIndex];
+                        if (projectIndex >= 0 && projectIndex < activeProjects.Count)
+                        {
+                            affectedProjects.Add(activeProjects[projectIndex]);
+                        }
+                    }
+                }
+
+                var restoredAgent = new PlayerTargetedAgentRuntimeData(
+                    definition,
+                    rival,
+                    sector,
+                    Money.From(savedAgent.cost),
+                    savedAgent.deployDay,
+                    savedAgent.runtimeId);
+                restoredAgent.RestoreState(
+                    savedAgent.remainingDays,
+                    savedAgent.isActive,
+                    savedAgent.hasFailed,
+                    savedAgent.isDetected,
+                    savedAgent.isExpired,
+                    affectedProjects);
+                playerTargetedAgents.Add(restoredAgent);
+            }
+
+            daysSinceLastRefresh = Mathf.Max(0, saveData.daysSinceLastRefresh);
+            playerTargetedAgentSequence = Mathf.Max(0, saveData.playerTargetedAgentSequence);
+
+            if (rivalCompanyManager != null)
+            {
+                rivalCompanyManager.ForceRebuildCompetitionCache();
+            }
+
+            DataChanged?.Invoke();
+            return true;
+        }
+
         private SectorDefinition SelectWeightedSector(
             RivalCompanyRuntimeData rival,
             IReadOnlyList<ActiveProjectRuntimeEntry> playerProjects)
@@ -561,6 +752,86 @@ namespace CompanySimulator.Features.Agents.Runtime.Components
             }
 
             return null;
+        }
+
+        private bool TryResolveAgentTargets(
+            string agentDefinitionId,
+            string rivalId,
+            string sectorId,
+            GameSaveDefinitionResolver resolver,
+            out AgentDefinition definition,
+            out RivalCompanyRuntimeData rival,
+            out SectorDefinition sector,
+            out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            rival = null;
+            sector = null;
+
+            if (!resolver.TryResolve<AgentDefinition>(agentDefinitionId, out definition))
+            {
+                validationMessage = $"Ajan tanımı bulunamadı: {agentDefinitionId}";
+                return false;
+            }
+
+            rival = FindRivalById(rivalId);
+            if (rival == null)
+            {
+                validationMessage = $"Ajan hedef rakibi bulunamadı: {rivalId}";
+                return false;
+            }
+
+            if (!resolver.TryResolve<SectorDefinition>(sectorId, out sector))
+            {
+                validationMessage = $"Ajan hedef sektörü bulunamadı: {sectorId}";
+                return false;
+            }
+
+            return true;
+        }
+
+        private RivalCompanyRuntimeData FindRivalById(string rivalId)
+        {
+            if (rivalCompanyManager == null)
+            {
+                rivalCompanyManager = FindObjectOfType<RivalCompanyManager>();
+            }
+
+            var rivals = rivalCompanyManager != null ? rivalCompanyManager.Rivals : null;
+            if (rivals == null)
+            {
+                return null;
+            }
+
+            for (var i = 0; i < rivals.Count; i++)
+            {
+                var rival = rivals[i];
+                if (rival != null && rival.Definition != null && string.Equals(rival.Definition.Id, rivalId, StringComparison.Ordinal))
+                {
+                    return rival;
+                }
+            }
+
+            return null;
+        }
+
+        private static int IndexOf<T>(IReadOnlyList<T> source, T item)
+            where T : class
+        {
+            if (source == null || item == null)
+            {
+                return -1;
+            }
+
+            for (var i = 0; i < source.Count; i++)
+            {
+                if (ReferenceEquals(source[i], item))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 }

@@ -4,6 +4,8 @@ using CompanySimulator.Features.Employees.Runtime.Definitions;
 using CompanySimulator.Features.Employees.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -490,6 +492,118 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
             return true;
         }
 
+        public EmployeeManagerSaveData CaptureSaveData()
+        {
+            EnsureInitialized();
+
+            var saveData = new EmployeeManagerSaveData
+            {
+                generatedApplicantSequence = generatedApplicantSequence
+            };
+
+            foreach (var pair in nextApplicantSpawnDayByRole)
+            {
+                if (pair.Key == null)
+                {
+                    continue;
+                }
+
+                saveData.roleSpawnSchedule.Add(new RoleSpawnScheduleSaveData
+                {
+                    roleId = pair.Key.Id,
+                    nextSpawnDay = pair.Value
+                });
+            }
+
+            for (var i = 0; i < employees.Count; i++)
+            {
+                if (employees[i] != null)
+                {
+                    saveData.employees.Add(CaptureEmployee(employees[i]));
+                }
+            }
+
+            for (var i = 0; i < applicants.Count; i++)
+            {
+                if (applicants[i] != null)
+                {
+                    saveData.applicants.Add(CaptureEmployee(applicants[i]));
+                }
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(
+            EmployeeManagerSaveData saveData,
+            GameSaveDefinitionResolver resolver,
+            out Dictionary<string, EmployeeRuntimeData> employeeLookup,
+            out string validationMessage)
+        {
+            employeeLookup = new Dictionary<string, EmployeeRuntimeData>(StringComparer.Ordinal);
+            validationMessage = string.Empty;
+
+            if (saveData == null)
+            {
+                validationMessage = "Çalışan kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            if (resolver == null)
+            {
+                validationMessage = "Tanım çözücü bulunamadı.";
+                return false;
+            }
+
+            if (!ValidateEmployeeList(saveData.employees, resolver, out validationMessage) ||
+                !ValidateEmployeeList(saveData.applicants, resolver, out validationMessage))
+            {
+                return false;
+            }
+
+            employees.Clear();
+            applicants.Clear();
+            roles.Clear();
+            nextApplicantSpawnDayByRole.Clear();
+
+            RegisterRoles(setup != null ? setup.AvailableRoles : Array.Empty<EmployeeRoleDefinition>());
+
+            for (var i = 0; i < saveData.employees.Count; i++)
+            {
+                var restoredEmployee = RestoreEmployee(saveData.employees[i], resolver);
+                employees.Add(restoredEmployee);
+                RegisterRole(restoredEmployee.Role);
+                if (!employeeLookup.ContainsKey(restoredEmployee.Id))
+                {
+                    employeeLookup.Add(restoredEmployee.Id, restoredEmployee);
+                }
+            }
+
+            for (var i = 0; i < saveData.applicants.Count; i++)
+            {
+                var restoredApplicant = RestoreEmployee(saveData.applicants[i], resolver);
+                applicants.Add(restoredApplicant);
+                RegisterRole(restoredApplicant.Role);
+            }
+
+            generatedApplicantSequence = Mathf.Max(0, saveData.generatedApplicantSequence);
+
+            for (var i = 0; i < saveData.roleSpawnSchedule.Count; i++)
+            {
+                var schedule = saveData.roleSpawnSchedule[i];
+                if (resolver.TryResolve<EmployeeRoleDefinition>(schedule.roleId, out var role))
+                {
+                    nextApplicantSpawnDayByRole[role] = Mathf.Max(1, schedule.nextSpawnDay);
+                    RegisterRole(role);
+                }
+            }
+
+            isInitialized = true;
+            UpdateSnapshot();
+            DataChanged?.Invoke();
+            return true;
+        }
+
         private bool EnsureInitialized()
         {
             if (isInitialized)
@@ -499,6 +613,83 @@ namespace CompanySimulator.Features.Employees.Runtime.Components
 
             Initialize();
             return isInitialized;
+        }
+
+        private static EmployeeSaveData CaptureEmployee(EmployeeRuntimeData employee)
+        {
+            return new EmployeeSaveData
+            {
+                id = employee.Id,
+                displayName = employee.DisplayName,
+                roleId = employee.Role != null ? employee.Role.Id : string.Empty,
+                quality = employee.Quality,
+                expectedDailySalary = employee.ExpectedDailySalary.Amount,
+                agreedDailySalary = employee.AgreedDailySalary.Amount,
+                qualityTier = (int)employee.QualityTier,
+                applicantRemainingDays = employee.ApplicantRemainingDays,
+                employmentDays = employee.EmploymentDays,
+                qualityProgressDays = employee.QualityProgressDays,
+                hasPendingQualityUpgrade = employee.HasPendingQualityUpgrade,
+                isQualityUpgradeNegotiationActive = employee.IsQualityUpgradeNegotiationActive,
+                qualityUpgradeSourceTier = (int)employee.QualityUpgradeSourceTier,
+                pendingQualityUpgradeTier = (int)employee.PendingQualityUpgradeTier,
+                qualityUpgradeRequestRemainingDays = employee.QualityUpgradeRequestRemainingDays,
+                currentAssignmentName = employee.CurrentAssignmentName
+            };
+        }
+
+        private static bool ValidateEmployeeList(IReadOnlyList<EmployeeSaveData> source, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (source == null)
+            {
+                return true;
+            }
+
+            for (var i = 0; i < source.Count; i++)
+            {
+                var employee = source[i];
+                if (employee == null || string.IsNullOrWhiteSpace(employee.roleId))
+                {
+                    continue;
+                }
+
+                if (!resolver.TryResolve<EmployeeRoleDefinition>(employee.roleId, out _))
+                {
+                    validationMessage = $"Çalışan rol tanımı bulunamadı: {employee.roleId}";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static EmployeeRuntimeData RestoreEmployee(EmployeeSaveData saveData, GameSaveDefinitionResolver resolver)
+        {
+            resolver.TryResolve<EmployeeRoleDefinition>(saveData.roleId, out var role);
+            var restoredEmployee = new EmployeeRuntimeData(
+                saveData.id,
+                saveData.displayName,
+                role,
+                saveData.quality,
+                Money.From(saveData.expectedDailySalary),
+                saveData.applicantRemainingDays);
+
+            restoredEmployee.RestoreRuntimeState(
+                saveData.quality,
+                Money.From(saveData.agreedDailySalary),
+                (EmployeeQualityTier)saveData.qualityTier,
+                saveData.applicantRemainingDays,
+                saveData.employmentDays,
+                saveData.qualityProgressDays,
+                saveData.hasPendingQualityUpgrade,
+                saveData.isQualityUpgradeNegotiationActive,
+                (EmployeeQualityTier)saveData.qualityUpgradeSourceTier,
+                (EmployeeQualityTier)saveData.pendingQualityUpgradeTier,
+                saveData.qualityUpgradeRequestRemainingDays,
+                saveData.currentAssignmentName);
+
+            return restoredEmployee;
         }
 
         private void CreateRuntimeList(IReadOnlyList<EmployeeProfileDefinition> sourceList, List<EmployeeRuntimeData> targetList, string prefix, int applicantLifetimeDays = 0)

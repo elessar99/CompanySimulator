@@ -27,6 +27,7 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         private RectTransform rectTransform;
         private RectTransform desktopIconRoot;
         private RectTransform windowRoot;
+        private bool isApplyingLayout;
 
         public Canvas RootCanvas => rootCanvas;
         public RectTransform PanelRoot => rectTransform != null ? rectTransform : (RectTransform)transform;
@@ -82,12 +83,21 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
         public void SetVisible(bool isVisible)
         {
             gameObject.SetActive(isVisible);
+            if (isVisible)
+            {
+                ApplyLayout();
+            }
         }
 
         public bool ToggleVisible()
         {
             var nextState = !gameObject.activeSelf;
             gameObject.SetActive(nextState);
+            if (nextState)
+            {
+                ApplyLayout();
+            }
+
             return nextState;
         }
 
@@ -118,6 +128,11 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
 
         public void ApplyLayout()
         {
+            if (isApplyingLayout)
+            {
+                return;
+            }
+
             if (rectTransform == null)
             {
                 rectTransform = transform as RectTransform;
@@ -135,33 +150,41 @@ namespace CompanySimulator.Presentation.UI.Runtime.Components
                 return;
             }
 
-            var widthScale = pixelRect.width / 1920f;
-            var heightScale = pixelRect.height / 1080f;
-            var topGap = Mathf.Max(0f, topMargin * heightScale);
-            var bottomGap = Mathf.Max(0f, bottomMargin * heightScale);
-            var sideGap = Mathf.Max(24f, 48f * widthScale);
-            var availableWidth = Mathf.Max(320f, pixelRect.width - (sideGap * 2f));
-            var availableHeight = Mathf.Max(220f, pixelRect.height - topGap - bottomGap);
-
-            const float targetAspect = 17f / 9f;
-            var width = availableHeight * targetAspect;
-            var height = availableHeight;
-
-            if (width > availableWidth)
+            isApplyingLayout = true;
+            try
             {
-                width = availableWidth;
-                height = width / targetAspect;
+                var widthScale = pixelRect.width / 1920f;
+                var heightScale = pixelRect.height / 1080f;
+                var topGap = Mathf.Max(0f, topMargin * heightScale);
+                var bottomGap = Mathf.Max(0f, bottomMargin * heightScale);
+                var sideGap = Mathf.Max(24f, 48f * widthScale);
+                var availableWidth = Mathf.Max(320f, pixelRect.width - (sideGap * 2f));
+                var availableHeight = Mathf.Max(220f, pixelRect.height - topGap - bottomGap);
+
+                const float targetAspect = 17f / 9f;
+                var width = availableHeight * targetAspect;
+                var height = availableHeight;
+
+                if (width > availableWidth)
+                {
+                    width = availableWidth;
+                    height = width / targetAspect;
+                }
+
+                rectTransform.anchorMin = new Vector2(0.5f, 1f);
+                rectTransform.anchorMax = new Vector2(0.5f, 1f);
+                rectTransform.pivot = new Vector2(0.5f, 1f);
+                rectTransform.anchoredPosition = new Vector2(0f, -topGap);
+                rectTransform.sizeDelta = new Vector2(width, height);
+
+                EnsureChildRoots();
+                ApplyDesktopIconLayout(widthScale, heightScale);
+                ApplyWindowRootLayout(widthScale, heightScale);
             }
-
-            rectTransform.anchorMin = new Vector2(0.5f, 1f);
-            rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
-            rectTransform.anchoredPosition = new Vector2(0f, -topGap);
-            rectTransform.sizeDelta = new Vector2(width, height);
-
-            EnsureChildRoots();
-            ApplyDesktopIconLayout(widthScale, heightScale);
-            ApplyWindowRootLayout(widthScale, heightScale);
+            finally
+            {
+                isApplyingLayout = false;
+            }
         }
 
         public void ApplyChildPanelLayout(RectTransform childRect)

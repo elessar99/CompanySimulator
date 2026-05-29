@@ -4,6 +4,7 @@ using CompanySimulator.Features.Banking.Runtime.Definitions;
 using CompanySimulator.Features.Banking.Runtime.Models;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Models;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -305,6 +306,77 @@ namespace CompanySimulator.Features.Banking.Runtime.Components
             }
 
             return false;
+        }
+
+        public BankSaveData CaptureSaveData()
+        {
+            EnsureInitialized();
+
+            var saveData = new BankSaveData
+            {
+                lastBankSummary = lastBankSummary
+            };
+
+            for (var i = 0; i < activeLoans.Count; i++)
+            {
+                var loan = activeLoans[i];
+                if (loan == null)
+                {
+                    continue;
+                }
+
+                saveData.activeLoans.Add(new ActiveLoanSaveData
+                {
+                    offerId = loan.OfferId,
+                    displayName = loan.DisplayName,
+                    isSpecialOffer = loan.IsSpecialOffer,
+                    principalAmount = loan.PrincipalAmount.Amount,
+                    interestRate = loan.InterestRate,
+                    installmentIntervalDays = loan.InstallmentIntervalDays,
+                    totalTermDays = loan.TotalTermDays,
+                    startedDay = loan.StartedDay,
+                    nextDueDay = loan.NextDueDay,
+                    remainingInstallmentCount = loan.RemainingInstallmentCount,
+                    remainingPrincipalAmount = loan.RemainingPrincipalAmount.Amount,
+                    remainingDebt = loan.RemainingDebt.Amount
+                });
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(BankSaveData saveData, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Banka kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            activeLoans.Clear();
+            for (var i = 0; i < saveData.activeLoans.Count; i++)
+            {
+                var loan = saveData.activeLoans[i];
+                activeLoans.Add(new ActiveLoanRuntimeData(
+                    loan.offerId,
+                    loan.displayName,
+                    loan.isSpecialOffer,
+                    Money.From(loan.principalAmount),
+                    loan.interestRate,
+                    loan.installmentIntervalDays,
+                    loan.totalTermDays,
+                    loan.startedDay,
+                    loan.nextDueDay,
+                    loan.remainingInstallmentCount,
+                    Money.From(loan.remainingPrincipalAmount),
+                    Money.From(loan.remainingDebt)));
+            }
+
+            lastBankSummary = saveData.lastBankSummary ?? string.Empty;
+            isInitialized = true;
+            DataChanged?.Invoke();
+            return true;
         }
 
         private bool EnsureInitialized()

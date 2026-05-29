@@ -77,6 +77,18 @@ namespace CompanySimulator.Features.Sectors.Runtime.Components
             return sectorLookup.TryGetValue(sector, out sectorData);
         }
 
+        public void ForceRefreshFromEconomy()
+        {
+            if (!isInitialized)
+            {
+                Initialize();
+                return;
+            }
+
+            RefreshActiveProjectCounts();
+            DataChanged?.Invoke();
+        }
+
         private bool EnsureInitialized()
         {
             if (isInitialized)

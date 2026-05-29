@@ -105,6 +105,35 @@ namespace CompanySimulator.Features.Employees.Runtime.Models
             AgreedDailySalary = agreedDailySalary.Amount > 0 ? agreedDailySalary : ExpectedDailySalary;
         }
 
+        public void RestoreRuntimeState(
+            float quality,
+            Money agreedDailySalary,
+            EmployeeQualityTier qualityTier,
+            int applicantRemainingDays,
+            int employmentDays,
+            int qualityProgressDays,
+            bool hasPendingQualityUpgrade,
+            bool isQualityUpgradeNegotiationActive,
+            EmployeeQualityTier qualityUpgradeSourceTier,
+            EmployeeQualityTier pendingQualityUpgradeTier,
+            int qualityUpgradeRequestRemainingDays,
+            string currentAssignmentName)
+        {
+            Quality = quality;
+            QualityTier = qualityTier;
+            IncomeMultiplier = Role != null ? Role.GetIncomeMultiplier(QualityTier) : ResolveIncomeMultiplier(QualityTier);
+            AgreedDailySalary = agreedDailySalary.Amount > 0 ? agreedDailySalary : Money.Zero;
+            ApplicantRemainingDays = applicantRemainingDays > 0 ? applicantRemainingDays : 0;
+            EmploymentDays = employmentDays > 0 ? employmentDays : 0;
+            QualityProgressDays = qualityProgressDays > 0 ? qualityProgressDays : 0;
+            HasPendingQualityUpgrade = hasPendingQualityUpgrade;
+            IsQualityUpgradeNegotiationActive = isQualityUpgradeNegotiationActive;
+            QualityUpgradeSourceTier = qualityUpgradeSourceTier;
+            PendingQualityUpgradeTier = pendingQualityUpgradeTier;
+            QualityUpgradeRequestRemainingDays = qualityUpgradeRequestRemainingDays > 0 ? qualityUpgradeRequestRemainingDays : 0;
+            CurrentAssignmentName = currentAssignmentName ?? string.Empty;
+        }
+
         public void AdvanceEmploymentDay()
         {
             EmploymentDays++;

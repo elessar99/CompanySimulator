@@ -6,6 +6,8 @@ using CompanySimulator.Features.Finance.Runtime.Definitions;
 using CompanySimulator.Features.Finance.Runtime.Models;
 using CompanySimulator.Features.Rivals.Runtime.Definitions;
 using CompanySimulator.Features.Rivals.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Features.Sectors.Runtime.Services;
 using UnityEngine;
 
@@ -106,6 +108,59 @@ namespace CompanySimulator.Features.Rivals.Runtime.Components
         public void ForceRebuildCompetitionCache()
         {
             RebuildCompetitionCache();
+        }
+
+        public RivalCompaniesSaveData CaptureSaveData()
+        {
+            if (!isInitialized)
+            {
+                Initialize();
+            }
+
+            var saveData = new RivalCompaniesSaveData();
+            for (var i = 0; i < rivals.Count; i++)
+            {
+                if (rivals[i] != null)
+                {
+                    saveData.rivals.Add(rivals[i].CaptureSaveData());
+                }
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(RivalCompaniesSaveData saveData, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Rakip firma kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            rivals.Clear();
+            for (var i = 0; i < saveData.rivals.Count; i++)
+            {
+                var savedRival = saveData.rivals[i];
+                if (!resolver.TryResolve<RivalCompanyDefinition>(savedRival.definitionId, out var definition))
+                {
+                    validationMessage = $"Rakip firma tanımı bulunamadı: {savedRival.definitionId}";
+                    return false;
+                }
+
+                var rival = new RivalCompanyRuntimeData(definition);
+                if (!rival.RestoreFromSaveData(savedRival, resolver, out validationMessage))
+                {
+                    return false;
+                }
+
+                rivals.Add(rival);
+            }
+
+            isInitialized = true;
+            RebuildCompetitionCache();
+            DataChanged?.Invoke();
+            return true;
         }
 
         private void OnDayAdvanced(int currentDay)

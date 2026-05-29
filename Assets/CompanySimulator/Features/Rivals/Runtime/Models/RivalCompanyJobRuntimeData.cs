@@ -47,6 +47,20 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             AgentRevenueReductionMultiplier = revenueReductionMultiplier;
         }
 
+        public void RestoreState(int daysSinceLastPayout, Money lastEarnedIncome, bool isAgentAffected, float agentRevenueReductionMultiplier)
+        {
+            DaysSinceLastPayout = System.Math.Max(0, daysSinceLastPayout);
+            LastEarnedIncome = lastEarnedIncome;
+            if (isAgentAffected)
+            {
+                SetAgentEffect(agentRevenueReductionMultiplier);
+            }
+            else
+            {
+                ClearAgentEffect();
+            }
+        }
+
         public void ClearAgentEffect()
         {
             IsAgentAffected = false;

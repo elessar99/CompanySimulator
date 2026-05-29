@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CompanySimulator.Features.Finance.Runtime.Components;
 using CompanySimulator.Features.Finance.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Models;
 using CompanySimulator.Shared.Runtime.Economy;
 using UnityEngine;
 
@@ -148,6 +149,50 @@ namespace CompanySimulator.Features.Office.Runtime.Components
             {
                 validationMessage = "Bu odanin yerlestirme alani aktif degil.";
                 return false;
+            }
+
+            return true;
+        }
+
+        public OfficeSaveData CaptureSaveData()
+        {
+            var saveData = new OfficeSaveData();
+            for (var i = 0; i < rooms.Count; i++)
+            {
+                var room = rooms[i];
+                if (room != null && room.IsUnlocked)
+                {
+                    saveData.unlockedRoomIds.Add(room.RoomId);
+                }
+            }
+
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(OfficeSaveData saveData, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Ofis oda kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            if (rooms.Count == 0)
+            {
+                DiscoverRooms();
+            }
+
+            var unlockedRoomIds = new HashSet<string>(saveData.unlockedRoomIds ?? new List<string>(), StringComparer.Ordinal);
+            for (var i = 0; i < rooms.Count; i++)
+            {
+                var room = rooms[i];
+                if (room == null)
+                {
+                    continue;
+                }
+
+                room.SetUnlocked(unlockedRoomIds.Contains(room.RoomId));
             }
 
             return true;

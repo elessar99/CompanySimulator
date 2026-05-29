@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using CompanySimulator.Features.Rivals.Runtime.Definitions;
+using CompanySimulator.Features.Save.Runtime.Models;
+using CompanySimulator.Features.Save.Runtime.Services;
 using CompanySimulator.Features.Sectors.Runtime.Definitions;
 using CompanySimulator.Features.Sectors.Runtime.Services;
 using CompanySimulator.Shared.Runtime.Economy;
@@ -70,6 +72,87 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             }
 
             return shouldSendAgent;
+        }
+
+        public RivalCompanySaveData CaptureSaveData()
+        {
+            var saveData = new RivalCompanySaveData
+            {
+                definitionId = Definition != null ? Definition.Id : string.Empty,
+                balance = balance.Amount,
+                daysSinceLastJobCheck = daysSinceLastJobCheck,
+                daysSinceLastSellCheck = daysSinceLastSellCheck,
+                daysSinceLastAgentCheck = daysSinceLastAgentCheck
+            };
+
+            for (var i = 0; i < activeJobs.Count; i++)
+            {
+                var job = activeJobs[i];
+                if (job == null || job.Definition == null)
+                {
+                    continue;
+                }
+
+                saveData.activeJobs.Add(new RivalCompanyJobSaveData
+                {
+                    definitionId = job.Definition.Id,
+                    startDay = job.StartDay,
+                    daysSinceLastPayout = job.DaysSinceLastPayout,
+                    lastEarnedIncome = job.LastEarnedIncome.Amount,
+                    isAgentAffected = job.IsAgentAffected,
+                    agentRevenueReductionMultiplier = job.AgentRevenueReductionMultiplier
+                });
+            }
+
+            CaptureLog(jobStartLog, saveData.jobStartLog);
+            CaptureLog(jobSellLog, saveData.jobSellLog);
+            return saveData;
+        }
+
+        public bool RestoreFromSaveData(RivalCompanySaveData saveData, GameSaveDefinitionResolver resolver, out string validationMessage)
+        {
+            validationMessage = string.Empty;
+            if (saveData == null)
+            {
+                validationMessage = "Rakip firma kayıt verisi bulunamadı.";
+                return false;
+            }
+
+            for (var i = 0; i < saveData.activeJobs.Count; i++)
+            {
+                var jobId = saveData.activeJobs[i].definitionId;
+                if (!resolver.TryResolve<RivalCompanyJobDefinition>(jobId, out _))
+                {
+                    validationMessage = $"Rakip iş tanımı bulunamadı: {jobId}";
+                    return false;
+                }
+            }
+
+            activeJobs.Clear();
+            jobStartLog.Clear();
+            jobSellLog.Clear();
+            balance = Money.From(saveData.balance);
+            daysSinceLastJobCheck = Math.Max(0, saveData.daysSinceLastJobCheck);
+            daysSinceLastSellCheck = Math.Max(0, saveData.daysSinceLastSellCheck);
+            daysSinceLastAgentCheck = Math.Max(0, saveData.daysSinceLastAgentCheck);
+
+            for (var i = 0; i < saveData.activeJobs.Count; i++)
+            {
+                var savedJob = saveData.activeJobs[i];
+                resolver.TryResolve<RivalCompanyJobDefinition>(savedJob.definitionId, out var jobDefinition);
+                var runtimeJob = new RivalCompanyJobRuntimeData(jobDefinition, savedJob.startDay);
+                runtimeJob.RestoreState(
+                    savedJob.daysSinceLastPayout,
+                    Money.From(savedJob.lastEarnedIncome),
+                    savedJob.isAgentAffected,
+                    savedJob.agentRevenueReductionMultiplier);
+                activeJobs.Add(runtimeJob);
+            }
+
+            RestoreLog(saveData.jobStartLog, resolver, jobStartLog);
+            RestoreLog(saveData.jobSellLog, resolver, jobSellLog);
+            RebuildSectorCache();
+            return true;
         }
 
         private void ProcessJobPayouts()
@@ -235,6 +318,36 @@ namespace CompanySimulator.Features.Rivals.Runtime.Models
             }
 
             return value;
+        }
+
+        private static void CaptureLog(IReadOnlyList<RivalJobLogEntry> source, List<RivalJobLogSaveData> target)
+        {
+            for (var i = 0; i < source.Count; i++)
+            {
+                var entry = source[i];
+                target.Add(new RivalJobLogSaveData
+                {
+                    jobName = entry.JobName,
+                    sectorId = entry.Sector != null ? entry.Sector.Id : string.Empty,
+                    day = entry.Day,
+                    amount = entry.Amount.Amount
+                });
+            }
+        }
+
+        private static void RestoreLog(IReadOnlyList<RivalJobLogSaveData> source, GameSaveDefinitionResolver resolver, List<RivalJobLogEntry> target)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < source.Count; i++)
+            {
+                var savedLog = source[i];
+                resolver.TryResolve<SectorDefinition>(savedLog.sectorId, out var sector);
+                target.Add(new RivalJobLogEntry(savedLog.jobName, sector, savedLog.day, Money.From(savedLog.amount)));
+            }
         }
     }
 }

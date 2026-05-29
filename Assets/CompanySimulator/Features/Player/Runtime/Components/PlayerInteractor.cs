@@ -18,6 +18,7 @@ namespace CompanySimulator.Features.Player.Runtime.Components
         [SerializeField] private FurniturePlacementManager furniturePlacementManager;
         [SerializeField] private InteractionPromptUI interactionPromptUi;
         [SerializeField] private Canvas rootCanvas;
+        [SerializeField] private GamePauseMenuUI pauseMenuUi;
         [SerializeField, Min(0.5f)] private float interactionDistance = 4f;
         [SerializeField] private LayerMask interactionMask = Physics.DefaultRaycastLayers;
         [SerializeField] private KeyCode interactKey = KeyCode.E;
@@ -47,18 +48,32 @@ namespace CompanySimulator.Features.Player.Runtime.Components
 
             rootCanvas ??= movementController != null ? movementController.RootCanvas : FindObjectOfType<Canvas>();
             EnsureInteractionPromptUi();
+            EnsurePauseMenuUi();
         }
 
         private void Update()
         {
             rootCanvas ??= movementController != null ? movementController.RootCanvas : FindObjectOfType<Canvas>();
             EnsureInteractionPromptUi();
+            EnsurePauseMenuUi();
             var computerOpen = RuntimePanelUiUtility.IsComputerPanelOpen(rootCanvas);
+
+            if (pauseMenuUi != null && pauseMenuUi.IsOpen)
+            {
+                ClearInteractionPrompt();
+                return;
+            }
 
             if (WasKeyPressed(cancelKey))
             {
                 if (HandleCancelInput(computerOpen))
                 {
+                    return;
+                }
+
+                if (!computerOpen && pauseMenuUi != null && pauseMenuUi.TryOpen())
+                {
+                    ClearInteractionPrompt();
                     return;
                 }
             }
@@ -358,6 +373,30 @@ namespace CompanySimulator.Features.Player.Runtime.Components
             }
 
             interactionPromptUi.SetRootCanvas(rootCanvas);
+        }
+
+        private void EnsurePauseMenuUi()
+        {
+            if (rootCanvas == null)
+            {
+                return;
+            }
+
+            if (pauseMenuUi == null)
+            {
+                pauseMenuUi = FindObjectOfType<GamePauseMenuUI>(true);
+            }
+
+            if (pauseMenuUi == null)
+            {
+                pauseMenuUi = new GameObject("GamePauseMenuUI", typeof(GamePauseMenuUI)).GetComponent<GamePauseMenuUI>();
+            }
+
+            pauseMenuUi.SetRootCanvas(rootCanvas);
+            if (movementController != null)
+            {
+                pauseMenuUi.SetMovementController(movementController);
+            }
         }
 
         private void SetInteractionPrompt(string message)

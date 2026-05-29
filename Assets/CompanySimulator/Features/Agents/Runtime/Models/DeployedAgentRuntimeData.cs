@@ -86,6 +86,26 @@ namespace CompanySimulator.Features.Agents.Runtime.Models
             return false;
         }
 
+        public void RestoreState(int remainingDays, bool isActive, bool hasFailed, IReadOnlyList<RivalCompanyJobRuntimeData> restoredAffectedJobs)
+        {
+            RemainingDays = remainingDays > 0 ? remainingDays : 0;
+            IsActive = isActive;
+            HasFailed = hasFailed;
+            affectedJobs.Clear();
+            if (restoredAffectedJobs == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < restoredAffectedJobs.Count; i++)
+            {
+                if (restoredAffectedJobs[i] != null)
+                {
+                    affectedJobs.Add(restoredAffectedJobs[i]);
+                }
+            }
+        }
+
         public void Expire()
         {
             IsActive = false;

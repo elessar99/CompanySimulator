@@ -50,5 +50,35 @@ namespace CompanySimulator.Features.Finance.Runtime.Services
             balance = Money.Zero;
             entries.Clear();
         }
+
+        public void Restore(IReadOnlyList<LedgerEntry> restoredEntries, Money fallbackBalance)
+        {
+            balance = Money.Zero;
+            entries.Clear();
+
+            if (restoredEntries != null)
+            {
+                for (var i = 0; i < restoredEntries.Count; i++)
+                {
+                    var entry = restoredEntries[i];
+                    entries.Add(entry);
+                    balance += entry.Amount;
+                }
+            }
+
+            if (entries.Count == 0 && fallbackBalance != Money.Zero)
+            {
+                entries.Add(new LedgerEntry(1, LedgerEntryType.MiscIncome, fallbackBalance, "Kayıt yükleme bakiye düzeltmesi"));
+                balance = fallbackBalance;
+                return;
+            }
+
+            if (balance != fallbackBalance)
+            {
+                var adjustment = fallbackBalance - balance;
+                entries.Add(new LedgerEntry(1, LedgerEntryType.MiscIncome, adjustment, "Kayıt yükleme bakiye düzeltmesi"));
+                balance = fallbackBalance;
+            }
+        }
     }
 }
